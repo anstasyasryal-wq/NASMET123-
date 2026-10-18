@@ -28,9 +28,10 @@ import {
 interface MonasticOasisProps {
   currentUser?: User | null;
   onBackToHome: () => void;
+  onNavigateToManual?: () => void;
 }
 
-export const MonasticOasis: React.FC<MonasticOasisProps> = ({ currentUser, onBackToHome }) => {
+export const MonasticOasis: React.FC<MonasticOasisProps> = ({ currentUser, onBackToHome, onNavigateToManual }) => {
   const [activeTab, setActiveTab] = useState<'pillars' | 'examen' | 'covenant' | 'dispensary' | 'virtues' | 'retreat_eval'>('pillars');
 
   // --- 1. PILLARS OF CONSECRATION ---
@@ -479,6 +480,30 @@ export const MonasticOasis: React.FC<MonasticOasisProps> = ({ currentUser, onBac
           المرجع الروحي الشامل لكل نفس نذرت قلبها للمسيح؛ ركائز التكريس الإنجيلي، محاسبة النفس اليومية بالميزان، ميثاق تجديد العهد، وصيدلية الآباء للحروب الروحية.
         </p>
       </div>
+
+      {/* Quick Bridge to Consecrated Manual */}
+      {onNavigateToManual && (
+        <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-950/70 via-stone-900 to-amber-950/70 border-2 border-amber-500/40 flex flex-col sm:flex-row items-center justify-between gap-3 text-right shadow-md">
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">📜</span>
+            <div className="space-y-0.5">
+              <h4 className="font-spiritual text-sm font-bold text-amber-200">
+                مرجع المكرس الكنسي الكامل | كيف تعيش حسب قلب الله
+              </h4>
+              <p className="text-xs text-stone-300">
+                دستور قلب داود (السمات الـ ٧)، كانون اليوم المتزن، موسوعة حروب التكريس وترياق الآباء، والوصايا العشر.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onNavigateToManual}
+            className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-stone-950 font-bold text-xs shrink-0 transition shadow-sm cursor-pointer flex items-center gap-1.5"
+          >
+            <span>فتح المرجع الشامل</span>
+            <span>←</span>
+          </button>
+        </div>
+      )}
 
       {/* Interactive Monastic Audio Player */}
       <MonasticAudioPlayer />

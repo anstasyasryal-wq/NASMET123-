@@ -94,10 +94,10 @@ export const PersonalSpaceView: React.FC<PersonalSpaceViewProps> = ({
             <span className="text-2xl sm:text-3xl">💌</span>
             <div>
               <h4 className="text-sm font-bold text-amber-200">
-                صندوق رسائل أبيك السماوي (٦٨+ رسالة)
+                صندوق رسائل أبيك السماوي (٣٦٦ رسالة بعدد أيام السنة بدون تكرار)
               </h4>
               <p className="text-xs text-stone-300">
-                اسحب رسالة بالحظ اليوم، أو راجع رسائلك المحفوظة في المخدع.
+                رسالة فريدة ومباركة لكل يوم من أيام السنة، مع إمكانية سحب رسائل بالقرعة وحفظ المفضلة.
               </p>
             </div>
           </div>

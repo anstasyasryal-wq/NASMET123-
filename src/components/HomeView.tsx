@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { User, Stage, Announcement } from '../types';
 import { FortuneWheel, WheelSection } from './FortuneWheel';
 import { getOrRefreshDailyMessage, formatRemainingTime } from '../utils/heavenlyHistory';
-import { Sparkles, Heart, Clock, ShieldCheck } from 'lucide-react';
+import { Sparkles, Heart, Clock, ShieldCheck, ScrollText, Compass, Shield } from 'lucide-react';
 import { useHymnsAudio } from '../context/HymnsAudioContext';
 
 interface HomeViewProps {
@@ -34,6 +34,9 @@ interface HomeViewProps {
   onOpenIconGallery?: () => void;
   onOpenSaintsGallery?: () => void;
   onNavigateToSpiritualFather?: () => void;
+  onNavigateToConsecratedManual?: () => void;
+  onOpenSaintsStickers?: () => void;
+  onNavigateToPrayerFortress?: () => void;
 }
 
 export const HomeView: React.FC<HomeViewProps> = ({
@@ -65,6 +68,9 @@ export const HomeView: React.FC<HomeViewProps> = ({
   onOpenIconGallery,
   onOpenSaintsGallery,
   onNavigateToSpiritualFather,
+  onNavigateToConsecratedManual,
+  onOpenSaintsStickers,
+  onNavigateToPrayerFortress,
 }) => {
   const [selectedSection, setSelectedSection] = useState<WheelSection | null>(null);
   const { message: dailyMessage, timeRemainingMs } = getOrRefreshDailyMessage(false);
@@ -115,6 +121,11 @@ export const HomeView: React.FC<HomeViewProps> = ({
       patristicSaint: 'القديس يوحنا ذهبي الفم',
       onOpen: () => onNavigateToSpiritualLife?.(),
       items: [
+        {
+          title: '🛡️ حصن الصلاة اليومي | رفيق مسيرة المكرس',
+          subtitle: 'مزمور وصلاة قصيرة حسب ساعات الكنيسة والطقس مع المنبه الذكي',
+          onClick: () => (onNavigateToPrayerFortress ? onNavigateToPrayerFortress() : onNavigateToSpiritualLife?.()),
+        },
         {
           title: 'متتبع خطة القراءة السنوية (365 يوماً)',
           subtitle: 'متابعة بصرية سنوية مع أوسمة وتأملات مخدعية',
@@ -198,6 +209,11 @@ export const HomeView: React.FC<HomeViewProps> = ({
       patristicSaint: 'القديس باسيليوس الكبير',
       onOpen: () => onNavigateToMonasticOasis?.(),
       items: [
+        {
+          title: '📖 مرجع ودستور المكرس | كيف تعيش حسب قلب الله',
+          subtitle: 'دستور قلب داود (السمات الـ ٧)، كانون اليوم المتزن، موسوعة الحروب، والوصايا الذهبية',
+          onClick: () => (onNavigateToConsecratedManual ? onNavigateToConsecratedManual() : onNavigateToMonasticOasis?.()),
+        },
         {
           title: 'مشغل الترانيم والألحان الكنسية والتأملية',
           subtitle: 'قوائم مخصصة لكل مناسبة روحية (المخدع، الصوم، القيامة، التكريس، كيهك، التعزية)',
@@ -441,6 +457,148 @@ export const HomeView: React.FC<HomeViewProps> = ({
               >
                 <Sparkles className="w-4 h-4" />
                 <span>اسحب رسالتك الروحية الآن</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Saints Stickers Highlight Card */}
+      {onOpenSaintsStickers && (
+        <div className="rounded-3xl bg-gradient-to-r from-amber-950/80 via-[#1b140d] to-stone-900 border-2 border-amber-500/50 p-5 sm:p-7 shadow-xl relative overflow-hidden text-right">
+          <div className="absolute top-0 right-0 w-44 h-44 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-5">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-yellow-400 to-amber-600 text-stone-950 flex items-center justify-center font-black text-2xl shadow-lg shadow-amber-500/20 shrink-0">
+                🌟
+              </div>
+              <div className="space-y-1.5">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h3 className="text-base sm:text-lg font-spiritual font-black text-amber-200">
+                    استكر قديس اليوم والتنبيه على الفضائل (الشرق والغرب)
+                  </h3>
+                  <span className="text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2.5 py-0.5 rounded-full font-bold">
+                    ١٨+ قديس من كل التقاليد
+                  </span>
+                  <span className="text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-2 py-0.5 rounded-full font-bold">
+                    رسالة وتدريب يومي
+                  </span>
+                </div>
+                <p className="text-xs sm:text-sm text-stone-300 max-w-2xl leading-relaxed">
+                  قديسو الشرق الأرثوذكسي، الغرب اللاتيني، التراث السلتي والسرياني، والتراث الجامع — اسحب استكر قديس اليوم، وتأمل في رسالته وتنبيهه على الفضيلة في مخدعك.
+                </p>
+                <div className="flex flex-wrap items-center gap-3 text-[11px] text-amber-400 font-mono">
+                  <span>🕊️ أنطونيوس وأغسطينوس</span>
+                  <span>•</span>
+                  <span>🌿 فرنسيس وتريزا وباتريك</span>
+                  <span>•</span>
+                  <span>💧 مار إسحق وبندكتوس وسلوان</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2.5 w-full md:w-auto shrink-0">
+              <button
+                onClick={onOpenSaintsStickers}
+                className="w-full md:w-auto px-6 py-3 rounded-2xl bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-600 hover:from-amber-400 hover:to-yellow-400 text-stone-950 font-black text-xs sm:text-sm shadow-lg shadow-amber-500/30 flex items-center justify-center gap-2 transition cursor-pointer active:scale-95"
+              >
+                <span>🌟</span>
+                <span>سحب استكر قديس اليوم والألبوم</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Daily Prayer Fortress Highlight Card */}
+      {onNavigateToPrayerFortress && (
+        <div className="rounded-3xl bg-gradient-to-r from-stone-950 via-[#1c140d] to-stone-950 border-2 border-amber-500/60 p-5 sm:p-7 shadow-xl relative overflow-hidden text-right">
+          <div className="absolute top-0 right-0 w-48 h-48 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-5">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-600 via-amber-500 to-amber-700 text-stone-950 flex items-center justify-center font-black text-2xl shadow-lg shadow-amber-600/20 shrink-0">
+                🛡️
+              </div>
+              <div className="space-y-1.5">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h3 className="text-base sm:text-lg font-spiritual font-black text-amber-200">
+                    حصن الصلاة اليومي | رفيق مسيرة المكرس
+                  </h3>
+                  <span className="text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2.5 py-0.5 rounded-full font-bold">
+                    جدول الساعات الكنسية والطقس
+                  </span>
+                  <span className="text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-2 py-0.5 rounded-full font-bold">
+                    منبهات ذكية ومسبحة سهام
+                  </span>
+                </div>
+                <p className="text-xs sm:text-sm text-stone-300 max-w-2xl leading-relaxed">
+                  تلقَّ في كل ساعة مزموراً كنسياً مقترحاً مع صلاة مخدعية قصيرة تنبثق من طقس كنيستك وساعاتها السبع، مع إمكانية ضبط منبه الحصن الصوتي ليكون رفيقاً روحياً دائماً في مسيرتك.
+                </p>
+                <div className="flex flex-wrap items-center gap-3 text-[11px] text-amber-400 font-mono">
+                  <span>🔔 ٧ ساعات أجبية طقسية</span>
+                  <span>•</span>
+                  <span>⏰ منبهات بألحان الكنيسة</span>
+                  <span>•</span>
+                  <span>📿 مسبحة صلاة يسوع</span>
+                  <span>•</span>
+                  <span>🌊 دروع الطوارئ الروحية</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2.5 w-full md:w-auto shrink-0">
+              <button
+                onClick={onNavigateToPrayerFortress}
+                className="w-full md:w-auto px-6 py-3 rounded-2xl bg-gradient-to-r from-amber-500 via-amber-600 to-amber-700 hover:from-amber-400 hover:to-amber-500 text-stone-950 font-black text-xs sm:text-sm shadow-lg shadow-amber-600/30 flex items-center justify-center gap-2 transition cursor-pointer active:scale-95"
+              >
+                <Shield className="w-4 h-4" />
+                <span>دخول حصن الصلاة وتحديد التنبيه</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Consecrated Manual Highlight Card */}
+      {onNavigateToConsecratedManual && (
+        <div className="rounded-3xl bg-gradient-to-r from-stone-900 via-amber-950/70 to-stone-900 border-2 border-amber-500/50 p-5 sm:p-7 shadow-xl relative overflow-hidden text-right">
+          <div className="absolute top-0 right-0 w-48 h-48 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-5">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-500 to-amber-700 text-stone-950 flex items-center justify-center font-black text-2xl shadow-lg shadow-amber-500/20 shrink-0">
+                📜
+              </div>
+              <div className="space-y-1.5">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h3 className="text-base sm:text-lg font-spiritual font-black text-amber-200">
+                    مرجع المكرس الكنسي | كيف تعيش حسب قلب الله
+                  </h3>
+                  <span className="text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2.5 py-0.5 rounded-full font-bold">
+                    دستور المكرس ودليل الآباء
+                  </span>
+                </div>
+                <p className="text-xs sm:text-sm text-stone-300 max-w-2xl leading-relaxed">
+                  «وَجَدْتُ دَاوُدَ بْنَ يَسَّى رَجُلاً حَسَبَ قَلْبِي» — الدليل الشامل لسمات قلب داود الـ ٧، كانون اليوم المتزن، موسوعة حروب التكريس الكبرى، والوصايا الذهبية العشر.
+                </p>
+                <div className="flex flex-wrap items-center gap-3 text-[11px] text-amber-400/90 font-mono">
+                  <span>✨ ٧ سمات إنجيلية</span>
+                  <span>•</span>
+                  <span>⏱️ كانون اليوم المتزن</span>
+                  <span>•</span>
+                  <span>🛡️ ٧ حروب كبرى وترياق الآباء</span>
+                  <span>•</span>
+                  <span>📜 ١٠ وصايا ذهبية</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2.5 w-full md:w-auto shrink-0">
+              <button
+                onClick={onNavigateToConsecratedManual}
+                className="w-full md:w-auto px-6 py-3 rounded-2xl bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-stone-950 font-black text-xs sm:text-sm shadow-lg shadow-amber-600/30 flex items-center justify-center gap-2 transition cursor-pointer active:scale-95"
+              >
+                <ScrollText className="w-4 h-4" />
+                <span>تصفح مرجع ودستور المكرس الآن</span>
               </button>
             </div>
           </div>

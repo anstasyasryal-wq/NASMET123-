@@ -42,6 +42,8 @@ import { SpiritualGamesHub } from './components/SpiritualGamesHub';
 import { CollectiveChallengesView } from './components/CollectiveChallengesView';
 import { SpiritualCalendarView } from './components/SpiritualCalendarView';
 import { SpiritualFatherCompanion } from './components/SpiritualFatherCompanion';
+import { ConsecratedManualReference } from './components/ConsecratedManualReference';
+import { DailyPrayerFortress } from './components/DailyPrayerFortress';
 import { ReadingThemeProvider, useReadingTheme } from './context/ReadingThemeContext';
 import { LanguageProvider, useLanguage } from './context/LanguageContext';
 import { EmergencyRescueModal } from './components/EmergencyRescueModal';
@@ -49,6 +51,8 @@ import { HeavenlyMessageModal } from './components/HeavenlyMessageModal';
 import { SpiritualJournal } from './components/SpiritualJournal';
 import { IconGalleryModal } from './components/IconGalleryModal';
 import { ChurchFathersAndSaintsGallery } from './components/ChurchFathersAndSaintsGallery';
+import { SaintsStickersModal } from './components/SaintsStickersModal';
+import { DailySaintAlertBanner } from './components/DailySaintAlertBanner';
 import { HymnsAudioProvider } from './context/HymnsAudioContext';
 import { SpiritualHymnsPlayer } from './components/SpiritualHymnsPlayer';
 
@@ -80,6 +84,7 @@ function AppContent() {
   const [showSpiritualJournal, setShowSpiritualJournal] = useState<boolean>(false);
   const [showIconGallery, setShowIconGallery] = useState<boolean>(false);
   const [showSaintsGallery, setShowSaintsGallery] = useState<boolean>(false);
+  const [showSaintsStickersModal, setShowSaintsStickersModal] = useState<boolean>(false);
   const [emergencySituation, setEmergencySituation] = useState<'distress' | 'boredom' | 'lukewarmness' | 'anger'>('distress');
 
   const { getContainerClass } = useReadingTheme();
@@ -152,10 +157,20 @@ function AppContent() {
           onOpenRules={() => setShowRulesModal(true)}
           onOpenSpiritualGuide={() => setShowSpiritualGuideModal(true)}
           onOpenHeavenlyMessage={() => setShowHeavenlyMessageModal(true)}
+          onOpenSaintsStickers={() => setShowSaintsStickersModal(true)}
         />
 
         {/* Main Content Area */}
         <main className="max-w-6xl mx-auto px-4 py-6">
+          {/* Daily Saint & Virtue Alert Banner (Persistent across app views) */}
+          {currentView !== 'stage_player' && (
+            <div className="mb-6">
+              <DailySaintAlertBanner
+                onOpenFullModal={() => setShowSaintsStickersModal(true)}
+              />
+            </div>
+          )}
+
           {currentView === 'home' && (
             <HomeView
               currentUser={currentUser}
@@ -186,6 +201,9 @@ function AppContent() {
               onOpenIconGallery={() => setShowIconGallery(true)}
               onOpenSaintsGallery={() => setShowSaintsGallery(true)}
               onNavigateToSpiritualFather={() => handleNavigate('spiritual_father')}
+              onNavigateToConsecratedManual={() => handleNavigate('consecrated_manual')}
+              onOpenSaintsStickers={() => setShowSaintsStickersModal(true)}
+              onNavigateToPrayerFortress={() => handleNavigate('prayer_fortress')}
             />
           )}
 
@@ -232,6 +250,7 @@ function AppContent() {
               onOpenLogin={() => setShowRegistrationModal(true)}
               onOpenSpiritualGuide={() => setShowSpiritualGuideModal(true)}
               onBackToHome={() => handleNavigate('home')}
+              onNavigateToPrayerFortress={() => handleNavigate('prayer_fortress')}
             />
           )}
 
@@ -288,6 +307,7 @@ function AppContent() {
             <MonasticOasis
               currentUser={currentUser}
               onBackToHome={() => handleNavigate('home')}
+              onNavigateToManual={() => handleNavigate('consecrated_manual')}
             />
           )}
 
@@ -345,6 +365,33 @@ function AppContent() {
               onBackToHome={() => handleNavigate('home')}
             />
           )}
+
+          {currentView === 'consecrated_manual' && (
+            <ConsecratedManualReference
+              currentUser={currentUser}
+              onBackToHome={() => handleNavigate('home')}
+              onNavigateToOasis={() => handleNavigate('monastic_oasis')}
+              onNavigateToSpiritualFather={() => handleNavigate('spiritual_father')}
+              onNavigateToPrayerFortress={() => handleNavigate('prayer_fortress')}
+            />
+          )}
+
+          {currentView === 'saints_stickers' && (
+            <SaintsStickersModal
+              isFullView={true}
+              currentUser={currentUser}
+              onBackToHome={() => handleNavigate('home')}
+            />
+          )}
+
+          {currentView === 'prayer_fortress' && (
+            <DailyPrayerFortress
+              currentUser={currentUser}
+              onBackToHome={() => handleNavigate('home')}
+              onNavigateToSpiritualFather={() => handleNavigate('spiritual_father')}
+              onNavigateToConsecratedManual={() => handleNavigate('consecrated_manual')}
+            />
+          )}
         </main>
       </div>
 
@@ -374,6 +421,12 @@ function AppContent() {
       <HeavenlyMessageModal
         isOpen={showHeavenlyMessageModal}
         onClose={() => setShowHeavenlyMessageModal(false)}
+        currentUser={currentUser}
+      />
+
+      <SaintsStickersModal
+        isOpen={showSaintsStickersModal}
+        onClose={() => setShowSaintsStickersModal(false)}
         currentUser={currentUser}
       />
 

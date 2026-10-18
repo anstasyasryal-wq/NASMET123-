@@ -18,7 +18,10 @@ export type AppView =
   | 'spiritual_games'
   | 'collective_challenges'
   | 'spiritual_calendar'
-  | 'spiritual_father';
+  | 'spiritual_father'
+  | 'consecrated_manual'
+  | 'saints_stickers'
+  | 'prayer_fortress';
 
 export type UserRole = 'participant' | 'supervisor' | 'guest';
 

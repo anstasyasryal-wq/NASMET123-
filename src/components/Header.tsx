@@ -24,6 +24,7 @@ import {
   Calendar,
   Headphones,
   ShieldCheck,
+  Shield,
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -35,6 +36,7 @@ interface HeaderProps {
   onOpenSpiritualGuide: () => void;
   onOpenReadingSettings?: () => void;
   onOpenHeavenlyMessage?: () => void;
+  onOpenSaintsStickers?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -45,6 +47,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenRules,
   onOpenSpiritualGuide,
   onOpenHeavenlyMessage,
+  onOpenSaintsStickers,
 }) => {
   const [isMuted, setIsMuted] = useState(soundManager.getIsMuted());
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -58,6 +61,8 @@ export const Header: React.FC<HeaderProps> = ({
 
   const navLinks = [
     { view: 'home' as AppView, label: 'الرئيسية (العجلة)', icon: Home },
+    { view: 'prayer_fortress' as AppView, label: 'حصن الصلاة اليومي', icon: Shield },
+    { view: 'consecrated_manual' as AppView, label: 'مرجع المكرس', icon: ScrollText },
     { view: 'spiritual_father' as AppView, label: 'أبوي الروحي وإعداد الاعتراف', icon: ShieldCheck },
     { view: 'monastic_oasis' as AppView, label: 'دستور المكرس', icon: Compass },
     { view: 'spiritual_life' as AppView, label: 'الحياة الروحية', icon: Heart },
@@ -114,6 +119,21 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Right utility buttons */}
         <div className="flex items-center gap-2">
+          {/* Daily Prayer Fortress Button */}
+          <button
+            onClick={() => onNavigate('prayer_fortress')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold shadow-xs transition cursor-pointer group ${
+              currentView === 'prayer_fortress'
+                ? 'bg-amber-600 text-white border-amber-400'
+                : 'bg-gradient-to-r from-amber-600/20 via-stone-900 to-amber-700/20 hover:from-amber-600/30 text-amber-200 border-amber-500/40'
+            }`}
+            title="حصن الصلاة اليومي: مزمور وصلاة قصيرة حسب جدول الكنيسة مع المنبه"
+          >
+            <span className="text-sm group-hover:scale-125 transition-transform duration-200">🛡️</span>
+            <span className="hidden md:inline">حصن الصلاة اليومي</span>
+            <span className="md:hidden">حصن الصلاة</span>
+          </button>
+
           {/* Spiritual Guide Button */}
           <button
             onClick={onOpenSpiritualGuide}
@@ -135,6 +155,19 @@ export const Header: React.FC<HeaderProps> = ({
             <span className="hidden md:inline">رسالة من أبيك السماوي</span>
             <span className="md:hidden">رسالة اليوم</span>
           </button>
+
+          {/* Saints Stickers Button */}
+          {onOpenSaintsStickers && (
+            <button
+              onClick={onOpenSaintsStickers}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-yellow-500/20 via-amber-600/30 to-amber-700/20 hover:from-yellow-500/30 hover:to-amber-600/40 border border-amber-400/50 text-amber-200 text-xs font-bold shadow-sm transition cursor-pointer group"
+              title="استكر قديس اليوم والتنبيه على الفضائل (الشرق والغرب وكنائس العالم)"
+            >
+              <span className="text-sm group-hover:scale-125 transition-transform duration-200">🌟</span>
+              <span className="hidden md:inline">استكر قديس اليوم</span>
+              <span className="md:hidden">استكر القديس</span>
+            </button>
+          )}
 
           {/* Hymns & Chants Audio Player Button */}
           <button

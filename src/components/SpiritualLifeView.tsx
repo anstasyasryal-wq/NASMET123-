@@ -11,6 +11,7 @@ interface SpiritualLifeViewProps {
   onOpenLogin: () => void;
   onOpenSpiritualGuide: () => void;
   onBackToHome: () => void;
+  onNavigateToPrayerFortress?: () => void;
 }
 
 export const SpiritualLifeView: React.FC<SpiritualLifeViewProps> = ({
@@ -18,6 +19,7 @@ export const SpiritualLifeView: React.FC<SpiritualLifeViewProps> = ({
   onOpenLogin,
   onOpenSpiritualGuide,
   onBackToHome,
+  onNavigateToPrayerFortress,
 }) => {
   const [activeTab, setActiveTab] = useState<'annual_plan' | 'maturity_tests' | 'scheduled_prayers' | 'starter_days'>('annual_plan');
   const [completedDays, setCompletedDays] = useState<number[]>([1, 2]);
@@ -156,7 +158,32 @@ export const SpiritualLifeView: React.FC<SpiritualLifeViewProps> = ({
 
       {/* Tab 3: Scheduled Prayers */}
       {activeTab === 'scheduled_prayers' && (
-        <ScheduledPrayerReminders currentUser={currentUser} />
+        <div className="space-y-6">
+          {onNavigateToPrayerFortress && (
+            <div className="p-5 rounded-3xl bg-gradient-to-r from-stone-950 via-amber-950/70 to-stone-950 border-2 border-amber-500/50 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xl">
+              <div className="flex items-center gap-3.5">
+                <div className="w-12 h-12 rounded-2xl bg-amber-600/30 text-amber-300 flex items-center justify-center text-2xl border border-amber-500/40 shrink-0">
+                  🛡️
+                </div>
+                <div>
+                  <h3 className="font-spiritual text-base sm:text-lg font-bold text-amber-100">
+                    حصن الصلاة اليومي (مزامير وصلوات طقسية حية)
+                  </h3>
+                  <p className="text-xs text-stone-300 leading-relaxed">
+                    اقتراح مزمور وصلاة قصيرة بحسب ساعات الكنيسة السبع وطقس الأيام، مع مسبحة صلاة يسوع ودروع الطوارئ.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={onNavigateToPrayerFortress}
+                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 text-white font-bold text-xs shadow-md transition cursor-pointer shrink-0"
+              >
+                دخول حصن الصلاة اليومي ←
+              </button>
+            </div>
+          )}
+          <ScheduledPrayerReminders currentUser={currentUser} />
+        </div>
       )}
 
       {/* Tab 4: Starter Days */}

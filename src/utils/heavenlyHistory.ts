@@ -1,4 +1,9 @@
-import { HeavenlyMessage, HEAVENLY_MESSAGES } from '../data/heavenlyMessages';
+import {
+  HeavenlyMessage,
+  HEAVENLY_MESSAGES,
+  getDayOfYear,
+  getMessageForDayOfYear,
+} from '../data/heavenlyMessages';
 
 const HISTORY_STORAGE_KEY = 'mokarasa_heavenly_seen_history';
 const DAILY_STORAGE_KEY = 'mokarasa_heavenly_active_daily';
@@ -167,10 +172,16 @@ export function getOrRefreshDailyMessage(forceNew: boolean = false): {
     }
   }
 
-  // Pick a fresh message not seen in last 24 hours
-  const eligible = getEligibleHeavenlyMessages();
-  const randomIndex = Math.floor(Math.random() * eligible.length);
-  const fresh = eligible[randomIndex] || HEAVENLY_MESSAGES[0];
+  // Pick today's assigned message by Day of the Year (1 to 366), or a fresh eligible one if forceNew
+  let fresh: HeavenlyMessage;
+  if (forceNew) {
+    const eligible = getEligibleHeavenlyMessages();
+    const randomIndex = Math.floor(Math.random() * eligible.length);
+    fresh = eligible[randomIndex] || HEAVENLY_MESSAGES[0];
+  } else {
+    const currentDayOfYear = getDayOfYear();
+    fresh = getMessageForDayOfYear(currentDayOfYear);
+  }
 
   recordMessageSeen(fresh.id);
 
