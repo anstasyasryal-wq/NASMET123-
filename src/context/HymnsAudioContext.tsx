@@ -248,7 +248,7 @@ export const SPIRITUAL_OCCASIONS: SpiritualOccasion[] = [
   },
   {
     id: 'consecration',
-    name: 'مناسبة التكريس ونذر القلب',
+    name: 'مناسبة التكريس ونذر ال��لب',
     shortName: 'عهد التكريس',
     icon: '✝️',
     color: '#be185d',
@@ -401,7 +401,7 @@ export const SPIRITUAL_OCCASIONS: SpiritualOccasion[] = [
         meditation: '«السلام ليس غياب المشاكل، بل هو حضور الله في وسط المشاكل كشمس تدفئ برد النفس».',
         patristicQuote: '«اقتنِ السلام في قلبك، تجد أن آلافاً من حولك يخلصون بسلامك الداخلي».',
         patristicSaint: 'القديس سيرافيم ساروفسكي',
-        bibleVerse: '«وَسَلاَمُ اللهِ الَّذِي يَفُوقُ كُلَّ عَقْل، يَحْفَظُ قُلُوبَكُمْ وَأَفْكَارَكُمْ فِي الْمَسِيحِ يَسُوعَ».',
+        bibleVerse: '«وَسَلاَمُ اللهِ الَّذِي يَفُوقُ كُلَّ ��َقْل، يَحْفَظُ قُلُوبَكُمْ وَأَفْكَارَكُمْ فِي الْمَسِيحِ يَسُوعَ».',
         bibleRef: 'فيلبي 4: 7',
       },
     ],
@@ -486,6 +486,8 @@ export const HymnsAudioProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       musicRef.current = startAmbientMusic(ctx, gainNodeRef.current, {
         frequencies: track.frequencies,
         filterFreq: track.filterFreq,
+        waveform: track.waveform,
+        seed: track.id,
       });
     } catch (e) {
       console.warn('Audio start error:', e);
