@@ -25,6 +25,7 @@ import {
   Headphones,
   ShieldCheck,
   Shield,
+  Coins,
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -62,6 +63,7 @@ export const Header: React.FC<HeaderProps> = ({
   const navLinks = [
     { view: 'home' as AppView, label: 'الرئيسية (العجلة)', icon: Home },
     { view: 'prayer_fortress' as AppView, label: 'حصن الصلاة اليومي', icon: Shield },
+    { view: 'virtue_jar' as AppView, label: 'حصالة الفضائل', icon: Coins },
     { view: 'consecrated_manual' as AppView, label: 'مرجع المكرس', icon: ScrollText },
     { view: 'spiritual_father' as AppView, label: 'أبوي الروحي وإعداد الاعتراف', icon: ShieldCheck },
     { view: 'monastic_oasis' as AppView, label: 'دستور المكرس', icon: Compass },

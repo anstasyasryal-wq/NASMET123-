@@ -168,29 +168,41 @@ export const HeavenlyMessageModal: React.FC<HeavenlyMessageModalProps> = ({
   };
 
   // Copy message to clipboard
-  const handleCopyMessage = () => {
+  const handleCopyMessage = async () => {
     const textToCopy = `🕊️ «رسالة من أبيك السماوي» 🕊️\n\n${currentMessage.salutation}\n\n${currentMessage.message}\n\n📖 الآية الشاهدة:\n${currentMessage.verse}\n(${currentMessage.verseRef})\n\n💡 تأمل لقلبك:\n${currentMessage.reflection}\n\n✝️ مشروع «حسب قلب الله»`;
 
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(textToCopy).then(() => {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      try {
+        await navigator.clipboard.writeText(textToCopy);
         setCopied(true);
         soundManager.playTick();
         setTimeout(() => setCopied(false), 2200);
-      });
+      } catch (err: any) {
+        console.error('Clipboard copy failed:', err);
+      }
     }
   };
 
   // Share via WhatsApp or Web Share
-  const handleShare = () => {
+  const handleShare = async () => {
     const shareText = `🕊️ رسالة من أبيك السماوي اليوم:\n\n«${currentMessage.message}»\n\n📖 ${currentMessage.verse} (${currentMessage.verseRef})`;
 
     if (navigator.share) {
-      navigator
-        .share({
+      try {
+        await navigator.share({
           title: 'رسالة من أبيك السماوي',
           text: shareText,
-        })
-        .catch(() => {});
+        });
+      } catch (err: any) {
+        // If user cancelled (AbortError), do not treat as error or trigger automatic copy.
+        if (err.name !== 'AbortError') {
+          console.error('Web share failed:', err);
+          window.open(
+            `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`,
+            '_blank'
+          );
+        }
+      }
     } else {
       window.open(
         `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`,

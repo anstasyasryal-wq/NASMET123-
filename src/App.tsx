@@ -44,6 +44,7 @@ import { SpiritualCalendarView } from './components/SpiritualCalendarView';
 import { SpiritualFatherCompanion } from './components/SpiritualFatherCompanion';
 import { ConsecratedManualReference } from './components/ConsecratedManualReference';
 import { DailyPrayerFortress } from './components/DailyPrayerFortress';
+import { VirtueJarComponent } from './components/VirtueJarComponent';
 import { ReadingThemeProvider, useReadingTheme } from './context/ReadingThemeContext';
 import { LanguageProvider, useLanguage } from './context/LanguageContext';
 import { EmergencyRescueModal } from './components/EmergencyRescueModal';
@@ -390,6 +391,13 @@ function AppContent() {
               onBackToHome={() => handleNavigate('home')}
               onNavigateToSpiritualFather={() => handleNavigate('spiritual_father')}
               onNavigateToConsecratedManual={() => handleNavigate('consecrated_manual')}
+            />
+          )}
+
+          {currentView === 'virtue_jar' && (
+            <VirtueJarComponent
+              currentUser={currentUser}
+              onBackToHome={() => handleNavigate('home')}
             />
           )}
         </main>

@@ -118,7 +118,7 @@ export const AnnualReadingTracker: React.FC<AnnualReadingTrackerProps> = ({
   };
 
   // Copy reading
-  const handleCopyReading = () => {
+  const handleCopyReading = async () => {
     soundManager.playTick();
     let text = '';
     if (planType === 'bible') {
@@ -126,10 +126,14 @@ export const AnnualReadingTracker: React.FC<AnnualReadingTrackerProps> = ({
     } else {
       text = `🕯️ قراءة اليوم ${selectedDay} من خطة أقوال الآباء السنوية:\n\nالقديس: ${currentPatristicReading.father}\nالكتاب: ${currentPatristicReading.workTitle}\n\n«${currentPatristicReading.quote}»\n\nتأمل اليوم: ${currentPatristicReading.practicalReflection}\n\nمشروع «حسب قلب الله»`;
     }
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(text);
-      setCopiedQuote(true);
-      setTimeout(() => setCopiedQuote(false), 2000);
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      try {
+        await navigator.clipboard.writeText(text);
+        setCopiedQuote(true);
+        setTimeout(() => setCopiedQuote(false), 2000);
+      } catch (err: any) {
+        console.error('Clipboard write failed:', err);
+      }
     }
   };
 

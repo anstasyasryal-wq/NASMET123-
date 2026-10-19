@@ -97,16 +97,20 @@ export const QuoteOfTheDayCard: React.FC<QuoteOfTheDayCardProps> = ({ currentUse
     setCurrentIndex((prev) => (prev + 1) % DAILY_QUOTES.length);
   };
 
-  const handleCopyQuote = () => {
+  const handleCopyQuote = async () => {
     soundManager.playCorrect();
     confetti({ particleCount: 25, spread: 50, origin: { y: 0.8 } });
 
     const text = `📜 اقتباس أبوي مبارك:\n\n${currentQuote.quote}\n\n— ${currentQuote.saint} (${currentQuote.title})\nالمصدر: ${currentQuote.source}\n\n✝️ مشروع «حسب قلب الله»`;
 
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(text);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      try {
+        await navigator.clipboard.writeText(text);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      } catch (err: any) {
+        console.error('Clipboard write failed:', err);
+      }
     }
   };
 
