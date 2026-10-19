@@ -56,6 +56,7 @@ import { SaintsStickersModal } from './components/SaintsStickersModal';
 import { DailySaintAlertBanner } from './components/DailySaintAlertBanner';
 import { HymnsAudioProvider } from './context/HymnsAudioContext';
 import { SpiritualHymnsPlayer } from './components/SpiritualHymnsPlayer';
+import AppInstallManager from './components/AppInstallManager';
 
 function AppContent() {
   const [currentView, setCurrentView] = useState<AppView>(() => {
@@ -468,6 +469,7 @@ export default function App() {
       <ReadingThemeProvider>
         <HymnsAudioProvider>
           <AppContent />
+          <AppInstallManager />
         </HymnsAudioProvider>
       </ReadingThemeProvider>
     </LanguageProvider>
