@@ -99,6 +99,7 @@ export const MonasticAudioPlayer: React.FC = () => {
       stopSynth();
       musicRef.current = startAmbientMusic(ctx, gainNodeRef.current, {
         frequencies: track.frequencies,
+        seed: track.id,
       });
     } catch {
       // Audio context unavailable
