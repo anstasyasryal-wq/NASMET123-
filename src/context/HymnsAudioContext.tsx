@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { startAmbientMusic, type AmbientMusicHandle } from '../utils/ambientMusic';
+import { playHymnFile } from '../utils/hymnFile';
 
 const MUSIC_LEVEL = 1.2;
 
@@ -264,7 +265,7 @@ export const SPIRITUAL_OCCASIONS: SpiritualOccasion[] = [
         waveform: 'triangle',
         filterFreq: 500,
         lyrics: [
-          'مع المسيح صلبت فأحيا.. لا أنا بل المسيح يحيا فيّ',
+          'م�� المسيح صلبت فأحيا.. لا أنا بل المسيح يحيا فيّ',
           'ما عشت في الجسد أعيشه بالإيمان.. إيمان ابن الله الذي أحبني وأسلم نفسه لأجلي',
           'يا ربي خذ عمري.. واجعله نذراً مكرساً لمجد اسمك القدوس',
         ],
@@ -451,17 +452,51 @@ export const HymnsAudioProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const musicRef = useRef<AmbientMusicHandle | null>(null);
   const gainNodeRef = useRef<GainNode | null>(null);
   const timerRef = useRef<number | null>(null);
+  const audioElRef = useRef<HTMLAudioElement | null>(null);
+  const nextTrackRef = useRef<() => void>(() => {});
+  const [usingFile, setUsingFile] = useState<boolean>(false);
+  const [fileDuration, setFileDuration] = useState<number | null>(null);
 
   const currentOccasion = SPIRITUAL_OCCASIONS[currentOccasionIndex] || SPIRITUAL_OCCASIONS[0];
   const currentTrack = currentOccasion.tracks[currentTrackIndex] || currentOccasion.tracks[0];
-  const duration = currentTrack.durationSec;
+  const duration = fileDuration ?? currentTrack.durationSec;
 
   const stopAudio = () => {
     musicRef.current?.stop();
     musicRef.current = null;
+    if (audioElRef.current) {
+      audioElRef.current.pause();
+      audioElRef.current.removeAttribute('src');
+      audioElRef.current.load();
+      audioElRef.current = null;
+    }
   };
 
   const startAudio = (track: HymnTrack, vol: number) => {
+    stopAudio();
+    setUsingFile(false);
+    setFileDuration(null);
+
+    const el = playHymnFile(track.id, isMuted ? 0 : vol, {
+      onDuration: (s) => audioElRef.current === el && setFileDuration(s),
+      onTime: (s) => audioElRef.current === el && setCurrentTime(s),
+      onEnded: () => audioElRef.current === el && nextTrackRef.current(),
+      onPlaying: () => audioElRef.current === el && setUsingFile(true),
+      onBlocked: () => {
+        if (audioElRef.current !== el) return;
+        audioElRef.current = null;
+        setIsPlaying(false);
+      },
+      onMissing: () => {
+        if (audioElRef.current !== el) return;
+        audioElRef.current = null;
+        startSynthFallback(track, vol);
+      },
+    });
+    audioElRef.current = el;
+  };
+
+  const startSynthFallback = (track: HymnTrack, vol: number) => {
     try {
       const AudioCtx =
         window.AudioContext ||
@@ -482,7 +517,7 @@ export const HymnsAudioProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       }
       gainNodeRef.current.gain.setValueAtTime(isMuted ? 0 : vol * MUSIC_LEVEL, ctx.currentTime);
 
-      stopAudio();
+      musicRef.current?.stop();
       musicRef.current = startAmbientMusic(ctx, gainNodeRef.current, {
         frequencies: track.frequencies,
         filterFreq: track.filterFreq,
@@ -549,8 +584,11 @@ export const HymnsAudioProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }
   };
 
+  nextTrackRef.current = nextTrack;
+
   const setVolume = (v: number) => {
     setVolumeState(v);
+    if (audioElRef.current) audioElRef.current.volume = isMuted ? 0 : v;
     if (gainNodeRef.current && audioCtxRef.current) {
       gainNodeRef.current.gain.setValueAtTime(
         isMuted ? 0 : v * MUSIC_LEVEL,
@@ -562,6 +600,7 @@ export const HymnsAudioProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const toggleMute = () => {
     setIsMuted((prev) => {
       const next = !prev;
+      if (audioElRef.current) audioElRef.current.volume = next ? 0 : volume;
       if (gainNodeRef.current && audioCtxRef.current) {
         gainNodeRef.current.gain.setValueAtTime(
           next ? 0 : volume * MUSIC_LEVEL,
@@ -573,12 +612,14 @@ export const HymnsAudioProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
 
   const seek = (seconds: number) => {
-    setCurrentTime(Math.min(duration, Math.max(0, seconds)));
+    const target = Math.min(duration, Math.max(0, seconds));
+    if (audioElRef.current) audioElRef.current.currentTime = target;
+    setCurrentTime(target);
   };
 
-  // Progress ticker
+  // Progress ticker (recorded files report their own time)
   useEffect(() => {
-    if (isPlaying) {
+    if (isPlaying && !usingFile) {
       timerRef.current = window.setInterval(() => {
         setCurrentTime((prev) => {
           if (prev >= duration) {
@@ -601,7 +642,7 @@ export const HymnsAudioProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         timerRef.current = null;
       }
     };
-  }, [isPlaying, duration, currentTrackIndex, currentOccasionIndex]);
+  }, [isPlaying, usingFile, duration, currentTrackIndex, currentOccasionIndex]);
 
   // Clean on unmount
   useEffect(() => {

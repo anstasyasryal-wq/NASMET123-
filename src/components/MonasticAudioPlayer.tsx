@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { soundManager } from '../utils/audio';
 import { startAmbientMusic, type AmbientMusicHandle } from '../utils/ambientMusic';
+import { playHymnFile } from '../utils/hymnFile';
 import {
   Volume2,
   VolumeX,
@@ -68,11 +69,43 @@ export const MonasticAudioPlayer: React.FC = () => {
   const musicRef = useRef<AmbientMusicHandle | null>(null);
   const gainNodeRef = useRef<GainNode | null>(null);
 
+  const audioElRef = useRef<HTMLAudioElement | null>(null);
+
   const currentTrack = MONASTIC_TRACKS[currentTrackIndex];
 
   const stopSynth = () => {
     musicRef.current?.stop();
     musicRef.current = null;
+    if (audioElRef.current) {
+      audioElRef.current.pause();
+      audioElRef.current.removeAttribute('src');
+      audioElRef.current.load();
+      audioElRef.current = null;
+    }
+  };
+
+  const startTrack = (track: HymnTrack) => {
+    stopSynth();
+    const el = playHymnFile(track.id, isMuted ? 0 : volume, {
+      onDuration: () => {},
+      onTime: () => {},
+      onPlaying: () => {},
+      onEnded: () => {
+        if (audioElRef.current !== el) return;
+        setCurrentTrackIndex((prev) => (prev + 1) % MONASTIC_TRACKS.length);
+      },
+      onBlocked: () => {
+        if (audioElRef.current !== el) return;
+        audioElRef.current = null;
+        setIsPlaying(false);
+      },
+      onMissing: () => {
+        if (audioElRef.current !== el) return;
+        audioElRef.current = null;
+        startSynth(track);
+      },
+    });
+    audioElRef.current = el;
   };
 
   const startSynth = (track: HymnTrack) => {
@@ -96,7 +129,7 @@ export const MonasticAudioPlayer: React.FC = () => {
       }
       gainNodeRef.current.gain.setValueAtTime(isMuted ? 0 : volume * 1.2, ctx.currentTime);
 
-      stopSynth();
+      musicRef.current?.stop();
       musicRef.current = startAmbientMusic(ctx, gainNodeRef.current, {
         frequencies: track.frequencies,
         seed: track.id,
@@ -108,7 +141,7 @@ export const MonasticAudioPlayer: React.FC = () => {
 
   useEffect(() => {
     if (isPlaying) {
-      startSynth(currentTrack);
+      startTrack(currentTrack);
     } else {
       stopSynth();
     }
@@ -118,6 +151,7 @@ export const MonasticAudioPlayer: React.FC = () => {
   }, [isPlaying, currentTrackIndex]);
 
   useEffect(() => {
+    if (audioElRef.current) audioElRef.current.volume = isMuted ? 0 : volume;
     if (gainNodeRef.current && audioCtxRef.current) {
       gainNodeRef.current.gain.setValueAtTime(
         isMuted ? 0 : volume * 1.2,
