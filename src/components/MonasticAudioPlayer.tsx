@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { soundManager } from '../utils/audio';
+import { startAmbientMusic, type AmbientMusicHandle } from '../utils/ambientMusic';
 import {
   Volume2,
   VolumeX,
@@ -64,31 +65,17 @@ export const MonasticAudioPlayer: React.FC = () => {
   const [isMuted, setIsMuted] = useState<boolean>(false);
 
   const audioCtxRef = useRef<AudioContext | null>(null);
-  const oscillatorsRef = useRef<OscillatorNode[]>([]);
+  const musicRef = useRef<AmbientMusicHandle | null>(null);
   const gainNodeRef = useRef<GainNode | null>(null);
 
   const currentTrack = MONASTIC_TRACKS[currentTrackIndex];
 
-  // Stop current synths
   const stopSynth = () => {
-    try {
-      oscillatorsRef.current.forEach((osc) => {
-        try {
-          osc.stop();
-          osc.disconnect();
-        } catch {
-          // ignore
-        }
-      });
-      oscillatorsRef.current = [];
-    } catch {
-      // ignore
-    }
+    musicRef.current?.stop();
+    musicRef.current = null;
   };
 
-  // Start ambient chord synth
-  const startSynth = (track: HymnTrack, vol: number) => {
-    if (isMuted) return;
+  const startSynth = (track: HymnTrack) => {
     try {
       const AudioCtx =
         window.AudioContext ||
@@ -103,55 +90,40 @@ export const MonasticAudioPlayer: React.FC = () => {
         ctx.resume();
       }
 
+      if (!gainNodeRef.current) {
+        gainNodeRef.current = ctx.createGain();
+        gainNodeRef.current.connect(ctx.destination);
+      }
+      gainNodeRef.current.gain.setValueAtTime(isMuted ? 0 : volume * 1.2, ctx.currentTime);
+
       stopSynth();
-
-      const masterGain = ctx.createGain();
-      masterGain.gain.setValueAtTime(vol, ctx.currentTime);
-      masterGain.connect(ctx.destination);
-      gainNodeRef.current = masterGain;
-
-      const newOscs: OscillatorNode[] = [];
-      track.frequencies.forEach((freq, idx) => {
-        const osc = ctx.createOscillator();
-        const oscGain = ctx.createGain();
-
-        // Use sine and triangle for warm choral pad sound
-        osc.type = idx % 2 === 0 ? 'sine' : 'triangle';
-        osc.frequency.setValueAtTime(freq, ctx.currentTime);
-
-        // Gentle tremolo/detune for rich ethereal church organ/choir feel
-        const lfo = ctx.createOscillator();
-        const lfoGain = ctx.createGain();
-        lfo.frequency.setValueAtTime(0.2 + idx * 0.1, ctx.currentTime);
-        lfoGain.gain.setValueAtTime(1.5, ctx.currentTime);
-        lfo.connect(osc.frequency);
-        lfo.start();
-
-        oscGain.gain.setValueAtTime(0.08 / (idx + 1), ctx.currentTime);
-
-        osc.connect(oscGain);
-        oscGain.connect(masterGain);
-
-        osc.start();
-        newOscs.push(osc);
+      musicRef.current = startAmbientMusic(ctx, gainNodeRef.current, {
+        frequencies: track.frequencies,
       });
-
-      oscillatorsRef.current = newOscs;
     } catch {
-      // Audio context error handling
+      // Audio context unavailable
     }
   };
 
   useEffect(() => {
     if (isPlaying) {
-      startSynth(currentTrack, isMuted ? 0 : volume);
+      startSynth(currentTrack);
     } else {
       stopSynth();
     }
     return () => {
       stopSynth();
     };
-  }, [isPlaying, currentTrackIndex, isMuted, volume]);
+  }, [isPlaying, currentTrackIndex]);
+
+  useEffect(() => {
+    if (gainNodeRef.current && audioCtxRef.current) {
+      gainNodeRef.current.gain.setValueAtTime(
+        isMuted ? 0 : volume * 1.2,
+        audioCtxRef.current.currentTime
+      );
+    }
+  }, [isMuted, volume]);
 
   const togglePlay = () => {
     soundManager.playTick();
