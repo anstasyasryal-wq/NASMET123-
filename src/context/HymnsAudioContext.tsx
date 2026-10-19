@@ -1,4 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import { startAmbientMusic, type AmbientMusicHandle } from '../utils/ambientMusic';
+
+const MUSIC_LEVEL = 1.2;
 
 export interface HymnTrack {
   id: string;
@@ -445,7 +448,7 @@ export const HymnsAudioProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   // Audio Context & nodes
   const audioCtxRef = useRef<AudioContext | null>(null);
-  const oscillatorsRef = useRef<OscillatorNode[]>([]);
+  const musicRef = useRef<AmbientMusicHandle | null>(null);
   const gainNodeRef = useRef<GainNode | null>(null);
   const timerRef = useRef<number | null>(null);
 
@@ -453,22 +456,12 @@ export const HymnsAudioProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const currentTrack = currentOccasion.tracks[currentTrackIndex] || currentOccasion.tracks[0];
   const duration = currentTrack.durationSec;
 
-  // Clean up audio nodes
   const stopAudio = () => {
-    try {
-      oscillatorsRef.current.forEach((osc) => {
-        try {
-          osc.stop();
-          osc.disconnect();
-        } catch {}
-      });
-      oscillatorsRef.current = [];
-    } catch {}
+    musicRef.current?.stop();
+    musicRef.current = null;
   };
 
-  // Start synth drone
   const startAudio = (track: HymnTrack, vol: number) => {
-    if (isMuted) return;
     try {
       const AudioCtx =
         window.AudioContext ||
@@ -478,49 +471,24 @@ export const HymnsAudioProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       if (!audioCtxRef.current) {
         audioCtxRef.current = new AudioCtx();
       }
-
-      if (audioCtxRef.current.state === 'suspended') {
-        audioCtxRef.current.resume();
+      const ctx = audioCtxRef.current;
+      if (ctx.state === 'suspended') {
+        ctx.resume();
       }
 
+      if (!gainNodeRef.current) {
+        gainNodeRef.current = ctx.createGain();
+        gainNodeRef.current.connect(ctx.destination);
+      }
+      gainNodeRef.current.gain.setValueAtTime(isMuted ? 0 : vol * MUSIC_LEVEL, ctx.currentTime);
+
       stopAudio();
-
-      const ctx = audioCtxRef.current;
-      const masterGain = ctx.createGain();
-      masterGain.gain.setValueAtTime(0.001, ctx.currentTime);
-      masterGain.gain.linearRampToValueAtTime(vol * 0.18, ctx.currentTime + 1.2);
-      masterGain.connect(ctx.destination);
-      gainNodeRef.current = masterGain;
-
-      // Filter for warm contemplative softness
-      const biquadFilter = ctx.createBiquadFilter();
-      biquadFilter.type = 'lowpass';
-      biquadFilter.frequency.setValueAtTime(track.filterFreq || 500, ctx.currentTime);
-      biquadFilter.connect(masterGain);
-
-      // Create gentle oscillators for each chord harmonic
-      const oscs: OscillatorNode[] = [];
-      track.frequencies.forEach((freq, i) => {
-        const osc = ctx.createOscillator();
-        osc.type = track.waveform || (i % 2 === 0 ? 'sine' : 'triangle');
-
-        // slight detuning for rich chorused cathedral feel
-        const detuneCents = (i - 1.5) * 4;
-        osc.frequency.setValueAtTime(freq, ctx.currentTime);
-        osc.detune.setValueAtTime(detuneCents, ctx.currentTime);
-
-        const oscGain = ctx.createGain();
-        oscGain.gain.setValueAtTime(0.3 / track.frequencies.length, ctx.currentTime);
-        osc.connect(oscGain);
-        oscGain.connect(biquadFilter);
-
-        osc.start();
-        oscs.push(osc);
+      musicRef.current = startAmbientMusic(ctx, gainNodeRef.current, {
+        frequencies: track.frequencies,
+        filterFreq: track.filterFreq,
       });
-
-      oscillatorsRef.current = oscs;
     } catch (e) {
-      console.warn('Audio synth start error:', e);
+      console.warn('Audio start error:', e);
     }
   };
 
@@ -583,7 +551,7 @@ export const HymnsAudioProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     setVolumeState(v);
     if (gainNodeRef.current && audioCtxRef.current) {
       gainNodeRef.current.gain.setValueAtTime(
-        isMuted ? 0 : v * 0.18,
+        isMuted ? 0 : v * MUSIC_LEVEL,
         audioCtxRef.current.currentTime
       );
     }
@@ -594,7 +562,7 @@ export const HymnsAudioProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       const next = !prev;
       if (gainNodeRef.current && audioCtxRef.current) {
         gainNodeRef.current.gain.setValueAtTime(
-          next ? 0 : volume * 0.18,
+          next ? 0 : volume * MUSIC_LEVEL,
           audioCtxRef.current.currentTime
         );
       }
