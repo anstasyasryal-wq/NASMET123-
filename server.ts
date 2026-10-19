@@ -2,6 +2,7 @@ import express from 'express';
 import { fileURLToPath } from 'url';
 import path from 'path';
 import fs from 'fs';
+import http from 'http';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -17,6 +18,7 @@ app.get('/api/health', (req, res) => {
 });
 
 async function startServer() {
+  const httpServer = http.createServer(app);
   const distPath = path.join(__dirname, 'dist');
   const distIndex = path.join(distPath, 'index.html');
 
@@ -29,7 +31,11 @@ async function startServer() {
     try {
       const { createServer: createViteServer } = await import('vite');
       const vite = await createViteServer({
-        server: { middlewareMode: true },
+        server: {
+          middlewareMode: true,
+          // Share the app's HTTP server so the HMR WebSocket uses the same port as the proxied preview
+          ws: { server: httpServer },
+        },
         appType: 'spa',
       });
       app.use(vite.middlewares);
@@ -43,7 +49,7 @@ async function startServer() {
     }
   }
 
-  app.listen(PORT, () => {
+  httpServer.listen(PORT, () => {
     console.log(`Server listening on port ${PORT}`);
   });
 }
