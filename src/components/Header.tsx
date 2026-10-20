@@ -26,6 +26,7 @@ import {
   ShieldCheck,
   Shield,
   Coins,
+  ChevronDown,
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -52,6 +53,7 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const [isMuted, setIsMuted] = useState(soundManager.getIsMuted());
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
   const { isNightMode, toggleNightMode } = useReadingTheme();
   const { isPlaying, openPlayerModal, currentOccasion } = useHymnsAudio();
 
@@ -102,21 +104,58 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
 
-        {/* Desktop Quick Nav */}
-        <nav className="hidden lg:flex items-center gap-1">
-          {navLinks.map((l) => (
+        {/* Desktop Quick Nav & Dropdown */}
+        <nav className="hidden lg:flex items-center gap-1.5 relative">
+          <button
+            onClick={() => onNavigate('home')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
+              currentView === 'home'
+                ? 'bg-amber-600 text-white shadow-xs'
+                : 'text-stone-300 hover:text-white hover:bg-stone-800'
+            }`}
+          >
+            <Home className="w-3.5 h-3.5" />
+            <span>الرئيسية (العجلة)</span>
+          </button>
+
+          {/* Dropdown Menu for All Sections */}
+          <div className="relative">
             <button
-              key={l.view}
-              onClick={() => onNavigate(l.view)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
-                currentView === l.view
-                  ? 'bg-amber-600 text-white shadow-xs'
-                  : 'text-stone-300 hover:text-white hover:bg-stone-800'
-              }`}
+              onClick={() => setDropdownOpen(!dropdownOpen)}
+              className="px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 bg-stone-900 hover:bg-stone-800 text-amber-300 border border-amber-600/30"
             >
-              <span>{l.label}</span>
+              <span>أقسام التطبيق والخدمات</span>
+              <ChevronDown className="w-3.5 h-3.5" />
             </button>
-          ))}
+
+            {dropdownOpen && (
+              <div className="absolute top-full right-0 mt-2 w-72 bg-stone-950 border border-amber-600/40 rounded-2xl shadow-2xl p-2 z-50 space-y-1 animate-fade-in text-right">
+                <div className="text-[10px] font-bold text-amber-400/80 px-3 py-1 border-b border-stone-800 mb-1">
+                  الخدمات الروحية والمكتسبات
+                </div>
+                {navLinks.slice(1).map((l) => {
+                  const IconComponent = l.icon;
+                  return (
+                    <button
+                      key={l.view}
+                      onClick={() => {
+                        onNavigate(l.view);
+                        setDropdownOpen(false);
+                      }}
+                      className={`w-full px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2.5 text-right ${
+                        currentView === l.view
+                          ? 'bg-amber-600 text-white'
+                          : 'text-stone-200 hover:bg-stone-900 hover:text-amber-200'
+                      }`}
+                    >
+                      <IconComponent className="w-4 h-4 text-amber-400 shrink-0" />
+                      <span>{l.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </nav>
 
         {/* Right utility buttons */}
