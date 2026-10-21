@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, memo } from 'react';
 import { User, AppView } from '../types';
 import { soundManager } from '../utils/audio';
 import { useReadingTheme } from '../context/ReadingThemeContext';
@@ -27,6 +27,7 @@ import {
   Shield,
   Coins,
   ChevronDown,
+  Download,
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -39,9 +40,12 @@ interface HeaderProps {
   onOpenReadingSettings?: () => void;
   onOpenHeavenlyMessage?: () => void;
   onOpenSaintsStickers?: () => void;
+  mobileMenuOpen?: boolean;
+  onToggleMobileMenu?: () => void;
+  onCloseMobileMenu?: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({
+export const Header: React.FC<HeaderProps> = memo(({
   currentView,
   currentUser,
   onNavigate,
@@ -50,12 +54,34 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenSpiritualGuide,
   onOpenHeavenlyMessage,
   onOpenSaintsStickers,
+  mobileMenuOpen: externalMobileMenuOpen,
+  onToggleMobileMenu: externalToggleMobileMenu,
+  onCloseMobileMenu: externalCloseMobileMenu,
 }) => {
   const [isMuted, setIsMuted] = useState(soundManager.getIsMuted());
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [internalMobileMenuOpen, setInternalMobileMenuOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const { isNightMode, toggleNightMode } = useReadingTheme();
   const { isPlaying, openPlayerModal, currentOccasion } = useHymnsAudio();
+
+  const isMobileMenuOpen = externalMobileMenuOpen !== undefined ? externalMobileMenuOpen : internalMobileMenuOpen;
+
+  const toggleMobileMenu = () => {
+    soundManager.playTick();
+    if (externalToggleMobileMenu) {
+      externalToggleMobileMenu();
+    } else {
+      setInternalMobileMenuOpen((prev) => !prev);
+    }
+  };
+
+  const closeMobileMenu = () => {
+    if (externalCloseMobileMenu) {
+      externalCloseMobileMenu();
+    } else {
+      setInternalMobileMenuOpen(false);
+    }
+  };
 
   const toggleSound = () => {
     const nextState = soundManager.toggleMute();
@@ -63,16 +89,17 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   const navLinks = [
-    { view: 'home' as AppView, label: 'الرئيسية (العجلة)', icon: Home },
-    { view: 'prayer_fortress' as AppView, label: 'حصن الصلاة اليومي', icon: Shield },
-    { view: 'virtue_jar' as AppView, label: 'حصالة الفضائل', icon: Coins },
-    { view: 'consecrated_manual' as AppView, label: 'مرجع المكرس', icon: ScrollText },
-    { view: 'spiritual_father' as AppView, label: 'أبوي الروحي وإعداد الاعتراف', icon: ShieldCheck },
-    { view: 'monastic_oasis' as AppView, label: 'دستور المكرس', icon: Compass },
-    { view: 'spiritual_life' as AppView, label: 'الحياة الروحية', icon: Heart },
-    { view: 'library' as AppView, label: 'المكتبة والآباء', icon: BookOpen },
-    { view: 'collective_challenges' as AppView, label: 'التحديات', icon: Users },
-    { view: 'spiritual_calendar' as AppView, label: 'التقويم', icon: Calendar },
+    { view: 'home' as AppView, label: 'الرئيسية (العجلة)', icon: Home, badge: 'المركز' },
+    { view: 'competitions_hub' as AppView, label: 'المسابقات والمراحل', icon: Trophy, badge: 'المسابقة' },
+    { view: 'prayer_fortress' as AppView, label: 'حصن الصلاة اليومي', icon: Shield, badge: 'يومي' },
+    { view: 'virtue_jar' as AppView, label: 'حصالة الفضائل', icon: Coins, badge: 'تفاعلي' },
+    { view: 'consecrated_manual' as AppView, label: 'مرجع المكرس', icon: ScrollText, badge: 'وثائقي' },
+    { view: 'spiritual_father' as AppView, label: 'أبوي الروحي وإعداد الاعتراف', icon: ShieldCheck, badge: 'إرشاد' },
+    { view: 'monastic_oasis' as AppView, label: 'دستور المكرس', icon: Compass, badge: 'نسكي' },
+    { view: 'spiritual_life' as AppView, label: 'الحياة الروحية', icon: Heart, badge: 'مخدع' },
+    { view: 'library' as AppView, label: 'المكتبة والآباء', icon: BookOpen, badge: 'مراجع' },
+    { view: 'collective_challenges' as AppView, label: 'التحديات الجماعية', icon: Users, badge: 'مشاركات' },
+    { view: 'spiritual_calendar' as AppView, label: 'التقويم الكنسي', icon: Calendar, badge: 'طقسي' },
   ];
 
   return (
@@ -83,22 +110,23 @@ export const Header: React.FC<HeaderProps> = ({
           : 'bg-stone-950/95 border-amber-600/30 text-stone-100'
       }`}
     >
-      <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div className="max-w-6xl mx-auto px-2.5 sm:px-4 h-14 sm:h-16 flex items-center justify-between gap-2">
         {/* Brand */}
         <div
-          onClick={() => onNavigate('home')}
-          className="flex items-center gap-2.5 cursor-pointer group select-none text-right"
+          onClick={() => {
+            onNavigate('home');
+            closeMobileMenu();
+          }}
+          className="flex items-center gap-1.5 sm:gap-2 cursor-pointer group select-none text-right shrink-0 min-w-0"
         >
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-600 to-amber-400 text-stone-950 flex items-center justify-center shadow-md shadow-amber-600/20 group-hover:scale-105 transition font-bold text-xl">
+          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-amber-600 to-amber-400 text-stone-950 flex items-center justify-center shadow-md shadow-amber-600/20 group-hover:scale-105 transition font-bold text-base sm:text-xl shrink-0">
             ✝️
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="font-spiritual font-black text-lg sm:text-xl tracking-wide text-amber-100">
-                حسب قلب الله
-              </span>
-            </div>
-            <p className="text-[10px] text-amber-400/80 hidden sm:block">
+          <div className="min-w-0">
+            <span className="font-spiritual font-black text-sm min-[380px]:text-base sm:text-xl tracking-wide text-amber-100 block truncate">
+              حسب قلب الله
+            </span>
+            <p className="text-[9px] text-amber-400/80 hidden sm:block truncate">
               بوابة التكريس والعلوم الكنسية والتقييم الروحي
             </p>
           </div>
@@ -142,7 +170,7 @@ export const Header: React.FC<HeaderProps> = ({
                         onNavigate(l.view);
                         setDropdownOpen(false);
                       }}
-                      className={`w-full px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2.5 text-right ${
+                      className={`w-full px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2.5 text-right cursor-pointer ${
                         currentView === l.view
                           ? 'bg-amber-600 text-white'
                           : 'text-stone-200 hover:bg-stone-900 hover:text-amber-200'
@@ -158,152 +186,311 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </nav>
 
-        {/* Right utility buttons */}
-        <div className="flex items-center gap-2">
-          {/* Daily Prayer Fortress Button */}
+        {/* Action Controls & Utilities */}
+        <div className="flex items-center gap-1 min-[380px]:gap-1.5 sm:gap-2 shrink-0">
+          {/* Daily Prayer Fortress Button - Desktop only */}
           <button
             onClick={() => onNavigate('prayer_fortress')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold shadow-xs transition cursor-pointer group ${
+            className={`hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold shadow-xs transition cursor-pointer group ${
               currentView === 'prayer_fortress'
                 ? 'bg-amber-600 text-white border-amber-400'
                 : 'bg-gradient-to-r from-amber-600/20 via-stone-900 to-amber-700/20 hover:from-amber-600/30 text-amber-200 border-amber-500/40'
             }`}
-            title="حصن الصلاة اليومي: مزمور وصلاة قصيرة حسب جدول الكنيسة مع المنبه"
+            title="حصن الصلاة اليومي"
           >
-            <span className="text-sm group-hover:scale-125 transition-transform duration-200">🛡️</span>
-            <span className="hidden md:inline">حصن الصلاة اليومي</span>
-            <span className="md:hidden">حصن الصلاة</span>
+            <span className="text-sm">🛡️</span>
+            <span>حصن الصلاة</span>
           </button>
 
-          {/* Spiritual Guide Button */}
+          {/* Spiritual Guide Button - Large screen only */}
           <button
             onClick={onOpenSpiritualGuide}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-sky-500/20 via-sky-600/30 to-sky-700/20 hover:from-sky-500/30 hover:to-sky-600/40 border border-sky-400/50 text-sky-200 text-xs font-bold shadow-sm transition cursor-pointer group"
-            title="المرشد الروحي التفاعلي"
+            className="hidden xl:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-sky-500/20 via-sky-600/30 to-sky-700/20 hover:from-sky-500/30 text-sky-200 border border-sky-400/50 text-xs font-bold shadow-xs transition cursor-pointer"
+            title="المرشد الروحي"
           >
-            <span className="text-sm group-hover:scale-125 transition-transform duration-200">🛡️</span>
-            <span className="hidden md:inline">المرشد الروحي</span>
-            <span className="md:hidden">المرشد</span>
+            <span>🛡️</span>
+            <span>المرشد الروحي</span>
           </button>
-
-          {/* Heavenly Message Button */}
-          <button
-            onClick={onOpenHeavenlyMessage}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500/20 via-amber-600/30 to-amber-700/20 hover:from-amber-500/30 hover:to-amber-600/40 border border-amber-400/50 text-amber-200 text-xs font-bold shadow-sm transition cursor-pointer group"
-            title="رسالة خاصة من أبيك السماوي بالحظ أو القرعة"
-          >
-            <span className="text-sm group-hover:scale-125 transition-transform duration-200">💌</span>
-            <span className="hidden md:inline">رسالة من أبيك السماوي</span>
-            <span className="md:hidden">رسالة اليوم</span>
-          </button>
-
-          {/* Saints Stickers Button */}
-          {onOpenSaintsStickers && (
-            <button
-              onClick={onOpenSaintsStickers}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-yellow-500/20 via-amber-600/30 to-amber-700/20 hover:from-yellow-500/30 hover:to-amber-600/40 border border-amber-400/50 text-amber-200 text-xs font-bold shadow-sm transition cursor-pointer group"
-              title="استكر قديس اليوم والتنبيه على الفضائل (الشرق والغرب وكنائس العالم)"
-            >
-              <span className="text-sm group-hover:scale-125 transition-transform duration-200">🌟</span>
-              <span className="hidden md:inline">استكر قديس اليوم</span>
-              <span className="md:hidden">استكر القديس</span>
-            </button>
-          )}
 
           {/* Hymns & Chants Audio Player Button */}
           <button
             onClick={openPlayerModal}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold shadow-xs transition cursor-pointer ${
+            className={`relative flex items-center justify-center w-8.5 h-8.5 min-[380px]:w-9 min-[380px]:h-9 sm:w-auto sm:px-3 sm:h-10 rounded-xl border text-xs font-bold transition cursor-pointer shrink-0 touch-manipulation active:scale-95 ${
               isPlaying
-                ? 'bg-amber-600/30 border-amber-400 text-amber-200 animate-pulse'
-                : 'bg-stone-900 hover:bg-stone-800 border-stone-800 text-amber-400'
+                ? 'bg-amber-600/25 border-amber-400/80 text-amber-200 shadow-sm shadow-amber-500/20'
+                : 'bg-stone-900/90 hover:bg-stone-800 border-stone-800 text-amber-400'
             }`}
-            title="مشغل الترانيم والألحان الكنسية والتأملية"
+            title="مشغل الترانيم والألحان الكنسية"
+            aria-label="مشغل الترانيم"
           >
-            <span className="text-sm">{currentOccasion.icon}</span>
-            <Headphones className="w-3.5 h-3.5 text-amber-400" />
-            <span className="hidden xl:inline">{isPlaying ? 'الترانيم تعمل ♫' : 'مشغل الترانيم'}</span>
+            <Headphones className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-amber-400 shrink-0" />
+            <span className="hidden xl:inline text-xs font-bold mr-1">
+              {isPlaying ? 'الترانيم تعمل ♫' : 'ترانيم'}
+            </span>
+            {isPlaying && (
+              <span className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500 border border-stone-950"></span>
+              </span>
+            )}
           </button>
 
           {/* Sound Toggle */}
           <button
             onClick={toggleSound}
-            className="p-2 rounded-xl bg-stone-900 hover:bg-stone-800 border border-stone-800 text-amber-400 transition cursor-pointer"
-            title={isMuted ? 'تشغيل الصوت' : 'كتم الصوت'}
+            className={`flex items-center justify-center w-8.5 h-8.5 min-[380px]:w-9 min-[380px]:h-9 sm:w-10 sm:h-10 rounded-xl border transition cursor-pointer shrink-0 touch-manipulation active:scale-95 shadow-xs ${
+              isMuted
+                ? 'bg-stone-900/70 hover:bg-stone-800 border-stone-800/80 text-stone-500'
+                : 'bg-stone-900/90 hover:bg-stone-800 border-stone-800 text-amber-400'
+            }`}
+            title={isMuted ? 'تشغيل المؤثرات الصوتية' : 'كتم المؤثرات الصوتية'}
+            aria-label={isMuted ? 'تشغيل الصوت' : 'كتم الصوت'}
           >
-            {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+            {isMuted ? (
+              <VolumeX className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
+            ) : (
+              <Volume2 className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
+            )}
           </button>
 
-          {/* Theme Toggle */}
+          {/* Reading / Night Mode Toggle */}
           <button
             onClick={toggleNightMode}
-            className="p-2 rounded-xl bg-stone-900 hover:bg-stone-800 border border-stone-800 text-amber-400 transition cursor-pointer"
-            title="تبديل وضع القراءة"
+            className="flex items-center justify-center w-8.5 h-8.5 min-[380px]:w-9 min-[380px]:h-9 sm:w-10 sm:h-10 rounded-xl bg-stone-900/90 hover:bg-stone-800 border border-stone-800 text-amber-400 transition cursor-pointer shrink-0 touch-manipulation active:scale-95 shadow-xs"
+            title={isNightMode ? 'الوضع النهاري' : 'الوضع الليلي'}
+            aria-label="تبديل وضع القراءة"
           >
-            {isNightMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            {isNightMode ? (
+              <Sun className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-amber-300" />
+            ) : (
+              <Moon className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-amber-400" />
+            )}
           </button>
 
-          {/* Rules / Guide */}
+          {/* Install App Button */}
           <button
-            onClick={onOpenRules}
-            className="hidden sm:flex items-center gap-1 px-3 py-1.5 rounded-xl bg-stone-900 hover:bg-stone-800 border border-stone-800 text-stone-200 text-xs font-bold transition cursor-pointer"
+            onClick={() => window.dispatchEvent(new Event('show-install-prompt'))}
+            className="flex items-center justify-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-200 transition cursor-pointer shrink-0 touch-manipulation active:scale-95 shadow-xs text-xs font-bold"
+            title="تثبيت التطبيق على جهازك"
+            aria-label="تثبيت التطبيق"
           >
-            <HelpCircle className="w-3.5 h-3.5 text-amber-400" />
-            <span>الدليل</span>
+            <Download className="w-4 h-4 text-amber-400 shrink-0" />
+            <span className="hidden md:inline">تثبيت التطبيق</span>
           </button>
 
-          {/* User Button */}
+          {/* User Profile / Login Button */}
           <button
             onClick={onOpenLogin}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 text-white text-xs font-bold shadow-sm transition cursor-pointer"
+            className="relative flex items-center justify-center sm:justify-start gap-1.5 w-8.5 h-8.5 min-[380px]:w-9 min-[380px]:h-9 sm:w-auto sm:px-3 sm:py-2 sm:h-10 rounded-xl bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 text-white text-xs font-bold shadow-xs transition cursor-pointer shrink-0 touch-manipulation active:scale-95 border border-amber-500/30"
+            title={currentUser ? `حساب: ${currentUser.name}` : 'تسجيل الدخول'}
+            aria-label="حساب المستخدم"
           >
-            <UserIcon className="w-3.5 h-3.5" />
-            <span>{currentUser ? currentUser.name.split(' ')[0] : 'تسجيل البطاقة'}</span>
+            <UserIcon className="w-4 h-4 shrink-0" />
+            <span className="hidden sm:inline truncate max-w-[80px] md:max-w-[120px]">
+              {currentUser ? currentUser.name.split(' ')[0] : 'تسجيل'}
+            </span>
+            {currentUser && (
+              <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-stone-950" />
+            )}
           </button>
 
-          {/* Mobile Menu Button */}
+          {/* Mobile Menu Toggle Button */}
           <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="lg:hidden p-2 rounded-xl bg-stone-900 border border-stone-800 text-stone-300"
+            onClick={toggleMobileMenu}
+            className={`lg:hidden flex items-center justify-center w-8.5 h-8.5 min-[380px]:w-9 min-[380px]:h-9 sm:w-10 sm:h-10 rounded-xl border transition cursor-pointer shrink-0 touch-manipulation active:scale-95 shadow-xs ${
+              isMobileMenuOpen
+                ? 'bg-amber-600/30 border-amber-500 text-amber-200'
+                : 'bg-stone-900/90 hover:bg-stone-800 border-stone-800 text-amber-400'
+            }`}
+            aria-label="القائمة الجانبية"
+            title="القائمة الجانبية"
           >
-            {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            {isMobileMenuOpen ? (
+              <X className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-amber-300" />
+            ) : (
+              <Menu className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
+            )}
           </button>
         </div>
       </div>
 
-      {/* Mobile Drawer */}
-      {mobileMenuOpen && (
-        <div className="lg:hidden border-t border-stone-800 p-4 space-y-3 bg-stone-950 animate-fade-in text-right">
-          <button
-            onClick={() => {
-              onOpenHeavenlyMessage?.();
-              setMobileMenuOpen(false);
-            }}
-            className="w-full p-2.5 rounded-xl bg-gradient-to-r from-amber-600/30 via-amber-500/20 to-amber-700/30 border border-amber-400/40 text-amber-200 text-xs font-bold text-center flex items-center justify-center gap-2 shadow-sm"
+      {/* Mobile Drawer Overlay & Full Menu */}
+      {isMobileMenuOpen && (
+        <div className="lg:hidden fixed inset-x-0 top-14 sm:top-16 bottom-0 z-50 bg-black/80 backdrop-blur-sm animate-fade-in flex flex-col justify-end">
+          <div
+            className="bg-stone-950 border-t border-amber-500/40 rounded-t-3xl p-4 sm:p-5 shadow-2xl max-h-[85vh] overflow-y-auto space-y-4 text-right"
+            style={{ paddingBottom: 'max(5.5rem, env(safe-area-inset-bottom, 5.5rem))' }}
           >
-            <span>💌</span>
-            <span>رسالة من أبيك السماوي (اسحب رسالتك اليوم)</span>
-          </button>
-          <div className="grid grid-cols-2 gap-2">
-            {navLinks.map((l) => (
+            <div className="flex items-center justify-between border-b border-stone-800 pb-3">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">🌟</span>
+                <span className="font-spiritual text-base font-bold text-amber-200">
+                  لوحة الخدمات والأقسام
+                </span>
+              </div>
               <button
-                key={l.view}
-                onClick={() => {
-                  onNavigate(l.view);
-                  setMobileMenuOpen(false);
-                }}
-                className={`p-2.5 rounded-xl text-xs font-bold text-right transition flex items-center gap-2 ${
-                  currentView === l.view
-                    ? 'bg-amber-600 text-white'
-                    : 'bg-stone-900 text-stone-200 hover:bg-stone-800'
-                }`}
+                onClick={closeMobileMenu}
+                className="w-8 h-8 rounded-xl bg-stone-900 border border-stone-800 text-stone-400 hover:text-white flex items-center justify-center cursor-pointer transition active:scale-95"
+                aria-label="إغلاق القائمة"
               >
-                <span>{l.label}</span>
+                <X className="w-4 h-4" />
               </button>
-            ))}
+            </div>
+
+            {/* User Quick Info in Drawer */}
+            <div className="flex items-center justify-between p-3 rounded-2xl bg-gradient-to-r from-stone-900 to-amber-950/40 border border-amber-600/30">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-600 to-amber-500 text-white flex items-center justify-center font-bold shadow-xs shrink-0">
+                  <UserIcon className="w-4.5 h-4.5" />
+                </div>
+                <div className="min-w-0">
+                  <span className="font-bold text-white text-xs block truncate">
+                    {currentUser ? currentUser.name : 'مرحباً بك معنا'}
+                  </span>
+                  <span className="text-[10px] text-amber-400/80 block">
+                    {currentUser ? `${currentUser.totalScore || 0} نقطة روحية` : 'سجّل الآن لتثبيت نقاطك ورتبتك'}
+                  </span>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  onOpenLogin();
+                  closeMobileMenu();
+                }}
+                className="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold transition shadow-xs cursor-pointer shrink-0"
+              >
+                {currentUser ? 'بياناتي' : 'تسجيل'}
+              </button>
+            </div>
+
+            {/* Quick Interactive Features Grid */}
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <button
+                onClick={() => {
+                  onNavigate('prayer_fortress');
+                  closeMobileMenu();
+                }}
+                className="p-3 rounded-2xl bg-gradient-to-br from-amber-950/80 to-stone-900 border border-amber-600/40 text-right flex items-center gap-2.5 transition active:scale-95 cursor-pointer shadow-xs"
+              >
+                <span className="text-xl">🛡️</span>
+                <div>
+                  <strong className="text-amber-200 block text-xs">حصن الصلاة</strong>
+                  <span className="text-[10px] text-stone-400">مزمور ومنبه</span>
+                </div>
+              </button>
+
+              <button
+                onClick={() => {
+                  onOpenHeavenlyMessage?.();
+                  closeMobileMenu();
+                }}
+                className="p-3 rounded-2xl bg-gradient-to-br from-amber-950/80 to-stone-900 border border-amber-600/40 text-right flex items-center gap-2.5 transition active:scale-95 cursor-pointer shadow-xs"
+              >
+                <span className="text-xl">💌</span>
+                <div>
+                  <strong className="text-amber-200 block text-xs">رسالة أبيك السماوي</strong>
+                  <span className="text-[10px] text-stone-400">اسحب رسالتك</span>
+                </div>
+              </button>
+
+              {onOpenSaintsStickers && (
+                <button
+                  onClick={() => {
+                    onOpenSaintsStickers();
+                    closeMobileMenu();
+                  }}
+                  className="p-3 rounded-2xl bg-gradient-to-br from-amber-950/80 to-stone-900 border border-amber-600/40 text-right flex items-center gap-2.5 transition active:scale-95 cursor-pointer shadow-xs"
+                >
+                  <span className="text-xl">🌟</span>
+                  <div>
+                    <strong className="text-amber-200 block text-xs">استكر قديس اليوم</strong>
+                    <span className="text-[10px] text-stone-400">الفضائل اليومية</span>
+                  </div>
+                </button>
+              )}
+
+              <button
+                onClick={() => {
+                  onOpenSpiritualGuide();
+                  closeMobileMenu();
+                }}
+                className="p-3 rounded-2xl bg-gradient-to-br from-sky-950/70 to-stone-900 border border-sky-600/40 text-right flex items-center gap-2.5 transition active:scale-95 cursor-pointer shadow-xs"
+              >
+                <span className="text-xl">🛡️</span>
+                <div>
+                  <strong className="text-sky-200 block text-xs">المرشد الروحي</strong>
+                  <span className="text-[10px] text-stone-400">توجيه وحلول</span>
+                </div>
+              </button>
+            </div>
+
+            {/* Rules & Audio Quick Bar */}
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  openPlayerModal();
+                  closeMobileMenu();
+                }}
+                className="flex-1 py-2.5 px-3 rounded-xl bg-stone-900 hover:bg-stone-800 border border-stone-800 text-amber-300 text-xs font-bold flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <Headphones className="w-4 h-4 text-amber-400" />
+                <span>مشغل الترانيم والألحان</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  onOpenRules();
+                  closeMobileMenu();
+                }}
+                className="py-2.5 px-3 rounded-xl bg-stone-900 hover:bg-stone-800 border border-stone-800 text-stone-300 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <HelpCircle className="w-4 h-4 text-amber-400" />
+                <span>دليل المسابقة</span>
+              </button>
+            </div>
+
+            {/* Complete Navigation Sections */}
+            <div>
+              <span className="text-[11px] font-bold text-amber-400/80 block mb-2 px-1">
+                جميع الأقسام التفاعلية
+              </span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                {navLinks.map((l) => {
+                  const Icon = l.icon;
+                  const isActive = currentView === l.view;
+
+                  return (
+                    <button
+                      key={l.view}
+                      onClick={() => {
+                        onNavigate(l.view);
+                        closeMobileMenu();
+                      }}
+                      className={`p-3 rounded-xl text-xs font-bold text-right transition flex items-center justify-between cursor-pointer min-h-[44px] touch-manipulation ${
+                        isActive
+                          ? 'bg-amber-600 text-white shadow-xs'
+                          : 'bg-stone-900/90 text-stone-200 hover:bg-stone-800 border border-stone-800/80'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-amber-400'}`} />
+                        <span>{l.label}</span>
+                      </div>
+                      <span className={`text-[10px] px-2 py-0.5 rounded-md ${
+                        isActive ? 'bg-amber-700/60 text-amber-100' : 'text-stone-400'
+                      }`}>
+                        {l.badge}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         </div>
       )}
     </header>
   );
-};
+});
+
+Header.displayName = 'Header';

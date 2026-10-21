@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback, useRef, useEffect, memo } from 'react';
 import { User } from '../types';
 import { soundManager } from '../utils/audio';
 import {
@@ -10,9 +10,10 @@ import {
   Sparkles,
   X,
   Type,
-  Check,
   ChevronRight,
+  Filter,
 } from 'lucide-react';
+import { useVirtualGrid } from '../hooks/useVirtualList';
 
 interface BookChapter {
   chapterNumber: number;
@@ -121,9 +122,109 @@ const BOOKS_DATA: BookItem[] = [
       },
     ],
   },
+  {
+    id: 'book-5',
+    title: 'السلم إلى الله (سلم الفضائل)',
+    author: 'القديس يوحنا الدرجي',
+    category: 'التراث الرهباني والنسكي',
+    pages: 310,
+    description: 'ثلاثون درجة روحية تصعد بالنفس من التوبة ونبذ المقتنيات إلى محبة الله والاتحاد به.',
+    chapters: [
+      {
+        chapterNumber: 1,
+        chapterTitle: 'الدرجة الأولى: في التخلي عن العالم الزائل',
+        excerpt:
+          'الراهب والمكرس الحقيقي هو من رغب في السماويات وحسب كل أرضيات نفاية لكي يربح المسيح ويوجد فيه بالبر الحقيقي.',
+      },
+    ],
+  },
+  {
+    id: 'book-6',
+    title: 'شرح قانون الإيمان والمجامع المسكونية',
+    author: 'الآباء الأرثوذكس والباحثون الكنسيون',
+    category: 'اللاهوت العقيدي',
+    pages: 260,
+    description: 'تحليل تاريخي ولاهوتي دقيق لمجمعي نيقية والقسطنطينية وصياغة الإيمان الأرثوذكسي القويم.',
+    chapters: [
+      {
+        chapterNumber: 1,
+        chapterTitle: 'الفصل الأول: نيقية وصيغة مساوٍ للآب في الجوهر',
+        excerpt:
+          'أقر الآباء الثلاثمائة وثمانية عشر اصطلاح (هومو أوسيوس) رداً على آريوس، مؤكدين أزلية الكلمة ومساواته التامة للآب بلا انفصال ولا امتزاج.',
+      },
+    ],
+  },
 ];
 
 const READ_STORAGE_KEY = 'mokarasa_library_read_books_v1';
+
+// Memoized Book Card Component to eliminate unnecessary re-renders
+interface BookCardProps {
+  book: BookItem;
+  isRead: boolean;
+  onOpenReader: (b: BookItem) => void;
+  onToggleRead: (id: string) => void;
+}
+
+const BookCard = memo<BookCardProps>(({ book, isRead, onOpenReader, onToggleRead }) => {
+  return (
+    <div
+      className={`p-5 rounded-2xl border transition space-y-3 shadow-md flex flex-col justify-between h-full ${
+        isRead
+          ? 'bg-stone-900/95 border-emerald-500/60 ring-1 ring-emerald-500/30'
+          : 'bg-stone-900 border-amber-600/30 hover:border-amber-400'
+      }`}
+    >
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] font-bold text-amber-300 bg-amber-950/80 px-2.5 py-0.5 rounded-full border border-amber-700/40 inline-block">
+            {book.category}
+          </span>
+          {isRead && (
+            <span className="text-[10px] text-emerald-400 font-bold flex items-center gap-1 bg-emerald-950 px-2 py-0.5 rounded-full border border-emerald-600">
+              <CheckCircle2 className="w-3 h-3" />
+              <span>تمت القراءة</span>
+            </span>
+          )}
+        </div>
+
+        <h3 className="font-spiritual text-base sm:text-lg font-bold text-amber-100">
+          {book.title}
+        </h3>
+        <p className="text-xs text-amber-300/80 font-semibold">
+          بقلم: {book.author} • {book.pages} صفحة
+        </p>
+        <p className="text-xs text-stone-300 leading-relaxed line-clamp-3">
+          {book.description}
+        </p>
+      </div>
+
+      <div className="pt-2 border-t border-stone-800 flex items-center justify-between gap-2 shrink-0">
+        <button
+          onClick={() => onOpenReader(book)}
+          className="flex-1 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 text-white font-bold text-xs transition cursor-pointer flex items-center justify-center gap-1.5 shadow-sm"
+        >
+          <BookOpen className="w-3.5 h-3.5" />
+          <span>فتح القارئ الإلكتروني</span>
+        </button>
+
+        <button
+          onClick={() => onToggleRead(book.id)}
+          className={`p-2 rounded-xl border text-xs font-bold transition cursor-pointer ${
+            isRead
+              ? 'bg-emerald-950 text-emerald-300 border-emerald-600'
+              : 'bg-stone-800 text-stone-400 border-stone-700 hover:text-white'
+          }`}
+          title={isRead ? 'تحديد كغير مقروء' : 'تحديد كمقروء'}
+        >
+          <Bookmark className="w-3.5 h-3.5" />
+        </button>
+      </div>
+    </div>
+  );
+});
+
+BookCard.displayName = 'BookCard';
 
 export const LibraryView: React.FC<LibraryViewProps> = ({
   currentUser,
@@ -133,9 +234,24 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
   onOpenSaintsGallery,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [readingBook, setReadingBook] = useState<BookItem | null>(null);
   const [activeChapterIdx, setActiveChapterIdx] = useState<number>(0);
   const [fontSize, setFontSize] = useState<'normal' | 'large' | 'huge'>('normal');
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Responsive columns (1 on mobile, 2 on md: >= 768px)
+  const [columns, setColumns] = useState<number>(() => {
+    return typeof window !== 'undefined' && window.innerWidth >= 768 ? 2 : 1;
+  });
+
+  useEffect(() => {
+    const handleResize = () => {
+      setColumns(window.innerWidth >= 768 ? 2 : 1);
+    };
+    window.addEventListener('resize', handleResize, { passive: true });
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const [readBooks, setReadBooks] = useState<string[]>(() => {
     try {
@@ -146,7 +262,7 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
     }
   });
 
-  const toggleBookRead = (id: string) => {
+  const toggleBookRead = useCallback((id: string) => {
     soundManager.playTick();
     setReadBooks((prev) => {
       const next = prev.includes(id) ? prev.filter((b) => b !== id) : [...prev, id];
@@ -155,20 +271,46 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
       } catch {}
       return next;
     });
-  };
+  }, []);
 
-  const filtered = BOOKS_DATA.filter(
-    (b) =>
-      b.title.includes(searchTerm) ||
-      b.author.includes(searchTerm) ||
-      b.description.includes(searchTerm)
-  );
-
-  const handleOpenBookReader = (b: BookItem) => {
+  const handleOpenBookReader = useCallback((b: BookItem) => {
     soundManager.playTick();
     setReadingBook(b);
     setActiveChapterIdx(0);
-  };
+  }, []);
+
+  const categories = useMemo(() => {
+    const set = new Set(BOOKS_DATA.map((b) => b.category));
+    return ['all', ...Array.from(set)];
+  }, []);
+
+  const filtered = useMemo(() => {
+    return BOOKS_DATA.filter((b) => {
+      const matchesSearch =
+        b.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        b.author.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        b.description.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesCategory =
+        selectedCategory === 'all' || b.category === selectedCategory;
+      return matchesSearch && matchesCategory;
+    });
+  }, [searchTerm, selectedCategory]);
+
+  // Virtualized Grid for books list (Approx row height: 230px + 16px gap = 246px)
+  const BOOK_ROW_HEIGHT = 246;
+  const {
+    virtualRows,
+    topSpacerHeight,
+    bottomSpacerHeight,
+    totalHeight,
+  } = useVirtualGrid({
+    items: filtered,
+    columns,
+    rowHeight: BOOK_ROW_HEIGHT,
+    overscan: 2,
+    containerRef,
+    useWindowScroll: true,
+  });
 
   return (
     <div className="max-w-5xl mx-auto space-y-6 pb-12 animate-fade-in text-right">
@@ -191,11 +333,11 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
           📚 مكتبة الكتب والمراجع والآباء
         </h1>
         <p className="text-xs sm:text-sm text-stone-300 leading-relaxed max-w-2xl">
-          مكتبة رقمية شاملة لكتب التراث الكنسي الكلاسيكي، أبحاث الوراثة والعلوم، مع قارئ فصول مدمج ومتابعة تقدم القراءة.
+          مكتبة رقمية شاملة لكتب التراث الكنسي الكلاسيكي، أبحاث الوراثة والعلوم، مع قارئ فصول مدمج، بتقنية القائمة الافتراضية لخفة فائقة على الموبايل.
         </p>
 
-        <div className="pt-2">
-          <div className="relative max-w-md">
+        <div className="pt-2 flex flex-col sm:flex-row gap-2.5">
+          <div className="relative flex-1 max-w-md">
             <input
               type="text"
               value={searchTerm}
@@ -204,6 +346,22 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
               className="w-full pl-4 pr-10 py-2.5 rounded-xl bg-stone-950 border border-stone-800 focus:border-amber-400 text-stone-100 text-xs outline-none"
             />
             <Search className="w-4 h-4 text-stone-400 absolute right-3 top-3" />
+          </div>
+
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 text-xs">
+            {categories.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setSelectedCategory(cat)}
+                className={`px-3 py-2 rounded-xl font-bold transition whitespace-nowrap cursor-pointer text-xs ${
+                  selectedCategory === cat
+                    ? 'bg-amber-600 text-white shadow-xs'
+                    : 'bg-stone-900 text-stone-400 hover:text-stone-200 border border-stone-800'
+                }`}
+              >
+                {cat === 'all' ? 'جميع التصنيفات' : cat}
+              </button>
+            ))}
           </div>
         </div>
       </div>
@@ -256,67 +414,48 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
         </div>
       )}
 
-      {/* Books Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {filtered.map((b) => {
-          const isRead = readBooks.includes(b.id);
-          return (
-            <div
-              key={b.id}
-              className={`p-5 rounded-2xl border transition space-y-3 shadow-md flex flex-col justify-between ${
-                isRead
-                  ? 'bg-stone-900/90 border-emerald-500/60 ring-1 ring-emerald-500/30'
-                  : 'bg-stone-900 border-amber-600/30 hover:border-amber-400'
-              }`}
-            >
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold text-amber-300 bg-amber-950/80 px-2.5 py-0.5 rounded-full border border-amber-700/40 inline-block">
-                    {b.category}
-                  </span>
-                  {isRead && (
-                    <span className="text-[10px] text-emerald-400 font-bold flex items-center gap-1 bg-emerald-950 px-2 py-0.5 rounded-full border border-emerald-600">
-                      <CheckCircle2 className="w-3 h-3" />
-                      <span>تمت القراءة</span>
-                    </span>
-                  )}
-                </div>
+      {/* Virtualized Books Grid */}
+      <div ref={containerRef} className="relative min-h-[120px]">
+        {filtered.length === 0 ? (
+          <div className="text-center py-12 bg-stone-900/50 rounded-2xl border border-stone-800 text-stone-400 text-xs">
+            لا توجد كتب أو مراجع تطابق معايير البحث الحالية.
+          </div>
+        ) : (
+          <div style={{ minHeight: totalHeight }}>
+            {/* Top Spacer for virtual window */}
+            {topSpacerHeight > 0 && (
+              <div style={{ height: topSpacerHeight }} aria-hidden="true" />
+            )}
 
-                <h3 className="font-spiritual text-base sm:text-lg font-bold text-amber-100">
-                  {b.title}
-                </h3>
-                <p className="text-xs text-amber-300/80 font-semibold">
-                  بقلم: {b.author} • {b.pages} صفحة
-                </p>
-                <p className="text-xs text-stone-300 leading-relaxed">
-                  {b.description}
-                </p>
-              </div>
-
-              <div className="pt-2 border-t border-stone-800 flex items-center justify-between gap-2">
-                <button
-                  onClick={() => handleOpenBookReader(b)}
-                  className="flex-1 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 text-white font-bold text-xs transition cursor-pointer flex items-center justify-center gap-1.5 shadow-sm"
-                >
-                  <BookOpen className="w-3.5 h-3.5" />
-                  <span>فتح القارئ الإلكتروني</span>
-                </button>
-
-                <button
-                  onClick={() => toggleBookRead(b.id)}
-                  className={`p-2 rounded-xl border text-xs font-bold transition cursor-pointer ${
-                    isRead
-                      ? 'bg-emerald-950 text-emerald-300 border-emerald-600'
-                      : 'bg-stone-800 text-stone-400 border-stone-700 hover:text-white'
+            {/* Virtualized Rows */}
+            <div className="space-y-4">
+              {virtualRows.map((virtualRow) => (
+                <div
+                  key={virtualRow.index}
+                  className={`grid gap-4 ${
+                    columns === 2 ? 'grid-cols-2' : 'grid-cols-1'
                   }`}
-                  title={isRead ? 'تحديد كغير مقروء' : 'تحديد كمقروء'}
+                  style={{ minHeight: BOOK_ROW_HEIGHT - 16 }}
                 >
-                  <Bookmark className="w-3.5 h-3.5" />
-                </button>
-              </div>
+                  {virtualRow.item.map((b) => (
+                    <BookCard
+                      key={b.id}
+                      book={b}
+                      isRead={readBooks.includes(b.id)}
+                      onOpenReader={handleOpenBookReader}
+                      onToggleRead={toggleBookRead}
+                    />
+                  ))}
+                </div>
+              ))}
             </div>
-          );
-        })}
+
+            {/* Bottom Spacer for virtual window */}
+            {bottomSpacerHeight > 0 && (
+              <div style={{ height: bottomSpacerHeight }} aria-hidden="true" />
+            )}
+          </div>
+        )}
       </div>
 
       {/* INTERACTIVE BOOK READER MODAL */}
@@ -345,19 +484,19 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
                   <Type className="w-3 h-3 text-stone-400" />
                   <button
                     onClick={() => setFontSize('normal')}
-                    className={`px-1.5 py-0.5 text-[10px] rounded ${fontSize === 'normal' ? 'bg-amber-600 text-white' : 'text-stone-400'}`}
+                    className={`px-1.5 py-0.5 text-[10px] rounded cursor-pointer ${fontSize === 'normal' ? 'bg-amber-600 text-white' : 'text-stone-400'}`}
                   >
                     عادي
                   </button>
                   <button
                     onClick={() => setFontSize('large')}
-                    className={`px-1.5 py-0.5 text-[10px] rounded ${fontSize === 'large' ? 'bg-amber-600 text-white' : 'text-stone-400'}`}
+                    className={`px-1.5 py-0.5 text-[10px] rounded cursor-pointer ${fontSize === 'large' ? 'bg-amber-600 text-white' : 'text-stone-400'}`}
                   >
                     كبير
                   </button>
                   <button
                     onClick={() => setFontSize('huge')}
-                    className={`px-1.5 py-0.5 text-[10px] rounded ${fontSize === 'huge' ? 'bg-amber-600 text-white' : 'text-stone-400'}`}
+                    className={`px-1.5 py-0.5 text-[10px] rounded cursor-pointer ${fontSize === 'huge' ? 'bg-amber-600 text-white' : 'text-stone-400'}`}
                   >
                     أكبر
                   </button>
@@ -365,7 +504,7 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
 
                 <button
                   onClick={() => setReadingBook(null)}
-                  className="p-2 rounded-xl bg-stone-900 hover:bg-stone-800 text-stone-400 hover:text-white transition"
+                  className="p-2 rounded-xl bg-stone-900 hover:bg-stone-800 text-stone-400 hover:text-white transition cursor-pointer"
                 >
                   <X className="w-5 h-5" />
                 </button>

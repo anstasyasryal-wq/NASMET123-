@@ -78,7 +78,7 @@ interface QuoteOfTheDayCardProps {
   currentUser?: User | null;
 }
 
-export const QuoteOfTheDayCard: React.FC<QuoteOfTheDayCardProps> = ({ currentUser }) => {
+export const QuoteOfTheDayCard: React.FC<QuoteOfTheDayCardProps> = React.memo(({ currentUser }) => {
   const [currentIndex, setCurrentIndex] = useState<number>(() => {
     // Deterministic daily index based on day of year
     const now = new Date();
@@ -203,4 +203,6 @@ export const QuoteOfTheDayCard: React.FC<QuoteOfTheDayCardProps> = ({ currentUse
       </div>
     </div>
   );
-};
+});
+
+QuoteOfTheDayCard.displayName = 'QuoteOfTheDayCard';

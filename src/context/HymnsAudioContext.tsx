@@ -444,7 +444,9 @@ export const HymnsAudioProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [isMuted, setIsMuted] = useState<boolean>(false);
   const [currentTime, setCurrentTime] = useState<number>(0);
   const [isPlayerModalOpen, setIsPlayerModalOpen] = useState<boolean>(false);
-  const [isDockMinimized, setIsDockMinimized] = useState<boolean>(false);
+  const [isDockMinimized, setIsDockMinimized] = useState<boolean>(() => {
+    return typeof window !== 'undefined' ? window.innerWidth < 768 : true;
+  });
   const [showLyrics, setShowLyrics] = useState<boolean>(false);
 
   // Audio Context & nodes

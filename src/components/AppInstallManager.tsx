@@ -64,11 +64,20 @@ export default function AppInstallManager() {
       setInstallEvent(null);
       setShowIosHint(false);
     };
+    const handleForceInstall = () => {
+      localStorage.removeItem(INSTALL_DISMISSED_KEY);
+      setInstallDismissed(false);
+      if (isIos()) {
+        setShowIosHint(true);
+      }
+    };
     window.addEventListener('beforeinstallprompt', handleBeforeInstall);
     window.addEventListener('appinstalled', handleInstalled);
+    window.addEventListener('show-install-prompt', handleForceInstall);
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
       window.removeEventListener('appinstalled', handleInstalled);
+      window.removeEventListener('show-install-prompt', handleForceInstall);
     };
   }, []);
 

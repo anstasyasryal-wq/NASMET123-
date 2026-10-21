@@ -153,6 +153,40 @@ interface ChurchFathersAndSaintsGalleryProps {
   currentUser?: User | null;
 }
 
+const SaintListItem = React.memo<{
+  saint: ChurchSaintItem;
+  isSelected: boolean;
+  onSelect: (s: ChurchSaintItem) => void;
+}>(({ saint, isSelected, onSelect }) => {
+  return (
+    <div
+      onClick={() => onSelect(saint)}
+      className={`p-3 rounded-2xl border transition cursor-pointer flex items-center gap-3 ${
+        isSelected
+          ? 'bg-amber-950/60 border-amber-500/80 shadow-md'
+          : 'bg-stone-900 border-stone-800 hover:border-amber-600/40'
+      }`}
+    >
+      <span className="text-2xl p-2 rounded-xl bg-stone-950 border border-amber-500/20 shrink-0">
+        {saint.emoji}
+      </span>
+      <div className="min-w-0 flex-1">
+        <span className="text-[10px] font-bold text-amber-400 block mb-0.5">
+          {saint.title}
+        </span>
+        <h4 className="font-spiritual text-xs font-bold text-stone-100 truncate">
+          {saint.name}
+        </h4>
+        <span className="text-[10px] text-stone-400 truncate block">
+          {saint.century}
+        </span>
+      </div>
+    </div>
+  );
+});
+
+SaintListItem.displayName = 'SaintListItem';
+
 export const ChurchFathersAndSaintsGallery: React.FC<ChurchFathersAndSaintsGalleryProps> = ({
   isOpen,
   onClose,
@@ -161,23 +195,25 @@ export const ChurchFathersAndSaintsGallery: React.FC<ChurchFathersAndSaintsGalle
   const [traditionFilter, setTraditionFilter] = useState<'all' | 'east' | 'west'>('all');
   const [searchTerm, setSearchTerm] = useState<string>('');
 
-  if (!isOpen) return null;
-
-  const filteredSaints = CHURCH_SAINTS_DATA.filter((item) => {
-    const matchTradition =
-      traditionFilter === 'all' || item.tradition === traditionFilter;
-    const matchSearch =
-      item.name.includes(searchTerm) ||
-      item.biography.includes(searchTerm) ||
-      item.keyTeaching.includes(searchTerm) ||
-      item.title.includes(searchTerm);
-    return matchTradition && matchSearch;
-  });
-
-  const handleSelectSaint = (saint: ChurchSaintItem) => {
+  const handleSelectSaint = React.useCallback((saint: ChurchSaintItem) => {
     soundManager.playTick();
     setSelectedSaint(saint);
-  };
+  }, []);
+
+  const filteredSaints = React.useMemo(() => {
+    return CHURCH_SAINTS_DATA.filter((item) => {
+      const matchTradition =
+        traditionFilter === 'all' || item.tradition === traditionFilter;
+      const matchSearch =
+        item.name.includes(searchTerm) ||
+        item.biography.includes(searchTerm) ||
+        item.keyTeaching.includes(searchTerm) ||
+        item.title.includes(searchTerm);
+      return matchTradition && matchSearch;
+    });
+  }, [traditionFilter, searchTerm]);
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in">
@@ -249,30 +285,12 @@ export const ChurchFathersAndSaintsGallery: React.FC<ChurchFathersAndSaintsGalle
             {/* List */}
             <div className="space-y-2">
               {filteredSaints.map((saint) => (
-                <div
+                <SaintListItem
                   key={saint.id}
-                  onClick={() => handleSelectSaint(saint)}
-                  className={`p-3 rounded-2xl border transition cursor-pointer flex items-center gap-3 ${
-                    selectedSaint.id === saint.id
-                      ? 'bg-amber-950/60 border-amber-500/80 shadow-md'
-                      : 'bg-stone-900 border-stone-800 hover:border-amber-600/40'
-                  }`}
-                >
-                  <span className="text-2xl p-2 rounded-xl bg-stone-950 border border-amber-500/20 shrink-0">
-                    {saint.emoji}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <span className="text-[10px] font-bold text-amber-400 block mb-0.5">
-                      {saint.title}
-                    </span>
-                    <h4 className="font-spiritual text-xs font-bold text-stone-100 truncate">
-                      {saint.name}
-                    </h4>
-                    <span className="text-[10px] text-stone-400 truncate block">
-                      {saint.century}
-                    </span>
-                  </div>
-                </div>
+                  saint={saint}
+                  isSelected={selectedSaint.id === saint.id}
+                  onSelect={handleSelectSaint}
+                />
               ))}
             </div>
           </div>

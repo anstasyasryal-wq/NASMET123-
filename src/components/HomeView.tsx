@@ -1,9 +1,6 @@
 import React, { useState } from 'react';
 import { User, Stage, Announcement } from '../types';
 import { FortuneWheel, WheelSection } from './FortuneWheel';
-import { getOrRefreshDailyMessage, formatRemainingTime } from '../utils/heavenlyHistory';
-import { Sparkles, Heart, Clock, ShieldCheck, ScrollText, Compass, Shield } from 'lucide-react';
-import { useHymnsAudio } from '../context/HymnsAudioContext';
 
 interface HomeViewProps {
   currentUser: User | null;
@@ -39,7 +36,7 @@ interface HomeViewProps {
   onNavigateToPrayerFortress?: () => void;
 }
 
-export const HomeView: React.FC<HomeViewProps> = ({
+export const HomeView: React.FC<HomeViewProps> = React.memo(({
   currentUser,
   stages,
   announcements,
@@ -73,10 +70,16 @@ export const HomeView: React.FC<HomeViewProps> = ({
   onNavigateToPrayerFortress,
 }) => {
   const [selectedSection, setSelectedSection] = useState<WheelSection | null>(null);
-  const { message: dailyMessage, timeRemainingMs } = getOrRefreshDailyMessage(false);
-  const { openPlayerModal } = useHymnsAudio();
 
-  const wheelSections: WheelSection[] = [
+  const handleSelectSection = React.useCallback((sec: WheelSection) => {
+    setSelectedSection(sec);
+  }, []);
+
+  const handleReset = React.useCallback(() => {
+    setSelectedSection(null);
+  }, []);
+
+  const wheelSections: WheelSection[] = React.useMemo(() => [
     {
       id: 'competitions',
       name: 'المسابقة الرسمية ومراحل التقييم',
@@ -292,16 +295,31 @@ export const HomeView: React.FC<HomeViewProps> = ({
       onOpen: () => onNavigateToLeaderboard(),
       items: [],
     },
-  ];
+  ], [
+    onNavigateToCompetitions,
+    onNavigateToSpiritualLife,
+    onNavigateToBiblicalStudy,
+    onNavigateToLibrary,
+    onNavigateToWorkshops,
+    onNavigateToCreativeLab,
+    onNavigateToStudyTools,
+    onNavigateToMonasticOasis,
+    onNavigateToSpiritualGames,
+    onNavigateToPersonalSpace,
+    onNavigateToSpiritualFather,
+    onNavigateToLeaderboard,
+  ]);
 
   return (
     <div className="space-y-6 pb-12 animate-fade-in text-right">
       <FortuneWheel
         sections={wheelSections}
         selectedSection={selectedSection}
-        onSelectSection={(sec) => setSelectedSection(sec)}
-        onReset={() => setSelectedSection(null)}
+        onSelectSection={handleSelectSection}
+        onReset={handleReset}
       />
     </div>
   );
-};
+});
+
+HomeView.displayName = 'HomeView';

@@ -63,7 +63,7 @@ function getSectorPath(startAngle: number, endAngle: number, outerR: number, inn
   return `M ${p4.x} ${p4.y} L ${p1.x} ${p1.y} A ${outerR} ${outerR} 0 0 1 ${p2.x} ${p2.y} L ${p3.x} ${p3.y} A ${innerR} ${innerR} 0 0 0 ${p4.x} ${p4.y} Z`;
 }
 
-export const FortuneWheel: React.FC<FortuneWheelProps> = ({
+export const FortuneWheel: React.FC<FortuneWheelProps> = React.memo(({
   sections,
   selectedSection,
   onSelectSection,
@@ -277,15 +277,14 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
         </div>
       )}
 
-      {/* Radiant Background Glow & Decorative Auras */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[550px] h-[550px] bg-amber-500/10 rounded-full blur-3xl pointer-events-none animate-pulse" />
-      <div className="absolute -top-24 -right-24 w-96 h-96 bg-amber-600/10 rounded-full blur-3xl pointer-events-none" />
+      {/* Lightweight Radiant Background Glow */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(245,158,11,0.12)_0%,transparent_70%)] pointer-events-none" />
 
       {/* Header Banner */}
       <div className="max-w-2xl mx-auto space-y-3 relative z-10">
         <div className="flex items-center justify-center gap-2 flex-wrap">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-900/90 border border-amber-500/60 text-amber-300 text-xs font-bold shadow-lg">
-            <Flame className="w-4 h-4 text-amber-400 animate-pulse" />
+            <Flame className="w-4 h-4 text-amber-400" />
             <span>عجلة الأقسام الروحية التفاعلية • حسب قلب الله</span>
           </div>
 
@@ -296,7 +295,7 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
           </div>
         </div>
 
-        <h2 className="font-spiritual text-3xl sm:text-4xl font-bold text-amber-100 tracking-wide drop-shadow-md">
+        <h2 className="font-spiritual text-2xl sm:text-4xl font-bold text-amber-100 tracking-wide drop-shadow-md">
           عجلة البركة والجهاد الروحي
         </h2>
         <p className="text-xs sm:text-sm text-stone-300 leading-relaxed max-w-xl mx-auto">
@@ -339,25 +338,25 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
         </div>
       </div>
 
-      {/* Main Wheel View with Majestic Glow Frame */}
-      <div className="relative z-10 flex flex-col items-center justify-center space-y-6 py-4">
+      {/* Main Wheel View with Mobile-Optimized Frame */}
+      <div className="relative z-10 flex flex-col items-center justify-center space-y-6 py-2">
         <div
           ref={wheelContainerRef}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
-          className="relative w-[340px] h-[340px] sm:w-[480px] sm:h-[480px] flex items-center justify-center select-none touch-none cursor-grab active:cursor-grabbing group"
+          className="relative w-[280px] h-[280px] min-[360px]:w-[320px] min-[360px]:h-[320px] min-[400px]:w-[350px] min-[400px]:h-[350px] sm:w-[460px] sm:h-[460px] flex items-center justify-center select-none touch-none cursor-grab active:cursor-grabbing group"
         >
-          {/* Glowing Aura Ring */}
-          <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-amber-500/20 via-yellow-400/10 to-amber-600/20 blur-xl group-hover:scale-105 transition duration-500 pointer-events-none" />
+          {/* Subtle Outer Ring */}
+          <div className="absolute inset-0 rounded-full border border-amber-500/20 pointer-events-none" />
 
           {/* Top Golden Fixed Pointer */}
           <div
             className={`absolute -top-3 z-40 transition-transform duration-150 ${
-              isSpinning ? 'animate-bounce-subtle scale-110' : ''
+              isSpinning ? 'scale-110' : ''
             }`}
           >
-            <svg width="48" height="52" viewBox="0 0 44 48" className="filter drop-shadow-[0_6px_14px_rgba(0,0,0,0.9)]">
+            <svg width="44" height="48" viewBox="0 0 44 48" className="drop-shadow-md">
               <defs>
                 <linearGradient id={`${filterId}-pointerGrad`} x1="0" y1="0" x2="1" y2="1">
                   <stop offset="0%" stopColor="#fef08a" />
@@ -378,11 +377,11 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
             </svg>
           </div>
 
-          {/* Rotating Wheel Container */}
+          {/* Rotating Wheel Container - Hardware Accelerated */}
           <div
-            className="w-full h-full rounded-full relative flex items-center justify-center shadow-2xl"
+            className="w-full h-full rounded-full relative flex items-center justify-center shadow-xl will-change-transform"
             style={{
-              transform: `rotate(${spinDegree}deg)`,
+              transform: `rotate(${spinDegree}deg) translateZ(0)`,
               transition: isSpinning
                 ? `transform ${spinSpeedMode === 'fast' ? 2.5 : spinSpeedMode === 'blessed' ? 4.5 : 3.8}s cubic-bezier(0.12, 0.85, 0.2, 1)`
                 : isDirectAligning
@@ -392,7 +391,7 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
           >
             <svg
               viewBox="-220 -220 440 440"
-              className="w-full h-full filter drop-shadow-[0_0_40px_rgba(217,119,6,0.4)]"
+              className="w-full h-full"
             >
               <defs>
                 <radialGradient id={`${filterId}-rim`} cx="50%" cy="50%" r="50%">
@@ -428,18 +427,14 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
                     }}
                     onMouseEnter={() => setHoveredSection(sec)}
                     onMouseLeave={() => setHoveredSection(null)}
-                    className="cursor-pointer transition-opacity duration-200"
-                    style={{ opacity: isSpinning ? 0.95 : 1 }}
+                    className="cursor-pointer"
                   >
                     <path
                       d={pathData}
                       fill={sec.color}
                       stroke={isSelected ? '#fde047' : '#f59e0b'}
                       strokeWidth={isSelected ? '4' : '1.5'}
-                      className="transition-all duration-200"
-                      style={{
-                        filter: isHovered || isSelected ? 'brightness(1.25)' : 'none',
-                      }}
+                      opacity={isHovered || isSelected ? 1 : 0.95}
                     />
 
                     <g transform={`rotate(${midAngle})`}>
@@ -460,12 +455,12 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
                         textAnchor="middle"
                         dominantBaseline="central"
                         fill="#ffffff"
+                        stroke="#000000"
+                        strokeWidth="0.8"
+                        paintOrder="stroke fill"
                         fontWeight="800"
                         fontSize="11.5"
                         className="select-none pointer-events-none font-spiritual"
-                        style={{
-                          filter: 'drop-shadow(0px 1px 4px rgba(0,0,0,0.95))',
-                        }}
                       >
                         {sec.line1 && sec.line2 ? (
                           <>
@@ -574,15 +569,25 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
         </div>
 
         {/* Spin Action Buttons */}
-        <div className="flex flex-col sm:flex-row items-center gap-3">
+        <div className="flex flex-col sm:flex-row items-center gap-3 w-full max-w-sm sm:max-w-none justify-center px-3">
           <button
             onClick={() => handleSpinWheel()}
             disabled={isSpinning}
-            className="px-10 py-4 rounded-2xl bg-gradient-to-r from-amber-500 via-amber-400 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-stone-950 font-black text-base sm:text-lg shadow-[0_10px_30px_rgba(245,158,11,0.5)] hover:scale-105 active:scale-95 transition cursor-pointer disabled:opacity-50 flex items-center gap-3 border border-amber-200"
+            className="w-full sm:w-auto px-8 py-3.5 sm:px-10 sm:py-4 rounded-2xl bg-gradient-to-r from-amber-500 via-amber-400 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-stone-950 font-black text-base sm:text-lg shadow-[0_10px_30px_rgba(245,158,11,0.5)] active:scale-95 transition cursor-pointer disabled:opacity-50 flex items-center justify-center gap-3 border border-amber-200 min-h-[48px] touch-manipulation"
           >
             <Sparkles className={`w-5 h-5 ${isSpinning ? 'animate-spin' : ''}`} />
             <span>{isSpinning ? 'العجلة تدور الآن...' : 'يلا نلف! (تدوير العجلة)'}</span>
           </button>
+
+          {selectedSection && (
+            <button
+              onClick={handleResetWheel}
+              className="w-full sm:w-auto px-5 py-3 rounded-2xl bg-stone-900 hover:bg-stone-800 border border-stone-800 text-stone-300 text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer min-h-[44px] touch-manipulation"
+            >
+              <RotateCcw className="w-4 h-4 text-amber-400" />
+              <span>إعادة تهيئة العجلة</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -802,4 +807,6 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
       </div>
     </div>
   );
-};
+});
+
+FortuneWheel.displayName = 'FortuneWheel';

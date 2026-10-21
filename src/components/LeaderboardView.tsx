@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo, useRef, memo } from 'react';
 import { User, DioceseRanking } from '../types';
 import {
   getStoredUsers,
@@ -13,6 +13,7 @@ import {
   Award,
   Users,
 } from 'lucide-react';
+import { useVirtualList } from '../hooks/useVirtualList';
 
 interface LeaderboardViewProps {
   currentUser: User | null;
@@ -22,6 +23,92 @@ interface LeaderboardViewProps {
   initialTab?: 'general' | 'dioceses';
 }
 
+// Memoized participant rank row
+const LeaderboardParticipantRow = memo<{
+  user: User;
+  rank: number;
+  isMe: boolean;
+}>(({ user, rank, isMe }) => {
+  return (
+    <div
+      className={`p-4 sm:p-5 rounded-2xl border transition flex items-center justify-between text-xs ${
+        isMe
+          ? 'bg-amber-950/70 border-amber-400 shadow-md ring-1 ring-amber-400/50'
+          : rank === 1
+          ? 'bg-stone-900 border-amber-500/60 shadow-md'
+          : 'bg-stone-900/80 border-stone-800'
+      }`}
+    >
+      <div className="flex items-center gap-3">
+        <div
+          className={`w-9 h-9 rounded-xl font-bold font-mono text-sm flex items-center justify-center shrink-0 ${
+            rank === 1
+              ? 'bg-amber-500 text-stone-950 shadow-md'
+              : rank === 2
+              ? 'bg-stone-300 text-stone-900'
+              : rank === 3
+              ? 'bg-amber-700 text-white'
+              : 'bg-stone-800 text-stone-400'
+          }`}
+        >
+          {rank <= 3 ? ['🥇', '🥈', '🥉'][rank - 1] : `#${rank}`}
+        </div>
+        <div>
+          <div className="flex items-center gap-2">
+            <strong className="text-stone-100 text-sm">{user.name}</strong>
+            {isMe && (
+              <span className="text-[10px] text-amber-300 font-bold bg-amber-900 px-2 py-0.5 rounded-full border border-amber-600">
+                أنت
+              </span>
+            )}
+          </div>
+          <span className="text-stone-400">
+            {user.vocation} • {user.diocese}
+          </span>
+        </div>
+      </div>
+
+      <div className="text-left font-mono">
+        <span className="text-amber-400 font-black text-sm block">
+          {user.totalScore} نقطة
+        </span>
+        <span className="text-stone-500 text-[10px]">
+          المرحلة {user.currentStageId}
+        </span>
+      </div>
+    </div>
+  );
+});
+
+LeaderboardParticipantRow.displayName = 'LeaderboardParticipantRow';
+
+// Memoized diocese rank row
+const DioceseRankingRow = memo<{
+  diocese: DioceseRanking;
+  rank: number;
+}>(({ diocese, rank }) => {
+  return (
+    <div className="p-4 sm:p-5 rounded-2xl bg-stone-900 border border-stone-800 flex items-center justify-between text-xs">
+      <div className="flex items-center gap-3">
+        <span className="w-8 h-8 rounded-lg bg-stone-800 text-amber-400 font-mono font-bold flex items-center justify-center">
+          #{rank}
+        </span>
+        <div>
+          <strong className="text-stone-100 text-sm block">{diocese.diocese}</strong>
+          <span className="text-stone-400">
+            {diocese.participantsCount} مشارك ومكرس • متوسط النقاط: {diocese.avgScore}
+          </span>
+        </div>
+      </div>
+      <span className="text-amber-400 font-mono font-bold text-sm">
+        {diocese.totalPoints} نقطة
+      </span>
+    </div>
+  );
+});
+
+DioceseRankingRow.displayName = 'DioceseRankingRow';
+
 export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
   currentUser,
   onOpenRegister,
@@ -30,13 +117,24 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
   initialTab,
 }) => {
   const [tab, setTab] = useState<'general' | 'dioceses'>(initialTab || 'general');
-  const allUsers = getStoredUsers();
-  const sortedParticipants = sortParticipantsByTieBreaker(allUsers);
-  const diocesesRankings = getDiocesesRankings();
+  const allUsers = useMemo(() => getStoredUsers(), []);
+  const sortedParticipants = useMemo(() => sortParticipantsByTieBreaker(allUsers), [allUsers]);
+  const diocesesRankings = useMemo(() => getDiocesesRankings(), []);
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  const myRank = currentUser
-    ? sortedParticipants.findIndex((u) => u.id === currentUser.id) + 1
-    : 0;
+  const PARTICIPANT_ROW_HEIGHT = 74;
+  const {
+    virtualItems,
+    topSpacerHeight,
+    bottomSpacerHeight,
+    totalHeight,
+  } = useVirtualList({
+    items: sortedParticipants,
+    itemHeight: PARTICIPANT_ROW_HEIGHT,
+    overscan: 4,
+    containerRef,
+    useWindowScroll: true,
+  });
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-12 animate-fade-in text-right">
@@ -74,7 +172,7 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
                 : 'bg-stone-900 text-stone-400 hover:bg-stone-800'
             }`}
           >
-            ترتيب الأفراد والمكرسين
+            ترتيب الأفراد والمكرسين ({sortedParticipants.length})
           </button>
           <button
             onClick={() => setTab('dioceses')}
@@ -84,69 +182,34 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
                 : 'bg-stone-900 text-stone-400 hover:bg-stone-800'
             }`}
           >
-            ترتيب الإيبارشيات والأديرة
+            ترتيب الإيبارشيات والأديرة ({diocesesRankings.length})
           </button>
         </div>
       </div>
 
-      {/* Participants List */}
+      {/* Virtualized Participants List */}
       {tab === 'general' && (
-        <div className="space-y-3">
-          {sortedParticipants.map((user, idx) => {
-            const rank = idx + 1;
-            const isMe = currentUser?.id === user.id;
+        <div ref={containerRef} className="space-y-3 relative min-h-[100px]">
+          <div style={{ minHeight: totalHeight }}>
+            {topSpacerHeight > 0 && (
+              <div style={{ height: topSpacerHeight }} aria-hidden="true" />
+            )}
 
-            return (
-              <div
-                key={user.id}
-                className={`p-4 sm:p-5 rounded-2xl border transition flex items-center justify-between text-xs ${
-                  isMe
-                    ? 'bg-amber-950/70 border-amber-400 shadow-md ring-1 ring-amber-400/50'
-                    : rank === 1
-                    ? 'bg-stone-900 border-amber-500/60 shadow-md'
-                    : 'bg-stone-900/80 border-stone-800'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <div
-                    className={`w-9 h-9 rounded-xl font-bold font-mono text-sm flex items-center justify-center shrink-0 ${
-                      rank === 1
-                        ? 'bg-amber-500 text-stone-950 shadow-md'
-                        : rank === 2
-                        ? 'bg-stone-300 text-stone-900'
-                        : rank === 3
-                        ? 'bg-amber-700 text-white'
-                        : 'bg-stone-800 text-stone-400'
-                    }`}
-                  >
-                    {rank <= 3 ? ['🥇', '🥈', '🥉'][rank - 1] : `#${rank}`}
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <strong className="text-stone-100 text-sm">{user.name}</strong>
-                      {isMe && (
-                        <span className="text-[10px] text-amber-300 font-bold bg-amber-900 px-2 py-0.5 rounded-full border border-amber-600">
-                          أنت
-                        </span>
-                      )}
-                    </div>
-                    <span className="text-stone-400">
-                      {user.vocation} • {user.diocese}
-                    </span>
-                  </div>
-                </div>
+            <div className="space-y-3">
+              {virtualItems.map(({ item: user, index: idx }) => (
+                <LeaderboardParticipantRow
+                  key={user.id}
+                  user={user}
+                  rank={idx + 1}
+                  isMe={currentUser?.id === user.id}
+                />
+              ))}
+            </div>
 
-                <div className="text-left font-mono">
-                  <span className="text-amber-400 font-black text-sm block">
-                    {user.totalScore} نقطة
-                  </span>
-                  <span className="text-stone-500 text-[10px]">
-                    المرحلة {user.currentStageId}
-                  </span>
-                </div>
-              </div>
-            );
-          })}
+            {bottomSpacerHeight > 0 && (
+              <div style={{ height: bottomSpacerHeight }} aria-hidden="true" />
+            )}
+          </div>
         </div>
       )}
 
@@ -154,25 +217,7 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
       {tab === 'dioceses' && (
         <div className="space-y-3">
           {diocesesRankings.map((d, idx) => (
-            <div
-              key={d.diocese}
-              className="p-4 sm:p-5 rounded-2xl bg-stone-900 border border-stone-800 flex items-center justify-between text-xs"
-            >
-              <div className="flex items-center gap-3">
-                <span className="w-8 h-8 rounded-lg bg-stone-800 text-amber-400 font-mono font-bold flex items-center justify-center">
-                  #{idx + 1}
-                </span>
-                <div>
-                  <strong className="text-stone-100 text-sm block">{d.diocese}</strong>
-                  <span className="text-stone-400">
-                    {d.participantsCount} مشارك ومكرس • متوسط النقاط: {d.avgScore}
-                  </span>
-                </div>
-              </div>
-              <span className="text-amber-400 font-mono font-bold text-sm">
-                {d.totalPoints} نقطة
-              </span>
-            </div>
+            <DioceseRankingRow key={d.diocese} diocese={d} rank={idx + 1} />
           ))}
         </div>
       )}

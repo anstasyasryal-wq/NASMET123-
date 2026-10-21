@@ -19,7 +19,7 @@ interface DailySaintAlertBannerProps {
   onOpenFullModal: () => void;
 }
 
-export const DailySaintAlertBanner: React.FC<DailySaintAlertBannerProps> = ({
+export const DailySaintAlertBanner: React.FC<DailySaintAlertBannerProps> = React.memo(({
   onOpenFullModal,
 }) => {
   const [data, setData] = useState(() => getDailySaintSticker(false));
@@ -27,14 +27,17 @@ export const DailySaintAlertBanner: React.FC<DailySaintAlertBannerProps> = ({
   const [isExpanded, setIsExpanded] = useState<boolean>(() => {
     try {
       const saved = localStorage.getItem('mokarasa_saint_alert_expanded');
-      return saved !== null ? JSON.parse(saved) : true;
+      if (saved !== null) return JSON.parse(saved);
+      // On small mobile screens, default to compact so wheel is immediately visible
+      return typeof window !== 'undefined' ? window.innerWidth >= 640 : false;
     } catch {
-      return true;
+      return false;
     }
   });
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
+    if (!isExpanded) return; // Do not run timer when banner is collapsed
     const timer = setInterval(() => {
       setTimeRemainingMs((prev) => {
         if (prev <= 1000) {
@@ -46,7 +49,7 @@ export const DailySaintAlertBanner: React.FC<DailySaintAlertBannerProps> = ({
       });
     }, 1000);
     return () => clearInterval(timer);
-  }, []);
+  }, [isExpanded]);
 
   const formatRemainingTime = (ms: number) => {
     const totalSeconds = Math.max(0, Math.floor(ms / 1000));
@@ -119,10 +122,10 @@ export const DailySaintAlertBanner: React.FC<DailySaintAlertBannerProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2">
             <button
               onClick={handleDrawNew}
-              className="p-1.5 rounded-xl bg-stone-900 hover:bg-stone-800 text-amber-300 text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+              className="px-2.5 py-2 sm:px-3 sm:py-1.5 rounded-xl bg-stone-900 hover:bg-stone-800 text-amber-300 text-xs font-bold transition flex items-center gap-1 cursor-pointer min-h-[40px] touch-manipulation"
               title="سحب قديس آخر بالقرعة"
             >
               <RefreshCw className="w-3.5 h-3.5" />
@@ -131,7 +134,7 @@ export const DailySaintAlertBanner: React.FC<DailySaintAlertBannerProps> = ({
 
             <button
               onClick={toggleExpand}
-              className="p-1.5 rounded-xl bg-stone-900 hover:bg-stone-800 text-stone-300"
+              className="p-2 rounded-xl bg-stone-900 hover:bg-stone-800 text-stone-300 min-w-[40px] min-h-[40px] flex items-center justify-center cursor-pointer touch-manipulation"
               title="توسيع التنبيه لقراءة الرسالة كاملة"
             >
               <ChevronDown className="w-4 h-4 text-amber-400" />
@@ -215,10 +218,10 @@ export const DailySaintAlertBanner: React.FC<DailySaintAlertBannerProps> = ({
               <span className="text-amber-300 font-bold">{formatRemainingTime(timeRemainingMs)}</span>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2.5">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
               <button
                 onClick={handleDrawNew}
-                className="px-4 py-2 rounded-xl bg-stone-900 hover:bg-stone-800 text-amber-300 border border-stone-800 font-bold transition flex items-center gap-1.5 cursor-pointer text-xs"
+                className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-stone-900 hover:bg-stone-800 text-amber-300 border border-stone-800 font-bold transition flex items-center justify-center gap-1.5 cursor-pointer text-xs min-h-[44px] touch-manipulation"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
                 <span>سحب قديس آخر بالقرعة</span>
@@ -226,7 +229,7 @@ export const DailySaintAlertBanner: React.FC<DailySaintAlertBannerProps> = ({
 
               <button
                 onClick={handleCopy}
-                className="px-4 py-2 rounded-xl bg-stone-900 hover:bg-stone-800 text-stone-200 border border-stone-800 font-bold transition flex items-center gap-1.5 cursor-pointer text-xs"
+                className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-stone-900 hover:bg-stone-800 text-stone-200 border border-stone-800 font-bold transition flex items-center justify-center gap-1.5 cursor-pointer text-xs min-h-[44px] touch-manipulation"
               >
                 {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
                 <span>{copied ? 'تم النسخ' : 'نسخ الرسالة'}</span>
@@ -234,10 +237,10 @@ export const DailySaintAlertBanner: React.FC<DailySaintAlertBannerProps> = ({
 
               <button
                 onClick={onOpenFullModal}
-                className="px-5 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 text-white font-bold transition flex items-center gap-1.5 shadow-md cursor-pointer text-xs"
+                className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 text-white font-bold transition flex items-center justify-center gap-1.5 shadow-md cursor-pointer text-xs min-h-[44px] touch-manipulation"
               >
                 <ExternalLink className="w-3.5 h-3.5" />
-                <span>عرض ألبوم الاستكرات الكامل (٣٦٥ يوماً)</span>
+                <span>عرض ألبوم الاستكرات الكامل</span>
               </button>
             </div>
           </div>
@@ -245,4 +248,6 @@ export const DailySaintAlertBanner: React.FC<DailySaintAlertBannerProps> = ({
       )}
     </div>
   );
-};
+});
+
+DailySaintAlertBanner.displayName = 'DailySaintAlertBanner';

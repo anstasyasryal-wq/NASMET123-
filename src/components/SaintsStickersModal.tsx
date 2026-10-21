@@ -37,6 +37,59 @@ interface SaintsStickersModalProps {
   onBackToHome?: () => void;
 }
 
+const SaintStickerAlbumCard = React.memo<{
+  sticker: SaintSticker;
+  isSelected: boolean;
+  onSelect: (s: SaintSticker) => void;
+}>(({ sticker, isSelected, onSelect }) => {
+  return (
+    <div
+      onClick={() => onSelect(sticker)}
+      className={`p-5 rounded-3xl border-2 transition-all duration-200 cursor-pointer space-y-3 flex flex-col justify-between hover:scale-[1.02] shadow-lg ${
+        isSelected
+          ? 'bg-gradient-to-br from-amber-950/90 to-stone-900 border-amber-400 shadow-amber-500/20'
+          : 'bg-stone-900 border-stone-800 hover:border-amber-700/50'
+      }`}
+    >
+      <div className="space-y-2.5">
+        <div className="flex items-center justify-between">
+          <span className="text-2xl p-2 rounded-xl bg-stone-950 border border-stone-800 shadow-inner">
+            {sticker.badgeIcon}
+          </span>
+          <span className="text-[10px] bg-amber-950 text-amber-300 border border-amber-800/40 px-2 py-0.5 rounded-full font-bold">
+            {sticker.traditionLabel.split(' ')[0]}
+          </span>
+        </div>
+
+        <div>
+          <h4 className="font-spiritual text-base font-bold text-amber-100">
+            {sticker.name}
+          </h4>
+          <p className="text-[11px] text-amber-300/80 font-serif">
+            {sticker.epithet}
+          </p>
+        </div>
+
+        <div className="p-2 rounded-xl bg-stone-950 border border-stone-800 text-[11px] space-y-1">
+          <span className="text-stone-400 block text-[10px]">الفضيلة المنبه عليها:</span>
+          <span className="font-bold text-amber-200">{sticker.virtue}</span>
+        </div>
+
+        <p className="text-xs text-stone-300 leading-relaxed font-spiritual line-clamp-2">
+          «{sticker.quote}»
+        </p>
+      </div>
+
+      <div className="pt-2 border-t border-stone-800 flex items-center justify-between text-[11px] text-amber-400 font-bold">
+        <span>عرض رسالة القديس</span>
+        <span>←</span>
+      </div>
+    </div>
+  );
+});
+
+SaintStickerAlbumCard.displayName = 'SaintStickerAlbumCard';
+
 export const SaintsStickersModal: React.FC<SaintsStickersModalProps> = ({
   isOpen = true,
   onClose,
@@ -66,8 +119,9 @@ export const SaintsStickersModal: React.FC<SaintsStickersModalProps> = ({
     }
   });
 
-  // Countdown timer
+  // Countdown timer - Only runs when modal is open and on today_sticker tab
   useEffect(() => {
+    if (!isOpen || activeTab !== 'today_sticker') return;
     const timer = setInterval(() => {
       setTimeRemainingMs((prev) => {
         if (prev <= 1000) {
@@ -79,7 +133,7 @@ export const SaintsStickersModal: React.FC<SaintsStickersModalProps> = ({
       });
     }, 1000);
     return () => clearInterval(timer);
-  }, []);
+  }, [isOpen, activeTab]);
 
   const formatRemainingTime = (ms: number) => {
     const totalSeconds = Math.max(0, Math.floor(ms / 1000));
@@ -428,56 +482,14 @@ export const SaintsStickersModal: React.FC<SaintsStickersModalProps> = ({
 
           {/* Stickers Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-            {filteredAlbum.map((sticker) => {
-              const isCollected = collectedStickerIds.includes(sticker.id);
-              const isSelected = selectedSticker.id === sticker.id;
-
-              return (
-                <div
-                  key={sticker.id}
-                  onClick={() => handleSelectFromAlbum(sticker)}
-                  className={`p-5 rounded-3xl border-2 transition-all duration-200 cursor-pointer space-y-3 flex flex-col justify-between hover:scale-[1.02] shadow-lg ${
-                    isSelected
-                      ? 'bg-gradient-to-br from-amber-950/90 to-stone-900 border-amber-400 shadow-amber-500/20'
-                      : 'bg-stone-900 border-stone-800 hover:border-amber-700/50'
-                  }`}
-                >
-                  <div className="space-y-2.5">
-                    <div className="flex items-center justify-between">
-                      <span className="text-2xl p-2 rounded-xl bg-stone-950 border border-stone-800 shadow-inner">
-                        {sticker.badgeIcon}
-                      </span>
-                      <span className="text-[10px] bg-amber-950 text-amber-300 border border-amber-800/40 px-2 py-0.5 rounded-full font-bold">
-                        {sticker.traditionLabel.split(' ')[0]}
-                      </span>
-                    </div>
-
-                    <div>
-                      <h4 className="font-spiritual text-base font-bold text-amber-100">
-                        {sticker.name}
-                      </h4>
-                      <p className="text-[11px] text-amber-300/80 font-serif">
-                        {sticker.epithet}
-                      </p>
-                    </div>
-
-                    <div className="p-2 rounded-xl bg-stone-950 border border-stone-800 text-[11px] space-y-1">
-                      <span className="text-stone-400 block text-[10px]">الفضيلة المنبه عليها:</span>
-                      <span className="font-bold text-amber-200">{sticker.virtue}</span>
-                    </div>
-
-                    <p className="text-xs text-stone-300 leading-relaxed font-spiritual line-clamp-2">
-                      «{sticker.quote}»
-                    </p>
-                  </div>
-
-                  <div className="pt-2 border-t border-stone-800 flex items-center justify-between text-[11px] text-amber-400 font-bold">
-                    <span>عرض رسالة القديس</span>
-                    <span>←</span>
-                  </div>
-                </div>
-              );
-            })}
+            {filteredAlbum.map((sticker) => (
+              <SaintStickerAlbumCard
+                key={sticker.id}
+                sticker={sticker}
+                isSelected={selectedSticker.id === sticker.id}
+                onSelect={handleSelectFromAlbum}
+              />
+            ))}
           </div>
         </div>
       )}
