@@ -94,9 +94,24 @@ export const ScheduledPrayerReminders: React.FC<{ currentUser?: User | null }> =
     }
   };
 
+  const requestNotificationPermission = async () => {
+    if ('Notification' in window && Notification.permission === 'default') {
+      await Notification.requestPermission();
+    }
+  };
+
   const handleToggle = (id: string) => {
     soundManager.playTick();
-    const updated = reminders.map((r) => (r.id === id ? { ...r, enabled: !r.enabled } : r));
+    const updated = reminders.map((r) => {
+      if (r.id === id) {
+        const nextEnabled = !r.enabled;
+        if (nextEnabled) {
+          requestNotificationPermission();
+        }
+        return { ...r, enabled: nextEnabled };
+      }
+      return r;
+    });
     saveSettings(updated);
   };
 
@@ -145,6 +160,18 @@ export const ScheduledPrayerReminders: React.FC<{ currentUser?: User | null }> =
           setActiveAlert(`حان الآن موعد: ${reminder.title}`);
           confetti({ particleCount: 30, spread: 60, origin: { y: 0.8 } });
 
+          // Fire native browser notification if permitted
+          if ('Notification' in window && Notification.permission === 'granted') {
+            try {
+              new Notification('حسب قلب الله - موعد الصلاة', {
+                body: `حان الآن موعد: ${reminder.title}. استعد لسكون المخدع والشركة مع الله ✝️`,
+                icon: '/icons/icon-192.png',
+              });
+            } catch {
+              // ignore
+            }
+          }
+
           // Auto dismiss banner after 12 seconds
           setTimeout(() => {
             setActiveAlert(null);
@@ -153,7 +180,7 @@ export const ScheduledPrayerReminders: React.FC<{ currentUser?: User | null }> =
       });
     };
 
-    const interval = setInterval(checkSchedule, 15000);
+    const interval = setInterval(checkSchedule, 30000);
     checkSchedule(); // initial check
     return () => clearInterval(interval);
   }, [reminders]);

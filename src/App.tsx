@@ -22,6 +22,7 @@ import AppInstallManager from './components/AppInstallManager';
 import { MobileBottomNav } from './components/MobileBottomNav';
 import { JoyfulScreenHeader } from './components/JoyfulScreenHeader';
 import { OnlineAutoUpdater } from './components/OnlineAutoUpdater';
+import { scheduleSmartPrefetch, recordViewVisit } from './utils/preloadManager';
 import { motion } from 'framer-motion';
 
 // Lazy-loaded Views (Code Splitting for instant mobile startup)
@@ -113,9 +114,13 @@ function AppContent() {
     setCurrentUserState(user);
     setStages(getStoredStages());
     setAnnouncements(getStoredAnnouncements());
+
+    // Schedule smart background prefetch based on user behavior during idle time
+    scheduleSmartPrefetch();
   }, []);
 
   const handleNavigate = (view: AppView) => {
+    recordViewVisit(view);
     setCurrentView(view);
     if (typeof window !== 'undefined') {
       sessionStorage.setItem('mokarasa_current_view', view);
@@ -185,8 +190,8 @@ function AppContent() {
 
         {/* Main Content Area */}
         <main className="max-w-6xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
-          {/* Daily Saint & Virtue Alert Banner (Persistent across app views) */}
-          {currentView !== 'stage_player' && (
+          {/* Daily Saint & Virtue Alert Banner (Rendered only on home for fast clean standalone screens) */}
+          {currentView === 'home' && (
             <div className="mb-6">
               <DailySaintAlertBanner
                 onOpenFullModal={() => setShowSaintsStickersModal(true)}

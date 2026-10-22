@@ -3,6 +3,7 @@ import { User, AppView } from '../types';
 import { soundManager } from '../utils/audio';
 import { useReadingTheme } from '../context/ReadingThemeContext';
 import { useHymnsAudio } from '../context/HymnsAudioContext';
+import { prefetchView } from '../utils/preloadManager';
 import {
   Trophy,
   Volume2,
@@ -170,6 +171,8 @@ export const Header: React.FC<HeaderProps> = memo(({
                         onNavigate(l.view);
                         setDropdownOpen(false);
                       }}
+                      onMouseEnter={() => prefetchView(l.view)}
+                      onTouchStart={() => prefetchView(l.view)}
                       className={`w-full px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2.5 text-right cursor-pointer ${
                         currentView === l.view
                           ? 'bg-amber-600 text-white'
@@ -191,6 +194,8 @@ export const Header: React.FC<HeaderProps> = memo(({
           {/* Daily Prayer Fortress Button - Desktop only */}
           <button
             onClick={() => onNavigate('prayer_fortress')}
+            onMouseEnter={() => prefetchView('prayer_fortress')}
+            onTouchStart={() => prefetchView('prayer_fortress')}
             className={`hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold shadow-xs transition cursor-pointer group ${
               currentView === 'prayer_fortress'
                 ? 'bg-amber-600 text-white border-amber-400'
@@ -466,6 +471,8 @@ export const Header: React.FC<HeaderProps> = memo(({
                         onNavigate(l.view);
                         closeMobileMenu();
                       }}
+                      onMouseEnter={() => prefetchView(l.view)}
+                      onTouchStart={() => prefetchView(l.view)}
                       className={`p-3 rounded-xl text-xs font-bold text-right transition flex items-center justify-between cursor-pointer min-h-[44px] touch-manipulation ${
                         isActive
                           ? 'bg-amber-600 text-white shadow-xs'

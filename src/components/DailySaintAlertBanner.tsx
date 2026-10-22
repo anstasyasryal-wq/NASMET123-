@@ -37,17 +37,18 @@ export const DailySaintAlertBanner: React.FC<DailySaintAlertBannerProps> = React
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    if (!isExpanded) return; // Do not run timer when banner is collapsed
+    if (!isExpanded) return;
+    // Update every 30 seconds instead of every second to eliminate mobile re-render stutter
     const timer = setInterval(() => {
       setTimeRemainingMs((prev) => {
-        if (prev <= 1000) {
+        if (prev <= 30000) {
           const fresh = getDailySaintSticker(false);
           setData(fresh);
           return fresh.timeRemainingMs;
         }
-        return prev - 1000;
+        return prev - 30000;
       });
-    }, 1000);
+    }, 30000);
     return () => clearInterval(timer);
   }, [isExpanded]);
 
