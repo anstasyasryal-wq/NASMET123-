@@ -30,6 +30,7 @@ import {
   Coins,
   ChevronDown,
   Download,
+  Share2,
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -314,7 +315,18 @@ export const Header: React.FC<HeaderProps> = memo(({
             </button>
           )}
 
-          {/* Install App Button - Desktop only */}
+          {/* Share App Button */}
+          <button
+            onClick={() => window.dispatchEvent(new Event('show-share-modal'))}
+            className="flex items-center justify-center gap-1.5 h-9 px-2.5 sm:h-10 sm:px-3 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-200 transition cursor-pointer shrink-0 touch-manipulation active:scale-95 shadow-xs text-xs font-bold"
+            title="مشاركة التطبيق مع الآخرين"
+            aria-label="مشاركة التطبيق"
+          >
+            <Share2 className="w-4 h-4 text-amber-400 shrink-0" />
+            <span className="hidden sm:inline">مشاركة</span>
+          </button>
+
+          {/* Install App Button */}
           <button
             onClick={() => window.dispatchEvent(new Event('show-install-prompt'))}
             className="hidden md:flex items-center justify-center gap-1.5 h-10 px-3 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-200 transition cursor-pointer shrink-0 touch-manipulation active:scale-95 shadow-xs text-xs font-bold"
@@ -420,6 +432,31 @@ export const Header: React.FC<HeaderProps> = memo(({
               >
                 <Download className="w-4 h-4 mb-1 text-amber-400" />
                 <span className="text-[10px] font-bold">تثبيت</span>
+              </button>
+            </div>
+
+            {/* Prominent Install & Share Mobile Action Buttons */}
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => {
+                  window.dispatchEvent(new Event('show-install-prompt'));
+                  closeMobileMenu();
+                }}
+                className="flex items-center justify-center gap-2 p-3 rounded-2xl bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 text-stone-950 font-bold text-xs shadow-md transition active:scale-95 cursor-pointer"
+              >
+                <Download className="w-4 h-4 text-stone-950" />
+                <span>تثبيت التطبيق 📱</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  window.dispatchEvent(new Event('show-share-modal'));
+                  closeMobileMenu();
+                }}
+                className="flex items-center justify-center gap-2 p-3 rounded-2xl bg-gradient-to-r from-emerald-700/60 to-emerald-600/70 hover:from-emerald-600 text-emerald-100 font-bold text-xs border border-emerald-500/40 shadow-md transition active:scale-95 cursor-pointer"
+              >
+                <Share2 className="w-4 h-4 text-emerald-300" />
+                <span>مشاركة التطبيق 💌</span>
               </button>
             </div>
 
