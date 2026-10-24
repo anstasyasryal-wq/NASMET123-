@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { soundManager } from '../utils/audio';
 import confetti from 'canvas-confetti';
 import { ImageLoader } from './ImageLoader';
+import { JigsawPuzzleEngine } from './JigsawPuzzleEngine';
 import {
   Sparkles,
   Award,
@@ -42,7 +43,26 @@ interface GameStats {
   bestTimes: Record<string, number>;
 }
 
-const STORAGE_KEY = 'mokarasa_games_hub_state_v2';
+const STORAGE_KEY = 'mokarasa_games_hub_state_v3';
+
+// Gorgeous Coptic Icon SVGs encoded as Data URIs for genuine Jigsaw image slicing
+const COPTIC_ICONS = [
+  {
+    id: 'pantocrator',
+    title: 'أيقونة السيد المسيح ضابط الكل',
+    svgUri: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400"><defs><linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="%23064e3b"/><stop offset="50%" stop-color="%23022c22"/><stop offset="100%" stop-color="%2378350f"/></linearGradient><radialGradient id="halo" cx="50%" cy="40%" r="40%"><stop offset="0%" stop-color="%23f59e0b"/><stop offset="70%" stop-color="%23b45309"/><stop offset="100%" stop-color="%23064e3b"/></radialGradient></defs><rect width="400" height="400" fill="url(%23bg)"/><circle cx="200" cy="180" r="110" fill="url(%23halo)"/><circle cx="200" cy="180" r="95" fill="%23d97706" opacity="0.4"/><path d="M150 280 C150 230 250 230 250 280 L280 380 L120 380 Z" fill="%2392400e"/><path d="M170 140 Q200 110 230 140 Q240 180 200 210 Q160 180 170 140" fill="%23fef3c7"/><circle cx="185" cy="165" r="4" fill="%231c1917"/><circle cx="215" cy="165" r="4" fill="%231c1917"/><path d="M195 190 Q200 195 205 190" stroke="%2378350f" stroke-width="3" fill="none"/><text x="200" y="55" font-size="28" fill="%23fbbf24" font-family="serif" text-anchor="middle" font-weight="bold">Ο ΏΝ</text><text x="200" y="360" font-size="20" fill="%23fde68a" font-family="serif" text-anchor="middle">ضابط الكل</text></svg>`,
+  },
+  {
+    id: 'theotokos',
+    title: 'أيقونة العذراء والدة الإله',
+    svgUri: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400"><defs><linearGradient id="bg2" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="%237f1d1d"/><stop offset="50%" stop-color="%23451a03"/><stop offset="100%" stop-color="%23064e3b"/></linearGradient><radialGradient id="halo2" cx="50%" cy="40%" r="45%"><stop offset="0%" stop-color="%23fbbf24"/><stop offset="70%" stop-color="%23b45309"/><stop offset="100%" stop-color="%237f1d1d"/></radialGradient></defs><rect width="400" height="400" fill="url(%23bg2)"/><circle cx="200" cy="175" r="115" fill="url(%23halo2)"/><path d="M130 270 C130 210 270 210 270 270 L300 380 L100 380 Z" fill="%237c2d12"/><circle cx="200" cy="165" r="75" fill="%23fef3c7"/><rect x="175" y="190" width="50" height="70" fill="%23b45309" rx="10"/><text x="200" y="50" font-size="24" fill="%23fde68a" font-family="serif" text-anchor="middle" font-weight="bold">ΜΗΡ ΘΥ</text><text x="200" y="360" font-size="20" fill="%23fde68a" font-family="serif" text-anchor="middle">والدة الإله القديسة مريم</text></svg>`,
+  },
+  {
+    id: 'st_antony',
+    title: 'أيقونة القديس الأنبا أنطونيوس',
+    svgUri: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400"><defs><linearGradient id="bg3" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="%231e3a8a"/><stop offset="50%" stop-color="%230f172a"/><stop offset="100%" stop-color="%23064e3b"/></linearGradient></defs><rect width="400" height="400" fill="url(%23bg3)"/><path d="M120 280 C120 200 280 200 280 280 L320 380 L80 380 Z" fill="%23334155"/><circle cx="200" cy="170" r="70" fill="%23fef3c7"/><path d="M140 180 Q200 120 260 180" stroke="%23475569" stroke-width="15" fill="none"/><text x="200" y="55" font-size="24" fill="%23fbbf24" font-family="serif" text-anchor="middle" font-weight="bold">أبا أنطونيوس</text><text x="200" y="360" font-size="18" fill="%23e2e8f0" font-family="serif" text-anchor="middle">كوكب البرية وأب الرهبان</text></svg>`,
+  },
+];
 
 export const MonasticAscentPuzzle: React.FC<MonasticAscentPuzzleProps> = ({ onBack }) => {
   const [activeGame, setActiveGame] = useState<GameId>('hub');
@@ -69,7 +89,8 @@ export const MonasticAscentPuzzle: React.FC<MonasticAscentPuzzleProps> = ({ onBa
     });
   };
 
-  // ==================== 1. JIGSAW PUZZLE STATE ====================
+  // ==================== 1. REAL JIGSAW PUZZLE STATE (WITH GENUINE IMAGE SLICING) ====================
+  const [selectedIconIdx, setSelectedIconIdx] = useState<number>(0);
   const [jigsawGridSize, setJigsawGridSize] = useState<3 | 4 | 5>(3);
   const [jigsawTiles, setJigsawTiles] = useState<number[]>([]);
   const [isJigsawSolved, setIsJigsawSolved] = useState<boolean>(false);
@@ -79,7 +100,7 @@ export const MonasticAscentPuzzle: React.FC<MonasticAscentPuzzleProps> = ({ onBa
   const [showPreviewModal, setShowPreviewModal] = useState<boolean>(false);
 
   useEffect(() => {
-    initJigsaw(3);
+    initJigsaw(3, 0);
   }, []);
 
   useEffect(() => {
@@ -90,8 +111,9 @@ export const MonasticAscentPuzzle: React.FC<MonasticAscentPuzzleProps> = ({ onBa
     return () => clearInterval(interval);
   }, [activeGame, isJigsawRunning, isJigsawSolved]);
 
-  const initJigsaw = (size: 3 | 4 | 5) => {
+  const initJigsaw = (size: 3 | 4 | 5, iconIdx: number) => {
     setJigsawGridSize(size);
+    setSelectedIconIdx(iconIdx);
     const total = size * size;
     const arr = Array.from({ length: total }, (_, i) => i);
     let shuffled = [...arr];
@@ -288,7 +310,6 @@ export const MonasticAscentPuzzle: React.FC<MonasticAscentPuzzleProps> = ({ onBa
     } else {
       const firstCard = memoryCards.find((c) => c.id === firstFlippedCard);
       if (firstCard && firstCard.symbol === card.symbol) {
-        // Match
         soundManager.playCorrect();
         setMemoryCards((prev) => prev.map((c) => (c.id === id || c.id === firstFlippedCard ? { ...c, matched: true } : c)));
         setFirstFlippedCard(null);
@@ -299,7 +320,6 @@ export const MonasticAscentPuzzle: React.FC<MonasticAscentPuzzleProps> = ({ onBa
           saveStats(130, 'memory_match');
         }
       } else {
-        // Mismatch
         setTimeout(() => {
           setMemoryCards((prev) => prev.map((c) => (c.id === id || c.id === firstFlippedCard ? { ...c, flipped: false } : c)));
           setFirstFlippedCard(null);
@@ -418,7 +438,7 @@ export const MonasticAscentPuzzle: React.FC<MonasticAscentPuzzleProps> = ({ onBa
           {/* Featured Banner */}
           <div className="relative rounded-3xl overflow-hidden p-6 sm:p-8 bg-gradient-to-r from-emerald-950 via-stone-900 to-amber-950 border border-amber-600/40 shadow-2xl flex flex-col sm:flex-row items-center justify-between gap-6">
             <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
-            <div className="space-y-3 z-15 text-right max-w-xl">
+            <div className="space-y-3 z-10 text-right max-w-xl">
               <span className="px-3 py-1 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-bold inline-block">
                 ✨ الألعاب الأكثر تميزاً
               </span>
@@ -446,14 +466,14 @@ export const MonasticAscentPuzzle: React.FC<MonasticAscentPuzzleProps> = ({ onBa
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {[
-                { id: 'jigsaw', title: 'تركيب الأيقونة (Jigsaw)', desc: 'إعادة بناء الأيقونات القبطية بقطع تفاعلية ومستويات متعددة', emoji: '🧩', badge: 'تركيز وبصري' },
+                { id: 'jigsaw', title: 'تركيب الأيقونة (Jigsaw)', desc: 'إعادة بناء الأيقونات القبطية بقطع بصرية حقيقية ومستويات متعددة', emoji: '🖼️', badge: 'تركيز وبصري' },
                 { id: 'spot_diff', title: 'أسرار القلاية الصحراوية', desc: 'اكتشاف العناصر والمقتنيات المخفية بدقة داخل المشهد', emoji: '🔍', badge: 'استكشاف وتأمل' },
-                { id: 'riddles', title: 'حكمة الآباء والألغاز', desc: 'أسئلة وتحديات من أقوال الآبا ء وتراث الكنيسة', emoji: '📖', badge: 'معرفة وعقيدة' },
+                { id: 'riddles', title: 'حكمة الآباء والألغاز', desc: 'أسئلة وتحديات من أقوال الآباء وتراث الكنيسة', emoji: '📖', badge: 'معرفة وعقيدة' },
                 { id: 'pyramid', title: 'سلّم الفضائل الروحي', desc: 'ترتيب خطوات التدرج الروحي تصاعدياً', emoji: '🔺', badge: 'جهاد وسلوك' },
                 { id: 'code_breaker', title: 'رحلة الشيفرة المقدسة', desc: 'استنتاج الرمز الروحي المخفي خلال محاولات محسوبة', emoji: '🔐', badge: 'منطق واستنتاج' },
                 { id: 'memory_match', title: 'الذاكرة المقدسة للأيقونات', desc: 'مطابقة أزواج الأيقونات والرموز بتشويق', emoji: '🃏', badge: 'ذاكرة وتناغم' },
                 { id: 'word_quest', title: 'تحدّي كلمات النعمة', desc: 'تركيب واكتشاف المفردات الروحية العربية السليمة', emoji: '✍️', badge: 'لغة ومعنى' },
-                { id: 'story_sequence', title: 'رتّب الحكاية التاريخية', desc: 'ترتيب المحطات والمراطة الكتابية والتاريخية', emoji: '📜', badge: 'تاريخ وتسلسل' },
+                { id: 'story_sequence', title: 'رتّب الحكاية التاريخية', desc: 'ترتيب المحطات والمراحل الكتابية والتاريخية', emoji: '📜', badge: 'تاريخ وتسلسل' },
               ].map((game) => {
                 const isCompleted = stats.completedGames.includes(game.id);
                 return (
@@ -504,103 +524,12 @@ export const MonasticAscentPuzzle: React.FC<MonasticAscentPuzzleProps> = ({ onBa
         </main>
       )}
 
-      {/* GAME 1: JIGSAW PUZZLE */}
+      {/* GAME 1: REAL JIGSAW PUZZLE ENGINE WITH HTML5 CANVAS SLICING */}
       {activeGame === 'jigsaw' && (
-        <div className="max-w-3xl mx-auto p-6 sm:p-8 rounded-3xl bg-stone-900 border border-amber-600/40 shadow-2xl space-y-6 animate-fade-in text-right">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-stone-800 pb-4">
-            <div>
-              <h3 className="font-spiritual text-lg font-bold text-amber-200">
-                🧩 لعبة تركيب الأيقونة (Jigsaw Puzzle)
-              </h3>
-              <p className="text-xs text-stone-400 mt-1">
-                قم بترتيب القطع لإعادة بناء الأيقونة القبطية المباركة. انقر لتبديل الأماكن.
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-stone-300">المستوى:</span>
-              {([3, 4, 5] as const).map((sz) => (
-                <button
-                  key={sz}
-                  onClick={() => initJigsaw(sz)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
-                    jigsawGridSize === sz ? 'bg-amber-600 text-white' : 'bg-stone-800 text-stone-300 hover:bg-stone-700'
-                  }`}
-                >
-                  {sz}×{sz}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex flex-wrap items-center justify-between bg-stone-950 p-4 rounded-2xl border border-stone-800 text-xs text-amber-300 font-mono">
-            <div className="flex items-center gap-2">
-              <Clock className="w-4 h-4 text-amber-500" />
-              <span>الوقت: {jigsawTimer} ثانية</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <RefreshCw className="w-4 h-4 text-amber-500" />
-              <span>الحركات: {jigsawMoves}</span>
-            </div>
-            <button
-              onClick={() => setShowPreviewModal(true)}
-              className="px-3 py-1.5 rounded-lg bg-amber-600 text-white font-bold hover:bg-amber-500 transition cursor-pointer"
-            >
-              معاينة الأيقونة
-            </button>
-          </div>
-
-          <div className="flex justify-center py-4">
-            <div
-              className="grid gap-2 p-4 bg-stone-950 rounded-2xl shadow-inner max-w-md w-full aspect-square border border-stone-800"
-              style={{ gridTemplateColumns: `repeat(${jigsawGridSize}, minmax(0, 1fr))` }}
-            >
-              {jigsawTiles.map((tileVal, idx) => {
-                const isCorrect = tileVal === idx;
-                return (
-                  <button
-                    key={idx}
-                    onClick={() => handleTileSwap(idx)}
-                    className={`relative rounded-xl font-mono text-base font-bold flex flex-col items-center justify-center transition-all cursor-pointer select-none aspect-square shadow-md ${
-                      isJigsawSolved
-                        ? 'bg-emerald-700 text-white border-2 border-emerald-400'
-                        : isCorrect
-                        ? 'bg-amber-900/60 text-amber-200 border border-amber-600'
-                        : 'bg-stone-800 hover:bg-stone-700 text-stone-200 border border-stone-700'
-                    }`}
-                  >
-                    <span className="text-2xl mb-1">✝️</span>
-                    <span className="text-[10px] bg-stone-950 px-2 py-0.5 rounded-full text-amber-400">
-                      قطعة #{tileVal + 1}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {isJigsawSolved && (
-            <div className="p-4 rounded-2xl bg-emerald-950 border border-emerald-500 text-emerald-200 text-center font-spiritual text-base animate-bounce">
-              🎉 هنيئاً لك! تم إتمام البزْل بنجاح ونلت 150 نقطة بركة!
-            </div>
-          )}
-
-          {showPreviewModal && (
-            <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-              <div className="bg-stone-900 border border-amber-600 rounded-3xl max-w-sm w-full p-6 space-y-4 text-center shadow-2xl animate-fade-in" dir="rtl">
-                <h3 className="font-spiritual text-lg font-bold text-amber-200">معاينة الأيقونة الأصلية</h3>
-                <div className="w-48 h-48 mx-auto rounded-2xl overflow-hidden shadow-lg border-2 border-amber-500">
-                  <ImageLoader alt="الأيقونة القبطية الأصلية" fallbackEmoji="✝️" fallbackText="أيقونة القديسين الأبدية" />
-                </div>
-                <button
-                  onClick={() => setShowPreviewModal(false)}
-                  className="w-full py-2.5 rounded-xl bg-amber-600 text-white font-bold text-xs hover:bg-amber-500 transition cursor-pointer"
-                >
-                  العودة للبزْل
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
+        <JigsawPuzzleEngine
+          onBack={() => setActiveGame('hub')}
+          onSuccess={(pts) => saveStats(pts, 'jigsaw')}
+        />
       )}
 
       {/* GAME 2: SPOT THE DIFFERENCE / HIDDEN OBJECTS */}

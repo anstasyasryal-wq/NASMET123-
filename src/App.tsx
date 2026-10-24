@@ -104,7 +104,11 @@ function AppContent() {
   const [showMobileMenu, setShowMobileMenu] = useState<boolean>(false);
   const [showWelcomeSplash, setShowWelcomeSplash] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
-      return !localStorage.getItem('mokarasa_welcomed');
+      try {
+        return !localStorage.getItem('mokarasa_welcomed');
+      } catch {
+        return true;
+      }
     }
     return true;
   });
@@ -187,6 +191,7 @@ function AppContent() {
           onToggleMobileMenu={() => setShowMobileMenu((prev) => !prev)}
           onCloseMobileMenu={() => setShowMobileMenu(false)}
           onOpenSilentRetreat={() => setShowSilentRetreat(true)}
+          onOpenWelcomeGarden={() => setShowWelcomeSplash(true)}
         />
 
         {/* Main Content Area */}
@@ -535,7 +540,9 @@ function AppContent() {
           onClose={() => {
             setShowWelcomeSplash(false);
             if (typeof window !== 'undefined') {
-              localStorage.setItem('mokarasa_welcomed', 'true');
+              try {
+                localStorage.setItem('mokarasa_welcomed', 'true');
+              } catch {}
             }
           }}
         />

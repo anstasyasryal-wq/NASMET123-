@@ -46,6 +46,7 @@ interface HeaderProps {
   onToggleMobileMenu?: () => void;
   onCloseMobileMenu?: () => void;
   onOpenSilentRetreat?: () => void;
+  onOpenWelcomeGarden?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = memo(({
@@ -61,6 +62,7 @@ export const Header: React.FC<HeaderProps> = memo(({
   onToggleMobileMenu: externalToggleMobileMenu,
   onCloseMobileMenu: externalCloseMobileMenu,
   onOpenSilentRetreat,
+  onOpenWelcomeGarden,
 }) => {
   const [isMuted, setIsMuted] = useState(soundManager.getIsMuted());
   const [internalMobileMenuOpen, setInternalMobileMenuOpen] = useState(false);
@@ -509,28 +511,42 @@ export const Header: React.FC<HeaderProps> = memo(({
             </div>
 
             {/* Rules & Audio Quick Bar */}
-            <div className="flex gap-2">
-              <button
-                onClick={() => {
-                  openPlayerModal();
-                  closeMobileMenu();
-                }}
-                className="flex-1 py-2.5 px-3 rounded-xl bg-stone-900 hover:bg-stone-800 border border-stone-800 text-amber-300 text-xs font-bold flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <Headphones className="w-4 h-4 text-amber-400" />
-                <span>مشغل الترانيم والألحان</span>
-              </button>
+            <div className="flex flex-col gap-2">
+              {onOpenWelcomeGarden && (
+                <button
+                  onClick={() => {
+                    onOpenWelcomeGarden();
+                    closeMobileMenu();
+                  }}
+                  className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-amber-950/80 via-stone-900 to-amber-950/80 hover:from-amber-900 border border-amber-600/40 text-amber-200 text-xs font-bold flex items-center justify-center gap-2 cursor-pointer shadow-xs"
+                >
+                  <span>🌿 حديقتك مع الله (رسالة الترحيب الروحية)</span>
+                </button>
+              )}
 
-              <button
-                onClick={() => {
-                  onOpenRules();
-                  closeMobileMenu();
-                }}
-                className="py-2.5 px-3 rounded-xl bg-stone-900 hover:bg-stone-800 border border-stone-800 text-stone-300 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer"
-              >
-                <HelpCircle className="w-4 h-4 text-amber-400" />
-                <span>دليل المسابقة</span>
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    openPlayerModal();
+                    closeMobileMenu();
+                  }}
+                  className="flex-1 py-2.5 px-3 rounded-xl bg-stone-900 hover:bg-stone-800 border border-stone-800 text-amber-300 text-xs font-bold flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Headphones className="w-4 h-4 text-amber-400" />
+                  <span>مشغل الترانيم والألحان</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    onOpenRules();
+                    closeMobileMenu();
+                  }}
+                  className="py-2.5 px-3 rounded-xl bg-stone-900 hover:bg-stone-800 border border-stone-800 text-stone-300 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <HelpCircle className="w-4 h-4 text-amber-400" />
+                  <span>دليل المسابقة</span>
+                </button>
+              </div>
             </div>
 
             {/* Complete Navigation Sections */}
