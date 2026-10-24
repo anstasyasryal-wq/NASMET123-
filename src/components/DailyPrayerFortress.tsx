@@ -264,13 +264,44 @@ export const DailyPrayerFortress: React.FC<DailyPrayerFortressProps> = ({
     } catch {}
   };
 
-  const handleCopy = (key: string, text: string) => {
+  const handleCopy = async (key: string, text: string) => {
     soundManager.playTick();
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(text);
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+      }
+      setCopiedKey(key);
+      setTimeout(() => setCopiedKey(null), 2500);
+    } catch {
       setCopiedKey(key);
       setTimeout(() => setCopiedKey(null), 2500);
     }
+  };
+
+  const handleShare = async (title: string, text: string) => {
+    soundManager.playVictory();
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share({
+          title,
+          text,
+        });
+        return;
+      } catch (err: any) {
+        if (err?.name === 'AbortError') {
+          return;
+        }
+      }
+    }
+    // Fallback to clipboard
+    handleCopy('psalm_and_prayer', text);
   };
 
   const handleSaveNote = () => {
@@ -617,13 +648,28 @@ export const DailyPrayerFortress: React.FC<DailyPrayerFortressProps> = ({
                     )
                   }
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-stone-900 hover:bg-stone-800 border border-stone-700 text-stone-200 text-xs font-bold transition cursor-pointer"
+                  title="نسخ نص الحصن"
                 >
                   {copiedKey === 'psalm_and_prayer' ? (
                     <Check className="w-3.5 h-3.5 text-emerald-400" />
                   ) : (
                     <Copy className="w-3.5 h-3.5 text-amber-400" />
                   )}
-                  <span>{copiedKey === 'psalm_and_prayer' ? 'تم النسخ!' : 'نسخ الحصن'}</span>
+                  <span>{copiedKey === 'psalm_and_prayer' ? 'تم النسخ!' : 'نسخ'}</span>
+                </button>
+
+                <button
+                  onClick={() =>
+                    handleShare(
+                      `حصن الصلاة اليومي - ${selectedHour.title}`,
+                      `🛡️ حصن الصلاة اليومي - ${selectedHour.title}\n\n📖 المزمور المقترح: ${selectedHour.suggestedPsalmTitle}\n${selectedHour.suggestedPsalmText}\n\n🕊️ الصلاة القصيرة:\n${selectedHour.shortPrayer}\n\n⚓ آية التثبيت: ${selectedHour.anchorVerse} (${selectedHour.anchorVerseRef})\n\n📜 حكمة الآباء (${selectedHour.patristicSaint}):\n${selectedHour.patristicCompanionQuote}\n\n✝️ تطبيق «حسب قلب الله»`
+                    )
+                  }
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-stone-900 hover:bg-stone-800 border border-amber-600/40 text-amber-300 text-xs font-bold transition cursor-pointer"
+                  title="مشاركة صلاة ومزمور هذه الساعة"
+                >
+                  <Share2 className="w-3.5 h-3.5 text-amber-400" />
+                  <span>مشاركة</span>
                 </button>
 
                 <button
@@ -1004,22 +1050,37 @@ export const DailyPrayerFortress: React.FC<DailyPrayerFortressProps> = ({
                     <span className="text-2xl">{shield.icon}</span>
                     <h3 className="font-bold text-sm sm:text-base text-amber-100">{shield.title}</h3>
                   </div>
-                  <button
-                    onClick={() =>
-                      handleCopy(
-                        shield.id,
-                        `🛡️ ${shield.title}\n\n🕊️ الصلاة: ${shield.shortPrayer}\n📖 الآية: ${shield.psalmAnchor} (${shield.psalmAnchorRef})\n🩺 الإرشاد: ${shield.spiritualDirective}`
-                      )
-                    }
-                    className="p-1.5 rounded-lg bg-stone-900 text-stone-400 hover:text-amber-300 border border-stone-800 transition cursor-pointer"
-                    title="نسخ درع الطوارئ"
-                  >
-                    {copiedKey === shield.id ? (
-                      <Check className="w-3.5 h-3.5 text-emerald-400" />
-                    ) : (
-                      <Copy className="w-3.5 h-3.5" />
-                    )}
-                  </button>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() =>
+                        handleCopy(
+                          shield.id,
+                          `🛡️ ${shield.title}\n\n🕊️ الصلاة: ${shield.shortPrayer}\n📖 الآية: ${shield.psalmAnchor} (${shield.psalmAnchorRef})\n🩺 الإرشاد: ${shield.spiritualDirective}\n\n✝️ تطبيق «حسب قلب الله»`
+                        )
+                      }
+                      className="p-1.5 rounded-lg bg-stone-900 text-stone-400 hover:text-amber-300 border border-stone-800 transition cursor-pointer"
+                      title="نسخ درع الطوارئ"
+                    >
+                      {copiedKey === shield.id ? (
+                        <Check className="w-3.5 h-3.5 text-emerald-400" />
+                      ) : (
+                        <Copy className="w-3.5 h-3.5" />
+                      )}
+                    </button>
+
+                    <button
+                      onClick={() =>
+                        handleShare(
+                          `درع طوارئ روحي: ${shield.title}`,
+                          `🛡️ ${shield.title}\n\n🕊️ الصلاة: ${shield.shortPrayer}\n📖 الآية: ${shield.psalmAnchor} (${shield.psalmAnchorRef})\n🩺 الإرشاد: ${shield.spiritualDirective}\n\n✝️ تطبيق «حسب قلب الله»`
+                        )
+                      }
+                      className="p-1.5 rounded-lg bg-stone-900 text-amber-400 hover:text-amber-200 border border-amber-600/30 transition cursor-pointer"
+                      title="مشاركة درع الطوارئ"
+                    >
+                      <Share2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
 
                 <div className="text-xs text-stone-400 bg-stone-900/70 p-2 rounded-xl">

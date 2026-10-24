@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, memo } from 'react';
+import React, { useState, useMemo, useRef, memo, useEffect } from 'react';
 import { User, DioceseRanking } from '../types';
 import {
   getStoredUsers,
@@ -12,8 +12,11 @@ import {
   Sparkles,
   Award,
   Users,
+  Search,
+  Filter,
 } from 'lucide-react';
 import { useVirtualList } from '../hooks/useVirtualList';
+import { useDataWorker } from '../hooks/useDataWorker';
 
 interface LeaderboardViewProps {
   currentUser: User | null;
@@ -117,10 +120,45 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
   initialTab,
 }) => {
   const [tab, setTab] = useState<'general' | 'dioceses'>(initialTab || 'general');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [dioceseFilter, setDioceseFilter] = useState('all');
   const allUsers = useMemo(() => getStoredUsers(), []);
   const sortedParticipants = useMemo(() => sortParticipantsByTieBreaker(allUsers), [allUsers]);
   const diocesesRankings = useMemo(() => getDiocesesRankings(), []);
+  const [filteredUsers, setFilteredUsers] = useState<User[]>(sortedParticipants);
+  const { runWorkerTask } = useDataWorker();
   const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    runWorkerTask('FILTER_LEADERBOARD', {
+      users: allUsers,
+      query: searchQuery,
+      dioceseFilter,
+      sortBy: 'score_desc',
+    }).then((res) => {
+      if (!isMounted) return;
+      if (res.success && res.data) {
+        setFilteredUsers(res.data);
+      } else {
+        // Fallback sync
+        let result = [...allUsers];
+        if (searchQuery) {
+          const q = searchQuery.toLowerCase();
+          result = result.filter(u => u.name.toLowerCase().includes(q) || u.diocese.toLowerCase().includes(q));
+        }
+        if (dioceseFilter !== 'all') {
+          result = result.filter(u => u.diocese === dioceseFilter);
+        }
+        result.sort((a, b) => (b.totalScore || 0) - (a.totalScore || 0));
+        setFilteredUsers(result);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [allUsers, searchQuery, dioceseFilter, runWorkerTask]);
 
   const PARTICIPANT_ROW_HEIGHT = 74;
   const {
@@ -129,7 +167,7 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
     bottomSpacerHeight,
     totalHeight,
   } = useVirtualList({
-    items: sortedParticipants,
+    items: filteredUsers,
     itemHeight: PARTICIPANT_ROW_HEIGHT,
     overscan: 4,
     containerRef,
@@ -189,26 +227,55 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
 
       {/* Virtualized Participants List */}
       {tab === 'general' && (
-        <div ref={containerRef} className="space-y-3 relative min-h-[100px]">
-          <div style={{ minHeight: totalHeight }}>
-            {topSpacerHeight > 0 && (
-              <div style={{ height: topSpacerHeight }} aria-hidden="true" />
-            )}
-
-            <div className="space-y-3">
-              {virtualItems.map(({ item: user, index: idx }) => (
-                <LeaderboardParticipantRow
-                  key={user.id}
-                  user={user}
-                  rank={idx + 1}
-                  isMe={currentUser?.id === user.id}
-                />
-              ))}
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute right-3.5 top-3 w-4 h-4 text-stone-400" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="ابحث بالاسم أو الإيبارشية (معالجة سريعة عبر Web Worker)..."
+                className="w-full pr-10 pl-4 py-2.5 rounded-xl bg-stone-900 border border-stone-800 text-stone-100 text-xs focus:border-amber-400 outline-none shadow-inner"
+              />
             </div>
+            <div className="w-full sm:w-48">
+              <select
+                value={dioceseFilter}
+                onChange={(e) => setDioceseFilter(e.target.value)}
+                className="w-full px-3 py-2.5 rounded-xl bg-stone-900 border border-stone-800 text-stone-200 text-xs focus:border-amber-400 outline-none"
+              >
+                <option value="all">كل الإيبارشيات والأديرة</option>
+                {diocesesRankings.map((d) => (
+                  <option key={d.diocese} value={d.diocese}>
+                    {d.diocese}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
 
-            {bottomSpacerHeight > 0 && (
-              <div style={{ height: bottomSpacerHeight }} aria-hidden="true" />
-            )}
+          <div ref={containerRef} className="space-y-3 relative min-h-[100px]">
+            <div style={{ minHeight: totalHeight }}>
+              {topSpacerHeight > 0 && (
+                <div style={{ height: topSpacerHeight }} aria-hidden="true" />
+              )}
+
+              <div className="space-y-3">
+                {virtualItems.map(({ item: user, index: idx }) => (
+                  <LeaderboardParticipantRow
+                    key={user.id}
+                    user={user}
+                    rank={idx + 1}
+                    isMe={currentUser?.id === user.id}
+                  />
+                ))}
+              </div>
+
+              {bottomSpacerHeight > 0 && (
+                <div style={{ height: bottomSpacerHeight }} aria-hidden="true" />
+              )}
+            </div>
           </div>
         </div>
       )}

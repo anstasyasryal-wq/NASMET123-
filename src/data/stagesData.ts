@@ -43,7 +43,7 @@ export const INITIAL_STAGES: Stage[] = [
     timeLimitSec: 240,
     passingScore: 80,
     isOpen: true,
-    questionIds: ['q1-1', 'q2-1', 'q3-2'],
+    questionIds: ['q4-1', 'q4-2', 'q4-3'],
   },
   {
     id: 5,
@@ -54,7 +54,7 @@ export const INITIAL_STAGES: Stage[] = [
     timeLimitSec: 240,
     passingScore: 80,
     isOpen: true,
-    questionIds: ['q1-3', 'q1-6', 'q1-9', 'q2-3', 'q3-3'],
+    questionIds: ['q5-1', 'q5-2', 'q5-3'],
   },
   {
     id: 6,
@@ -65,6 +65,6 @@ export const INITIAL_STAGES: Stage[] = [
     timeLimitSec: 400,
     passingScore: 85,
     isOpen: true,
-    questionIds: ['q1-1', 'q1-2', 'q1-3', 'q1-4', 'q1-5', 'q1-6', 'q2-1', 'q2-2', 'q3-1', 'q3-2'],
+    questionIds: ['q6-1', 'q6-2', 'q6-3', 'q4-1', 'q5-1'],
   },
 ];

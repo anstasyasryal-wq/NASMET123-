@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { User, Stage, Announcement } from '../types';
 import { FortuneWheel, WheelSection } from './FortuneWheel';
+import { ConsecrationTree } from './ConsecrationTree';
 
 interface HomeViewProps {
   currentUser: User | null;
@@ -34,6 +35,8 @@ interface HomeViewProps {
   onNavigateToConsecratedManual?: () => void;
   onOpenSaintsStickers?: () => void;
   onNavigateToPrayerFortress?: () => void;
+  onOpenRetreat?: () => void;
+  onNavigateToMonasticPuzzle?: () => void;
 }
 
 export const HomeView: React.FC<HomeViewProps> = React.memo(({
@@ -68,6 +71,8 @@ export const HomeView: React.FC<HomeViewProps> = React.memo(({
   onNavigateToConsecratedManual,
   onOpenSaintsStickers,
   onNavigateToPrayerFortress,
+  onOpenRetreat,
+  onNavigateToMonasticPuzzle,
 }) => {
   const [selectedSection, setSelectedSection] = useState<WheelSection | null>(null);
 
@@ -312,6 +317,43 @@ export const HomeView: React.FC<HomeViewProps> = React.memo(({
 
   return (
     <div className="space-y-6 pb-12 animate-fade-in text-right">
+      {/* Monastic Puzzle App Launch Banner */}
+      <div 
+        onClick={() => onNavigateToMonasticPuzzle?.()}
+        className="p-5 sm:p-6 rounded-3xl bg-gradient-to-r from-amber-900 via-amber-800 to-stone-900 border-2 border-amber-500/60 shadow-xl cursor-pointer hover:scale-[1.01] transition group relative overflow-hidden text-white"
+      >
+        <div className="absolute top-0 left-0 w-64 h-64 bg-amber-400/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 relative z-10">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-amber-500/30 border border-amber-400/60 flex items-center justify-center text-3xl shadow-inner group-hover:rotate-6 transition">
+              🧩✨
+            </div>
+            <div className="space-y-1">
+              <span className="text-[11px] font-bold text-amber-300 font-mono tracking-wider">لعبة تفاعلية جديدة</span>
+              <h2 className="font-spiritual text-lg sm:text-xl font-black text-amber-100">
+                حسب قلب الله للمكرسين (ألعاب البازل والتنسك)
+              </h2>
+              <p className="text-xs text-amber-200/80 leading-relaxed font-spiritual">
+                المستويات الثلاثة: باب التخلي، بازل السكون (3×3)، وهرم النمو الروحي + مفتاح الروح وأقوال الآباء.
+              </p>
+            </div>
+          </div>
+          <button className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-black text-xs shadow-lg transition shrink-0 flex items-center gap-2">
+            <span>ابدأ اللعب الآن</span>
+            <span>➔</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Daily Spiritual Consecration Tree */}
+      <ConsecrationTree
+        currentUser={currentUser}
+        onOpenRetreat={onOpenRetreat}
+        onNavigateToSpiritualLife={onNavigateToSpiritualLife}
+        onNavigateToPersonalSpace={onNavigateToPersonalSpace}
+      />
+
+      {/* Main Wheel & Exploration Sections */}
       <FortuneWheel
         sections={wheelSections}
         selectedSection={selectedSection}

@@ -175,13 +175,40 @@ export const SaintsStickersModal: React.FC<SaintsStickersModalProps> = ({
     }
   };
 
-  const handleCopySticker = () => {
+  const handleCopySticker = async () => {
     soundManager.playVictory();
     const text = `🌟 استكر وبركة قديس اليوم | حسب قلب الله\n\n🕊️ ${selectedSticker.name} (${selectedSticker.epithet})\n🏛️ التقليد: ${selectedSticker.traditionLabel}\n✨ الفضيلة المنبه عليها: ${selectedSticker.virtue}\n\n💌 رسالة القديس لك:\n${selectedSticker.dailyMessage}\n\n📖 قول مأثور:\n«${selectedSticker.quote}» (${selectedSticker.quoteRef})\n\n🩺 تدريب اليوم:\n${selectedSticker.practicalExercise}\n\n✝️ تطبيق «حسب قلب الله»`;
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(text);
+
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share({
+          title: `بركة واستكر ${selectedSticker.name}`,
+          text,
+        });
+        return;
+      } catch (err: any) {
+        if (err?.name === 'AbortError') {
+          return;
+        }
+      }
+    }
+
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+      }
       setCopiedNotification(true);
-      setTimeout(() => setCopiedNotification(false), 2000);
+      setTimeout(() => setCopiedNotification(false), 2500);
+    } catch {
+      setCopiedNotification(true);
+      setTimeout(() => setCopiedNotification(false), 2500);
     }
   };
 
@@ -427,7 +454,7 @@ export const SaintsStickersModal: React.FC<SaintsStickersModalProps> = ({
             <div className="flex items-center gap-1.5 overflow-x-auto text-xs font-bold scrollbar-none">
               <span className="text-stone-400 text-[11px] shrink-0 ml-1">التقليد الكنسي:</span>
               {[
-                { id: 'all', label: 'الكل (١٨+)' },
+                { id: 'all', label: 'الكل (٢٠ قديساً)' },
                 { id: 'east', label: 'الشرق الأرثوذكسي' },
                 { id: 'west', label: 'الغرب والكنائس اللاتينية' },
                 { id: 'celtic', label: 'التراث السلتي' },

@@ -22,7 +22,8 @@ export type AppView =
   | 'consecrated_manual'
   | 'saints_stickers'
   | 'prayer_fortress'
-  | 'virtue_jar';
+  | 'virtue_jar'
+  | 'monastic_puzzle';
 
 export type UserRole = 'participant' | 'supervisor' | 'guest';
 

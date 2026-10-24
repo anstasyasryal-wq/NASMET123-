@@ -50,59 +50,16 @@ export function getStoredUsers(): User[] {
   if (typeof window === 'undefined') return [];
   try {
     const raw = localStorage.getItem(STORED_USERS_KEY);
-    if (raw) return JSON.parse(raw);
+    if (raw) {
+      const parsed: User[] = JSON.parse(raw);
+      // Filter out any demo users
+      const realUsers = parsed.filter(
+        (u) => !u.id.startsWith('usr-') && !['usr-1', 'usr-2', 'usr-3', 'usr-4'].includes(u.id)
+      );
+      return realUsers;
+    }
   } catch {}
-
-  const demoUsers: User[] = [
-    {
-      id: 'usr-1',
-      name: 'أبونا أنطونيوس المحرقي',
-      vocation: 'راهب',
-      diocese: 'دير السيدة العذراء المحرق',
-      totalScore: 980,
-      currentStageId: 6,
-      role: 'participant',
-      completedStages: [1, 2, 3, 4, 5],
-      stageScores: { 1: 195, 2: 195, 3: 200, 4: 190, 5: 200 },
-    },
-    {
-      id: 'usr-2',
-      name: 'تاسوني مريم الشماسة',
-      vocation: 'مكرسة',
-      diocese: 'إيبارشية المعادي وتوابعها',
-      totalScore: 940,
-      currentStageId: 6,
-      role: 'participant',
-      completedStages: [1, 2, 3, 4, 5],
-      stageScores: { 1: 190, 2: 185, 3: 195, 4: 185, 5: 185 },
-    },
-    {
-      id: 'usr-3',
-      name: 'القس يوحنا شنودة',
-      vocation: 'كاهن',
-      diocese: 'إيبارشية أسيوط ودير الأنبا مقار',
-      totalScore: 890,
-      currentStageId: 5,
-      role: 'participant',
-      completedStages: [1, 2, 3, 4],
-      stageScores: { 1: 180, 2: 180, 3: 180, 4: 170 },
-    },
-    {
-      id: 'usr-4',
-      name: 'الأم سارة السريانية',
-      vocation: 'راهبة',
-      diocese: 'دير القديسة دميانة ببراري بلقاس',
-      totalScore: 860,
-      currentStageId: 5,
-      role: 'participant',
-      completedStages: [1, 2, 3, 4],
-      stageScores: { 1: 175, 2: 175, 3: 170, 4: 170 },
-    },
-  ];
-  try {
-    localStorage.setItem(STORED_USERS_KEY, JSON.stringify(demoUsers));
-  } catch {}
-  return demoUsers;
+  return [];
 }
 
 export function saveUserToRegistry(user: User): void {

@@ -5,6 +5,7 @@ import { Heart, ChevronLeft, CheckCircle2, Calendar, Clock, Sparkles, Award } fr
 import { ScheduledPrayerReminders } from './ScheduledPrayerReminders';
 import { AnnualReadingTracker } from './AnnualReadingTracker';
 import { SpiritualMaturityTests } from './SpiritualMaturityTests';
+import { ConsecrationTree } from './ConsecrationTree';
 
 interface SpiritualLifeViewProps {
   currentUser: User | null;
@@ -21,7 +22,7 @@ export const SpiritualLifeView: React.FC<SpiritualLifeViewProps> = ({
   onBackToHome,
   onNavigateToPrayerFortress,
 }) => {
-  const [activeTab, setActiveTab] = useState<'annual_plan' | 'maturity_tests' | 'scheduled_prayers' | 'starter_days'>('annual_plan');
+  const [activeTab, setActiveTab] = useState<'annual_plan' | 'maturity_tests' | 'scheduled_prayers' | 'starter_days' | 'consecration_tree'>('annual_plan');
   const [completedDays, setCompletedDays] = useState<number[]>([1, 2]);
 
   const toggleDay = (day: number) => {
@@ -144,6 +145,21 @@ export const SpiritualLifeView: React.FC<SpiritualLifeViewProps> = ({
           <Sparkles className="w-4 h-4 text-stone-300" />
           <span>محطات البداية السريعة</span>
         </button>
+
+        <button
+          onClick={() => {
+            soundManager.playTick();
+            setActiveTab('consecration_tree');
+          }}
+          className={`px-4 py-2.5 rounded-xl flex items-center gap-2 transition shrink-0 cursor-pointer ${
+            activeTab === 'consecration_tree'
+              ? 'bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-md'
+              : 'text-stone-300 hover:bg-stone-800'
+          }`}
+        >
+          <span className="text-base">🌳</span>
+          <span>شجرة التكريس والثمار</span>
+        </button>
       </div>
 
       {/* Tab 1: Annual Reading Tracker */}
@@ -239,6 +255,11 @@ export const SpiritualLifeView: React.FC<SpiritualLifeViewProps> = ({
           );
         })}
         </div>
+      )}
+
+      {/* Tab 5: Consecration Tree */}
+      {activeTab === 'consecration_tree' && (
+        <ConsecrationTree currentUser={currentUser} />
       )}
     </div>
   );

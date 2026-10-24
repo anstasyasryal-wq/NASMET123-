@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { User } from '../types';
 import { soundManager } from '../utils/audio';
 import {
@@ -22,6 +22,9 @@ import {
   MapPin,
   CheckSquare,
   Square,
+  Camera,
+  MessageCircle,
+  Image as ImageIcon,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -56,6 +59,13 @@ interface ConscienceCheckItem {
   checked: boolean;
 }
 
+interface ChatMessage {
+  id: string;
+  sender: 'user' | 'father';
+  text: string;
+  timestamp: string;
+}
+
 interface SpiritualFatherCompanionProps {
   currentUser?: User | null;
   onBackToHome: () => void;
@@ -65,12 +75,14 @@ const NOTES_STORAGE_KEY = 'mokarasa_confession_notes_v2';
 const ADVICE_STORAGE_KEY = 'mokarasa_spiritual_father_advice_v2';
 const SETTINGS_STORAGE_KEY = 'mokarasa_spiritual_father_settings_v2';
 const CONSCIENCE_STORAGE_KEY = 'mokarasa_conscience_checklist_v2';
+const AVATAR_STORAGE_KEY = 'mokarasa_spiritual_father_avatar_v2';
+const CHAT_STORAGE_KEY = 'mokarasa_spiritual_father_chat_v2';
 
 export const SpiritualFatherCompanion: React.FC<SpiritualFatherCompanionProps> = ({
   currentUser,
   onBackToHome,
 }) => {
-  const [activeTab, setActiveTab] = useState<'settings' | 'notes' | 'advice' | 'conscience' | 'prep_guide'>('settings');
+  const [activeTab, setActiveTab] = useState<'settings' | 'chat' | 'notes' | 'advice' | 'conscience' | 'prep_guide'>('settings');
 
   // Father Settings state
   const [fatherSettings, setFatherSettings] = useState<SpiritualFatherSettings>(() => {
@@ -100,6 +112,32 @@ export const SpiritualFatherCompanion: React.FC<SpiritualFatherCompanionProps> =
 
   const [isEditingSettings, setIsEditingSettings] = useState(false);
   const [tempSettings, setTempSettings] = useState<SpiritualFatherSettings>(fatherSettings);
+
+  // Father Avatar image state
+  const [fatherAvatar, setFatherAvatar] = useState<string>(() => {
+    return localStorage.getItem(AVATAR_STORAGE_KEY) || '';
+  });
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Chat state with Spiritual Father / Guide
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>(() => {
+    try {
+      const saved = localStorage.getItem(CHAT_STORAGE_KEY);
+      return saved
+        ? JSON.parse(saved)
+        : [
+            {
+              id: 'm-1',
+              sender: 'father',
+              text: 'سلام الرب يكون معك يا ابني/روحي العزيز. أنا هنا دائماً لمرافقتك روحياً وسماع قلبك في نور الإنجيل.',
+              timestamp: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
+            },
+          ];
+    } catch {
+      return [];
+    }
+  });
+  const [inputMessage, setInputMessage] = useState('');
 
   // Notes state
   const [notes, setNotes] = useState<ConfessionNote[]>(() => {
@@ -164,6 +202,71 @@ export const SpiritualFatherCompanion: React.FC<SpiritualFatherCompanionProps> =
     }
   });
 
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const result = reader.result as string;
+        setFatherAvatar(result);
+        localStorage.setItem(AVATAR_STORAGE_KEY, result);
+        soundManager.playCorrect();
+        confetti({ particleCount: 30, spread: 60 });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRemoveAvatar = () => {
+    setFatherAvatar('');
+    localStorage.removeItem(AVATAR_STORAGE_KEY);
+    soundManager.playTick();
+  };
+
+  const handleSendMessage = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!inputMessage.trim()) return;
+
+    soundManager.playTick();
+    const userMsg: ChatMessage = {
+      id: String(Date.now()),
+      sender: 'user',
+      text: inputMessage,
+      timestamp: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
+    };
+
+    const updatedChat = [...chatMessages, userMsg];
+    setChatMessages(updatedChat);
+    setInputMessage('');
+
+    // Patristic / Father simulated response after a short delay
+    setTimeout(() => {
+      soundManager.playCorrect();
+      let replyText = '«الرب قريب لكل من يدعوه بالحق. اصبر على نفسك يا ابني وثق أن نعمة الله تكفيك في كل ضيق.»';
+      const lower = userMsg.text.toLowerCase();
+      if (lower.includes('صلاة') || lower.includes('تشتت')) {
+        replyText = '«التشتت أثناء الصلاة حرب شائعة، وعلاجها هو إعادة الذهن برفق وبلا تذمر إلى كلمات المزمور أو الصلاة كمن يقف أمام ملك الملوك خشوعاً.»';
+      } else if (lower.includes('غضب') || lower.includes('عصبية')) {
+        replyText = '«حين يثور الغضب، الزم الصمت ولا تجب بكلمة واحدة، واطلب من الروح القدس أن يسكب سلاماً إلهياً في قلبك.»';
+      } else if (lower.includes('خوف') || lower.includes('قلق')) {
+        replyText = '«لا تهتم للغد لأن الغد يهتم بما لنفسه. سلّم أمورك لمن يبيّض السناابك ويعول الطيور.»';
+      }
+
+      const fatherMsg: ChatMessage = {
+        id: String(Date.now() + 1),
+        sender: 'father',
+        text: replyText,
+        timestamp: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
+      };
+
+      const finalChat = [...updatedChat, fatherMsg];
+      setChatMessages(finalChat);
+      try {
+        localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(finalChat));
+      } catch {}
+    }, 800);
+  };
+
   const saveSettings = (e: React.FormEvent) => {
     e.preventDefault();
     soundManager.playCorrect();
@@ -177,56 +280,44 @@ export const SpiritualFatherCompanion: React.FC<SpiritualFatherCompanionProps> =
     } catch {}
   };
 
-  const saveNotes = (updated: ConfessionNote[]) => {
+  const handleAddNote = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newTitle.trim() || !newContent.trim()) return;
+
+    soundManager.playCorrect();
+    const item: ConfessionNote = {
+      id: String(Date.now()),
+      date: new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' }),
+      title: newTitle.trim(),
+      content: newContent.trim(),
+      isDiscussed: false,
+    };
+
+    const updated = [item, ...notes];
+    setNotes(updated);
+    try {
+      localStorage.setItem(NOTES_STORAGE_KEY, JSON.stringify(updated));
+    } catch {}
+    setNewTitle('');
+    setNewContent('');
+  };
+
+  const handleDeleteNote = (id: string) => {
+    soundManager.playTick();
+    const updated = notes.filter((n) => n.id !== id);
     setNotes(updated);
     try {
       localStorage.setItem(NOTES_STORAGE_KEY, JSON.stringify(updated));
     } catch {}
   };
 
-  const saveAdvice = (updated: SpiritualAdvice[]) => {
-    setAdviceList(updated);
-    try {
-      localStorage.setItem(ADVICE_STORAGE_KEY, JSON.stringify(updated));
-    } catch {}
-  };
-
-  const saveConscience = (updated: ConscienceCheckItem[]) => {
-    setConscienceItems(updated);
-    try {
-      localStorage.setItem(CONSCIENCE_STORAGE_KEY, JSON.stringify(updated));
-    } catch {}
-  };
-
-  const handleAddNote = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newTitle.trim() || !newContent.trim()) return;
-
-    soundManager.playCorrect();
-    const note: ConfessionNote = {
-      id: `note_${Date.now()}`,
-      date: new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' }),
-      title: newTitle.trim(),
-      content: newContent.trim(),
-      isDiscussed: false,
-    };
-    saveNotes([note, ...notes]);
-    setNewTitle('');
-    setNewContent('');
-    try {
-      confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } });
-    } catch {}
-  };
-
   const handleToggleDiscussed = (id: string) => {
     soundManager.playTick();
     const updated = notes.map((n) => (n.id === id ? { ...n, isDiscussed: !n.isDiscussed } : n));
-    saveNotes(updated);
-  };
-
-  const handleDeleteNote = (id: string) => {
-    soundManager.playTick();
-    saveNotes(notes.filter((n) => n.id !== id));
+    setNotes(updated);
+    try {
+      localStorage.setItem(NOTES_STORAGE_KEY, JSON.stringify(updated));
+    } catch {}
   };
 
   const handleAddAdvice = (e: React.FormEvent) => {
@@ -234,331 +325,376 @@ export const SpiritualFatherCompanion: React.FC<SpiritualFatherCompanionProps> =
     if (!newAdviceText.trim()) return;
 
     soundManager.playCorrect();
-    const adv: SpiritualAdvice = {
-      id: `adv_${Date.now()}`,
+    const item: SpiritualAdvice = {
+      id: String(Date.now()),
       date: new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' }),
-      fatherName: fatherSettings.fatherName || 'أبونا الروحي',
+      fatherName: fatherSettings.fatherName,
       adviceText: newAdviceText.trim(),
     };
-    saveAdvice([adv, ...adviceList]);
+
+    const updated = [item, ...adviceList];
+    setAdviceList(updated);
+    try {
+      localStorage.setItem(ADVICE_STORAGE_KEY, JSON.stringify(updated));
+    } catch {}
     setNewAdviceText('');
   };
 
   const handleDeleteAdvice = (id: string) => {
     soundManager.playTick();
-    saveAdvice(adviceList.filter((a) => a.id !== id));
+    const updated = adviceList.filter((a) => a.id !== id);
+    setAdviceList(updated);
+    try {
+      localStorage.setItem(ADVICE_STORAGE_KEY, JSON.stringify(updated));
+    } catch {}
   };
 
   const handleToggleConscience = (id: string) => {
     soundManager.playTick();
-    const updated = conscienceItems.map((item) => (item.id === id ? { ...item, checked: !item.checked } : item));
-    saveConscience(updated);
+    const updated = conscienceItems.map((c) => (c.id === id ? { ...c, checked: !c.checked } : c));
+    setConscienceItems(updated);
+    try {
+      localStorage.setItem(CONSCIENCE_STORAGE_KEY, JSON.stringify(updated));
+    } catch {}
   };
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6 pb-12 animate-fade-in text-right" dir="rtl">
-      {/* Top Back Navigation Bar */}
-      <div className="flex items-center justify-between pb-1">
-        <button
-          onClick={onBackToHome}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-950 font-bold text-xs transition cursor-pointer shadow-xs border border-amber-300"
-        >
-          <ChevronLeft className="w-4 h-4 rotate-180" />
-          <span>العودة للشاشة الرئيسية والعجلة</span>
-        </button>
-      </div>
+    <div className="max-w-4xl mx-auto space-y-6 pb-16" dir="rtl">
+      {/* Header Banner */}
+      <div className="relative overflow-hidden p-6 sm:p-8 rounded-3xl bg-gradient-to-br from-stone-900 via-stone-950 to-amber-950 border border-amber-600/30 shadow-2xl text-stone-100 flex flex-col sm:flex-row items-center justify-between gap-6">
+        <div className="absolute top-0 left-0 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
 
-      {/* Hero Banner */}
-      <div className="rounded-3xl bg-gradient-to-r from-stone-900 via-amber-950 to-stone-900 text-stone-100 p-6 sm:p-8 border border-amber-600/40 shadow-xl space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-900/60 border border-amber-600/40 text-amber-300 text-xs font-semibold">
-            <Shield className="w-3.5 h-3.5 text-amber-400" />
-            <span>رعاية الإرشاد الروحي وسر التوبة والأسرار المقدسة</span>
+        <div className="flex items-center gap-5 z-10 text-right">
+          {/* Father Avatar with upload / delete support */}
+          <div className="relative group shrink-0">
+            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-amber-900/40 border-2 border-amber-500/60 overflow-hidden flex items-center justify-center shadow-xl">
+              {fatherAvatar ? (
+                <img src={fatherAvatar} alt="صورة الأب الروحي" className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-4xl">🧔🏻‍♂️</span>
+              )}
+            </div>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="absolute -bottom-2 -left-2 w-8 h-8 rounded-full bg-amber-600 text-white flex items-center justify-center shadow-md hover:bg-amber-500 transition cursor-pointer"
+              title="تغيير صورة الأب الروحي"
+            >
+              <Camera className="w-4 h-4" />
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleImageUpload}
+              className="hidden"
+            />
           </div>
-          <div className="text-xs text-amber-200/90 font-mono bg-stone-950/60 px-3 py-1 rounded-xl border border-stone-800">
-            🕊️ الأب الروحي الحالي: <span className="font-bold text-amber-400">{fatherSettings.fatherName}</span>
+
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="text-xs bg-amber-500/20 text-amber-300 font-bold px-2.5 py-0.5 rounded-full border border-amber-500/30">
+                أبويا الروحي — رفيقي الدائم
+              </span>
+            </div>
+            <h1 className="font-spiritual text-xl sm:text-2xl font-bold text-amber-200">
+              {fatherSettings.fatherName}
+            </h1>
+            <p className="text-xs text-stone-300 flex items-center gap-1.5 font-mono">
+              <MapPin className="w-3.5 h-3.5 text-amber-400" />
+              <span>{fatherSettings.churchName}</span>
+            </p>
           </div>
         </div>
 
-        <h1 className="font-spiritual text-2xl sm:text-3xl font-bold text-amber-100">
-          🛡️ قسم أبي الروحي وإعداد الاعتراف (الإعدادات الكاملة)
-        </h1>
-        <p className="text-xs sm:text-sm text-stone-300 leading-relaxed max-w-2xl">
-          مساحتك الروحية والسرية لضبط إعدادات أبيك الروحي، جدولة جلسات الاعتراف، تدوين نقاط التوبة، مراجعة فحص الضمير، وحفظ وصايا الإرشاد المقدسة.
-        </p>
-
-        {/* Tabs */}
-        <div className="flex items-center gap-2 pt-2 overflow-x-auto">
+        <div className="flex flex-wrap sm:flex-col items-center sm:items-end gap-2 z-10">
           <button
-            onClick={() => {
-              soundManager.playTick();
-              setActiveTab('settings');
-            }}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition shrink-0 cursor-pointer ${
-              activeTab === 'settings'
-                ? 'bg-amber-600 text-white shadow'
-                : 'bg-stone-900 text-stone-300 hover:bg-stone-800 border border-stone-800'
-            }`}
+            onClick={onBackToHome}
+            className="px-4 py-2 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-200 font-bold text-xs shadow transition cursor-pointer flex items-center gap-1.5"
           >
-            ⚙️ إعدادات الأب الروحي والمواعيد
+            <ChevronLeft className="w-4 h-4" />
+            <span>العودة للرئيسية</span>
           </button>
-
-          <button
-            onClick={() => {
-              soundManager.playTick();
-              setActiveTab('notes');
-            }}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition shrink-0 cursor-pointer ${
-              activeTab === 'notes'
-                ? 'bg-amber-600 text-white shadow'
-                : 'bg-stone-900 text-stone-300 hover:bg-stone-800 border border-stone-800'
-            }`}
-          >
-            📝 نقاط الاعتراف ({notes.length})
-          </button>
-
-          <button
-            onClick={() => {
-              soundManager.playTick();
-              setActiveTab('advice');
-            }}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition shrink-0 cursor-pointer ${
-              activeTab === 'advice'
-                ? 'bg-amber-600 text-white shadow'
-                : 'bg-stone-900 text-stone-300 hover:bg-stone-800 border border-stone-800'
-            }`}
-          >
-            🌿 وصايا وتوجيهات الأب ({adviceList.length})
-          </button>
-
-          <button
-            onClick={() => {
-              soundManager.playTick();
-              setActiveTab('conscience');
-            }}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition shrink-0 cursor-pointer ${
-              activeTab === 'conscience'
-                ? 'bg-amber-600 text-white shadow'
-                : 'bg-stone-900 text-stone-300 hover:bg-stone-800 border border-stone-800'
-            }`}
-          >
-            ⚖️ ميزان فحص الضمير
-          </button>
-
-          <button
-            onClick={() => {
-              soundManager.playTick();
-              setActiveTab('prep_guide');
-            }}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition shrink-0 cursor-pointer ${
-              activeTab === 'prep_guide'
-                ? 'bg-amber-600 text-white shadow'
-                : 'bg-stone-900 text-stone-300 hover:bg-stone-800 border border-stone-800'
-            }`}
-          >
-            📖 دليل التحضير لسر التوبة
-          </button>
+          {fatherAvatar && (
+            <button
+              onClick={handleRemoveAvatar}
+              className="text-[11px] text-stone-400 hover:text-rose-400 underline cursor-pointer"
+            >
+              حذف الصورة المخصصة
+            </button>
+          )}
         </div>
       </div>
 
-      {/* TAB 1: FATHER SETTINGS */}
+      {/* Tabs Navigation */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+        {[
+          { id: 'settings', label: 'إعدادات وبيانات الأب', icon: Settings },
+          { id: 'chat', label: 'الحوار الروحي الشخصي', icon: MessageCircle },
+          { id: 'notes', label: 'نقاط الاعتراف القادم', icon: Plus },
+          { id: 'advice', label: 'سجل التوجيهات', icon: BookOpen },
+          { id: 'conscience', label: 'ميزان فحص الضمير', icon: Shield },
+          { id: 'prep_guide', label: 'خطوات التحضير لسر التوبة', icon: Sparkles },
+        ].map((tab) => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => {
+                soundManager.playTick();
+                setActiveTab(tab.id as any);
+              }}
+              className={`px-4 py-2.5 rounded-2xl font-bold text-xs whitespace-nowrap transition cursor-pointer flex items-center gap-2 ${
+                isActive
+                  ? 'bg-amber-600 text-white shadow-md border border-amber-400'
+                  : 'bg-stone-900 text-stone-300 border border-stone-800 hover:bg-stone-800'
+              }`}
+            >
+              <Icon className="w-4 h-4" />
+              <span>{tab.label}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* TAB 1: SETTINGS */}
       {activeTab === 'settings' && (
-        <div className="space-y-6 animate-fade-in">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Father Card Preview */}
-            <div className="p-6 rounded-3xl bg-stone-900 border border-amber-600/40 shadow-xl space-y-4 md:col-span-1 text-center flex flex-col items-center justify-between">
-              <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-amber-600 to-amber-400 text-stone-950 flex items-center justify-center font-black text-3xl shadow-lg shadow-amber-600/30">
-                👨‍🦳
-              </div>
-              <div className="space-y-1">
-                <h3 className="font-spiritual text-lg font-bold text-amber-100">
-                  {fatherSettings.fatherName}
-                </h3>
-                <p className="text-xs text-amber-400 flex items-center justify-center gap-1">
-                  <MapPin className="w-3.5 h-3.5" />
-                  <span>{fatherSettings.churchName}</span>
-                </p>
-              </div>
-
-              <div className="w-full pt-4 border-t border-stone-800 space-y-2.5 text-right text-xs">
-                <div className="flex items-center justify-between bg-stone-950 p-2.5 rounded-xl border border-stone-800">
-                  <span className="text-stone-400">دورية الاعتراف:</span>
-                  <span className="text-amber-200 font-bold">{fatherSettings.frequency}</span>
-                </div>
-                <div className="flex items-center justify-between bg-stone-950 p-2.5 rounded-xl border border-stone-800">
-                  <span className="text-stone-400">رقم الهاتف / التواصل:</span>
-                  <span className="text-amber-200 font-mono">{fatherSettings.phone}</span>
-                </div>
-              </div>
-
+        <div className="p-6 sm:p-8 rounded-3xl bg-stone-900 border border-amber-600/30 shadow-xl space-y-6 text-right animate-fade-in">
+          <div className="flex items-center justify-between border-b border-amber-800/40 pb-4">
+            <div>
+              <h3 className="font-spiritual text-lg font-bold text-amber-100">
+                بيانات وإعدادات الأب الروحي
+              </h3>
+              <p className="text-xs text-stone-400 mt-1">
+                قم بتحديث اسم أبيك الروحي، موعد الاعتراف الدوري، وكنيسته.
+              </p>
+            </div>
+            {!isEditingSettings && (
               <button
                 onClick={() => {
                   setTempSettings(fatherSettings);
                   setIsEditingSettings(true);
                 }}
-                className="w-full py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs shadow-md transition cursor-pointer flex items-center justify-center gap-1.5"
+                className="px-4 py-2 rounded-xl bg-amber-600/20 text-amber-300 border border-amber-500/40 font-bold text-xs hover:bg-amber-600/30 transition cursor-pointer"
               >
-                <Settings className="w-4 h-4" />
-                <span>تعديل إعدادات وبيانات الأب</span>
+                تعديل البيانات
               </button>
-            </div>
-
-            {/* Next Appointment & Guidance Details */}
-            <div className="p-6 rounded-3xl bg-stone-900 border border-amber-600/40 shadow-xl space-y-6 md:col-span-2">
-              <div className="flex items-center justify-between border-b border-stone-800 pb-3">
-                <div className="flex items-center gap-2">
-                  <Calendar className="w-5 h-5 text-amber-400" />
-                  <h3 className="font-spiritual text-base font-bold text-amber-100">
-                    موعود جلسة الاعتراف القادمة والتنظيم الروحي
-                  </h3>
-                </div>
-                <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-bold">
-                  تنسيق نشط
-                </span>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="p-4 rounded-2xl bg-stone-950 border border-stone-800 space-y-1.5">
-                  <span className="text-xs text-stone-400 flex items-center gap-1">
-                    <Clock className="w-3.5 h-3.5 text-amber-400" />
-                    <span>تاريخ وموعد الجلسة:</span>
-                  </span>
-                  <p className="text-sm font-bold text-amber-200 font-mono">
-                    {new Date(fatherSettings.nextAppointment).toLocaleString('ar-EG', {
-                      dateStyle: 'full',
-                      timeStyle: 'short',
-                    })}
-                  </p>
-                </div>
-
-                <div className="p-4 rounded-2xl bg-stone-950 border border-stone-800 space-y-1.5">
-                  <span className="text-xs text-stone-400 flex items-center gap-1">
-                    <Phone className="w-3.5 h-3.5 text-amber-400" />
-                    <span>ملاحظات الحجز أو التواجد:</span>
-                  </span>
-                  <p className="text-xs text-stone-300 leading-relaxed">
-                    {fatherSettings.notes}
-                  </p>
-                </div>
-              </div>
-
-              <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-950/40 via-stone-950 to-amber-950/40 border border-amber-600/30 space-y-2">
-                <h4 className="font-spiritual text-sm font-bold text-amber-200 flex items-center gap-1.5">
-                  <span>🕊️</span>
-                  <span>وصية آبائية في اختيار الأب الروحي والتعامل معه:</span>
-                </h4>
-                <p className="text-xs text-stone-300 leading-relaxed">
-                  «كن صادقاً وأמיناً مع أبيك الروحي ولا تخفِ عنه شيئاً، فالاعتراف هو طريق الشفاء الحقيقي والسلام الداخلي، وطاعة الإرشاد تحفظ النفس من السقوط في شباك الكبرياء الذاتي.»
-                </p>
-              </div>
-            </div>
+            )}
           </div>
 
-          {/* Edit Settings Modal / Card */}
-          {isEditingSettings && (
-            <div className="p-6 rounded-3xl bg-stone-950 border-2 border-amber-500 shadow-2xl space-y-4 animate-fade-in">
-              <div className="flex items-center justify-between border-b border-stone-800 pb-3">
-                <h3 className="font-spiritual text-base font-bold text-amber-200">
-                  ✏️ تعديل بيانات وإعدادات الأب الروحي
-                </h3>
-                <button
-                  onClick={() => setIsEditingSettings(false)}
-                  className="text-stone-400 hover:text-stone-200 text-xs font-bold"
-                >
-                  إلغاء
-                </button>
+          {!isEditingSettings ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="p-4 rounded-2xl bg-stone-950 border border-stone-800 space-y-1">
+                <span className="text-[11px] text-stone-400">اسم الأب الروحي:</span>
+                <p className="text-sm font-bold text-amber-200">{fatherSettings.fatherName}</p>
               </div>
 
-              <form onSubmit={saveSettings} className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <label className="text-xs text-stone-300 font-bold">اسم الأب الكاهن / القمص:</label>
-                    <input
-                      type="text"
-                      value={tempSettings.fatherName}
-                      onChange={(e) => setTempSettings({ ...tempSettings, fatherName: e.target.value })}
-                      required
-                      className="w-full px-4 py-2.5 rounded-xl bg-stone-900 border border-stone-800 text-stone-100 text-xs focus:border-amber-400 outline-none"
-                    />
-                  </div>
+              <div className="p-4 rounded-2xl bg-stone-950 border border-stone-800 space-y-1">
+                <span className="text-[11px] text-stone-400">اسم الكنيسة:</span>
+                <p className="text-sm font-bold text-stone-100">{fatherSettings.churchName}</p>
+              </div>
 
-                  <div className="space-y-1.5">
-                    <label className="text-xs text-stone-300 font-bold">اسم الكنيسة أو الدير:</label>
-                    <input
-                      type="text"
-                      value={tempSettings.churchName}
-                      onChange={(e) => setTempSettings({ ...tempSettings, churchName: e.target.value })}
-                      required
-                      className="w-full px-4 py-2.5 rounded-xl bg-stone-900 border border-stone-800 text-stone-100 text-xs focus:border-amber-400 outline-none"
-                    />
-                  </div>
+              <div className="p-4 rounded-2xl bg-stone-950 border border-stone-800 space-y-1">
+                <span className="text-[11px] text-stone-400">رقم الهاتف للتواصل:</span>
+                <p className="text-sm font-bold text-stone-100 font-mono">{fatherSettings.phone}</p>
+              </div>
 
-                  <div className="space-y-1.5">
-                    <label className="text-xs text-stone-300 font-bold">رقم الهاتف للتواصل:</label>
-                    <input
-                      type="text"
-                      value={tempSettings.phone}
-                      onChange={(e) => setTempSettings({ ...tempSettings, phone: e.target.value })}
-                      className="w-full px-4 py-2.5 rounded-xl bg-stone-900 border border-stone-800 text-stone-100 text-xs focus:border-amber-400 outline-none font-mono"
-                    />
-                  </div>
+              <div className="p-4 rounded-2xl bg-stone-950 border border-stone-800 space-y-1">
+                <span className="text-[11px] text-stone-400">دورية الاعتراف:</span>
+                <p className="text-sm font-bold text-amber-300">{fatherSettings.frequency}</p>
+              </div>
 
-                  <div className="space-y-1.5">
-                    <label className="text-xs text-stone-300 font-bold">دورية الاعتراف (مثال: أسبوعياً، كل 3 أسابيع):</label>
-                    <input
-                      type="text"
-                      value={tempSettings.frequency}
-                      onChange={(e) => setTempSettings({ ...tempSettings, frequency: e.target.value })}
-                      className="w-full px-4 py-2.5 rounded-xl bg-stone-900 border border-stone-800 text-stone-100 text-xs focus:border-amber-400 outline-none"
-                    />
-                  </div>
+              <div className="p-4 rounded-2xl bg-stone-950 border border-stone-800 space-y-1 sm:col-span-2">
+                <span className="text-[11px] text-stone-400">موعد الجلسة القادمة:</span>
+                <p className="text-sm font-bold text-emerald-300 font-mono">
+                  {fatherSettings.nextAppointment ? new Date(fatherSettings.nextAppointment).toLocaleString('ar-EG') : 'غير محدد'}
+                </p>
+              </div>
 
-                  <div className="space-y-1.5">
-                    <label className="text-xs text-stone-300 font-bold">موعد الجلسة القادمة:</label>
-                    <input
-                      type="datetime-local"
-                      value={tempSettings.nextAppointment}
-                      onChange={(e) => setTempSettings({ ...tempSettings, nextAppointment: e.target.value })}
-                      className="w-full px-4 py-2.5 rounded-xl bg-stone-900 border border-stone-800 text-stone-100 text-xs focus:border-amber-400 outline-none font-mono"
-                    />
-                  </div>
-                </div>
-
+              <div className="p-4 rounded-2xl bg-stone-950 border border-stone-800 space-y-1 sm:col-span-2">
+                <span className="text-[11px] text-stone-400">ملاحظات ومواعيد التواجد في الكنيسة:</span>
+                <p className="text-xs text-stone-300 leading-relaxed">{fatherSettings.notes}</p>
+              </div>
+            </div>
+          ) : (
+            <form onSubmit={saveSettings} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-xs text-stone-300 font-bold">ملاحظات ومواعيد التواجد في الكنيسة:</label>
-                  <textarea
-                    rows={2}
-                    value={tempSettings.notes}
-                    onChange={(e) => setTempSettings({ ...tempSettings, notes: e.target.value })}
-                    className="w-full p-3 rounded-xl bg-stone-900 border border-stone-800 text-stone-100 text-xs focus:border-amber-400 outline-none leading-relaxed"
+                  <label className="text-xs text-stone-300 font-bold">اسم الأب الروحي:</label>
+                  <input
+                    type="text"
+                    value={tempSettings.fatherName}
+                    onChange={(e) => setTempSettings({ ...tempSettings, fatherName: e.target.value })}
+                    required
+                    className="w-full px-4 py-2.5 rounded-xl bg-stone-950 border border-stone-800 text-stone-100 text-xs focus:border-amber-400 outline-none"
                   />
                 </div>
 
-                <div className="flex justify-end gap-3 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setIsEditingSettings(false)}
-                    className="px-5 py-2.5 rounded-xl bg-stone-900 text-stone-300 text-xs font-bold hover:bg-stone-800"
-                  >
-                    إلغاء
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-6 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs shadow-md transition"
-                  >
-                    حفظ التعديلات والإعدادات
-                  </button>
+                <div className="space-y-1.5">
+                  <label className="text-xs text-stone-300 font-bold">اسم الكنيسة:</label>
+                  <input
+                    type="text"
+                    value={tempSettings.churchName}
+                    onChange={(e) => setTempSettings({ ...tempSettings, churchName: e.target.value })}
+                    required
+                    className="w-full px-4 py-2.5 rounded-xl bg-stone-950 border border-stone-800 text-stone-100 text-xs focus:border-amber-400 outline-none"
+                  />
                 </div>
-              </form>
-            </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs text-stone-300 font-bold">رقم الهاتف:</label>
+                  <input
+                    type="text"
+                    value={tempSettings.phone}
+                    onChange={(e) => setTempSettings({ ...tempSettings, phone: e.target.value })}
+                    className="w-full px-4 py-2.5 rounded-xl bg-stone-950 border border-stone-800 text-stone-100 text-xs focus:border-amber-400 outline-none font-mono"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs text-stone-300 font-bold">دورية الاعتراف:</label>
+                  <input
+                    type="text"
+                    value={tempSettings.frequency}
+                    onChange={(e) => setTempSettings({ ...tempSettings, frequency: e.target.value })}
+                    className="w-full px-4 py-2.5 rounded-xl bg-stone-950 border border-stone-800 text-stone-100 text-xs focus:border-amber-400 outline-none"
+                  />
+                </div>
+
+                <div className="space-y-1.5 sm:col-span-2">
+                  <label className="text-xs text-stone-300 font-bold">موعد الجلسة القادمة:</label>
+                  <input
+                    type="datetime-local"
+                    value={tempSettings.nextAppointment}
+                    onChange={(e) => setTempSettings({ ...tempSettings, nextAppointment: e.target.value })}
+                    className="w-full px-4 py-2.5 rounded-xl bg-stone-950 border border-stone-800 text-stone-100 text-xs focus:border-amber-400 outline-none font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs text-stone-300 font-bold">ملاحظات ومواعيد التواجد في الكنيسة:</label>
+                <textarea
+                  rows={2}
+                  value={tempSettings.notes}
+                  onChange={(e) => setTempSettings({ ...tempSettings, notes: e.target.value })}
+                  className="w-full p-3 rounded-xl bg-stone-950 border border-stone-800 text-stone-100 text-xs focus:border-amber-400 outline-none leading-relaxed"
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsEditingSettings(false)}
+                  className="px-5 py-2.5 rounded-xl bg-stone-950 text-stone-300 text-xs font-bold hover:bg-stone-800"
+                >
+                  إلغاء
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs shadow-md transition"
+                >
+                  حفظ البيانات
+                </button>
+              </div>
+            </form>
           )}
         </div>
       )}
 
-      {/* TAB 2: CONFESSION NOTES */}
+      {/* TAB 2: SPIRITUAL CHAT COMPANION */}
+      {activeTab === 'chat' && (
+        <div className="p-6 rounded-3xl bg-stone-900 border border-amber-600/30 shadow-xl space-y-4 animate-fade-in">
+          <div className="border-b border-amber-800/40 pb-3 flex items-center justify-between">
+            <div>
+              <h3 className="font-spiritual text-lg font-bold text-amber-100">
+                💬 الحوار الروحي والإرشاد الشخصي
+              </h3>
+              <p className="text-xs text-stone-400 mt-1">
+                تحدث مع مرشدك الروحي واستقبل إرشاداً أبوياً حكيماً ومستنداً إلى أقوال الآباء.
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                setChatMessages([
+                  {
+                    id: 'm-1',
+                    sender: 'father',
+                    text: 'سلام الرب يكون معك يا ابني/روحي العزيز. أنا هنا دائماً لمرافقتك روحياً وسماع قلبك في نور الإنجيل.',
+                    timestamp: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
+                  },
+                ]);
+                localStorage.removeItem(CHAT_STORAGE_KEY);
+              }}
+              className="text-[11px] text-stone-400 hover:text-rose-400 underline cursor-pointer"
+            >
+              مسح المحادثة
+            </button>
+          </div>
+
+          <div className="h-80 overflow-y-auto space-y-3 p-4 rounded-2xl bg-stone-950 border border-stone-800">
+            {chatMessages.map((msg) => (
+              <div
+                key={msg.id}
+                className={`flex flex-col ${msg.sender === 'user' ? 'items-start' : 'items-end'}`}
+              >
+                <div
+                  className={`max-w-[80%] p-3.5 rounded-2xl text-xs sm:text-sm leading-relaxed ${
+                    msg.sender === 'user'
+                      ? 'bg-amber-950/70 border border-amber-600/40 text-amber-100 rounded-br-none'
+                      : 'bg-stone-900 border border-stone-800 text-stone-200 rounded-bl-none font-spiritual'
+                  }`}
+                >
+                  <div className="flex items-center gap-1.5 mb-1 text-[10px] opacity-75 font-mono">
+                    <span>{msg.sender === 'user' ? 'أنت' : fatherSettings.fatherName}</span>
+                    <span>•</span>
+                    <span>{msg.timestamp}</span>
+                  </div>
+                  <p>{msg.text}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <form onSubmit={handleSendMessage} className="flex items-center gap-2">
+            <input
+              type="text"
+              value={inputMessage}
+              onChange={(e) => setInputMessage(e.target.value)}
+              placeholder="اكتب سؤالك الروحي أو طلب الإرشاد هنا..."
+              className="flex-1 px-4 py-3 rounded-xl bg-stone-950 border border-stone-800 text-stone-100 text-xs focus:border-amber-400 outline-none"
+            />
+            <button
+              type="submit"
+              className="px-5 py-3 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs shadow transition cursor-pointer flex items-center gap-1.5 shrink-0"
+            >
+              <Send className="w-4 h-4" />
+              <span>إرسال</span>
+            </button>
+          </form>
+
+          <div className="flex flex-wrap gap-2 pt-2">
+            <span className="text-[11px] text-stone-400 self-center">أسئلة مقترحة:</span>
+            {[
+              'كيف أعالج التشتت في الصلاة؟',
+              'كيف أنتصر على الغضب؟',
+              'كيف أجد السلام الداخلي؟',
+            ].map((q, idx) => (
+              <button
+                key={idx}
+                onClick={() => setInputMessage(q)}
+                className="px-3 py-1.5 rounded-lg bg-stone-950 hover:bg-stone-800 text-amber-300 text-[11px] border border-stone-800 transition cursor-pointer"
+              >
+                {q}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* TAB 3: CONFESSION NOTES */}
       {activeTab === 'notes' && (
         <div className="space-y-6 animate-fade-in">
-          {/* Add Note Form */}
           <form onSubmit={handleAddNote} className="p-6 rounded-3xl bg-stone-900 border border-amber-600/30 space-y-4 shadow-xl">
             <h3 className="font-spiritual text-base font-bold text-amber-200">
               ✍️ تدوين نقطة جديدة لمناقشتها مع أبيك الروحي:
@@ -594,7 +730,6 @@ export const SpiritualFatherCompanion: React.FC<SpiritualFatherCompanionProps> =
             </div>
           </form>
 
-          {/* Notes List */}
           <div className="space-y-3">
             <h3 className="font-spiritual text-base font-bold text-stone-200">
               ملاحظاتك المسجلة ({notes.length})
@@ -647,10 +782,9 @@ export const SpiritualFatherCompanion: React.FC<SpiritualFatherCompanionProps> =
         </div>
       )}
 
-      {/* TAB 3: SPIRITUAL FATHER ADVICE */}
+      {/* TAB 4: ADVICE */}
       {activeTab === 'advice' && (
         <div className="space-y-6 animate-fade-in">
-          {/* Add Advice Form */}
           <form onSubmit={handleAddAdvice} className="p-6 rounded-3xl bg-stone-900 border border-amber-600/30 space-y-4 shadow-xl">
             <h3 className="font-spiritual text-base font-bold text-amber-200">
               🌿 تسجيل توجيه أو قانون من أبيك الروحي:
@@ -686,7 +820,6 @@ export const SpiritualFatherCompanion: React.FC<SpiritualFatherCompanionProps> =
             </div>
           </form>
 
-          {/* Advice List */}
           <div className="space-y-3">
             <h3 className="font-spiritual text-base font-bold text-stone-200">
               سجل التوجيهات والقوانين الروحية ({adviceList.length})
@@ -722,7 +855,7 @@ export const SpiritualFatherCompanion: React.FC<SpiritualFatherCompanionProps> =
         </div>
       )}
 
-      {/* TAB 4: CONSCIENCE CHECKLIST */}
+      {/* TAB 5: CONSCIENCE CHECKLIST */}
       {activeTab === 'conscience' && (
         <div className="p-6 sm:p-8 rounded-3xl bg-stone-900 border border-amber-600/30 shadow-xl space-y-6 text-right animate-fade-in">
           <div className="border-b border-amber-800/40 pb-3">
@@ -759,14 +892,10 @@ export const SpiritualFatherCompanion: React.FC<SpiritualFatherCompanionProps> =
               </div>
             ))}
           </div>
-
-          <div className="p-4 rounded-2xl bg-amber-950/30 border border-amber-600/30 text-xs text-amber-200 text-center">
-            ✨ ضع علامة على ما قمت بمراجعته، ودوّن أي تقصير في قسم «نقاط الاعتراف» لعرضه على أبيك الروحي.
-          </div>
         </div>
       )}
 
-      {/* TAB 5: PREP GUIDE */}
+      {/* TAB 6: PREP GUIDE */}
       {activeTab === 'prep_guide' && (
         <div className="p-6 sm:p-8 rounded-3xl bg-stone-900 border border-amber-600/30 shadow-xl space-y-6 text-right animate-fade-in">
           <div className="border-b border-amber-800/40 pb-3">

@@ -31,6 +31,7 @@ export const viewLoaders: Record<AppView, () => Promise<unknown>> = {
   saints_stickers: () => import('../components/SaintsStickersModal'),
   prayer_fortress: () => import('../components/DailyPrayerFortress'),
   virtue_jar: () => import('../components/VirtueJarComponent'),
+  monastic_puzzle: () => import('../components/MonasticAscentPuzzle'),
 };
 
 export const modalLoaders: Record<string, () => Promise<unknown>> = {

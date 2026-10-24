@@ -17,12 +17,11 @@ import { DailySaintAlertBanner } from './components/DailySaintAlertBanner';
 import { ReadingThemeProvider, useReadingTheme } from './context/ReadingThemeContext';
 import { LanguageProvider } from './context/LanguageContext';
 import { HymnsAudioProvider } from './context/HymnsAudioContext';
-import { SpiritualHymnsPlayer } from './components/SpiritualHymnsPlayer';
 import AppInstallManager from './components/AppInstallManager';
 import { MobileBottomNav } from './components/MobileBottomNav';
 import { JoyfulScreenHeader } from './components/JoyfulScreenHeader';
 import { OnlineAutoUpdater } from './components/OnlineAutoUpdater';
-import { scheduleSmartPrefetch, recordViewVisit } from './utils/preloadManager';
+import { recordViewVisit } from './utils/preloadManager';
 import { motion } from 'framer-motion';
 
 // Lazy-loaded Views (Code Splitting for instant mobile startup)
@@ -40,7 +39,8 @@ const WorkshopsView = lazy(() => import('./components/WorkshopsView').then(m => 
 const CreativeLab = lazy(() => import('./components/CreativeLab').then(m => ({ default: m.CreativeLab })));
 const StudyToolsView = lazy(() => import('./components/StudyToolsView').then(m => ({ default: m.StudyToolsView })));
 const MonasticOasis = lazy(() => import('./components/MonasticOasis').then(m => ({ default: m.MonasticOasis })));
-const SpiritualGamesHub = lazy(() => import('./components/SpiritualGamesHub').then(m => ({ default: m.SpiritualGamesHub })));
+import { SpiritualGamesHub } from './components/SpiritualGamesHub';
+import { MonasticAscentPuzzle } from './components/MonasticAscentPuzzle';
 const CollectiveChallengesView = lazy(() => import('./components/CollectiveChallengesView').then(m => ({ default: m.CollectiveChallengesView })));
 const SpiritualCalendarView = lazy(() => import('./components/SpiritualCalendarView').then(m => ({ default: m.SpiritualCalendarView })));
 const SpiritualFatherCompanion = lazy(() => import('./components/SpiritualFatherCompanion').then(m => ({ default: m.SpiritualFatherCompanion })));
@@ -58,7 +58,9 @@ const SaintsStickersModal = lazy(() => import('./components/SaintsStickersModal'
 const SpiritualJournal = lazy(() => import('./components/SpiritualJournal').then(m => ({ default: m.SpiritualJournal })));
 const IconGalleryModal = lazy(() => import('./components/IconGalleryModal').then(m => ({ default: m.IconGalleryModal })));
 const ChurchFathersAndSaintsGallery = lazy(() => import('./components/ChurchFathersAndSaintsGallery').then(m => ({ default: m.ChurchFathersAndSaintsGallery })));
-const WelcomeSplashModal = lazy(() => import('./components/WelcomeSplashModal').then(m => ({ default: m.WelcomeSplashModal })));
+import WelcomeSplashModal from './components/WelcomeSplashModal';
+const VirtualSilentRetreat = lazy(() => import('./components/VirtualSilentRetreat').then(m => ({ default: m.VirtualSilentRetreat })));
+const SpiritualHymnsPlayer = lazy(() => import('./components/SpiritualHymnsPlayer').then(m => ({ default: m.SpiritualHymnsPlayer })));
 
 const ViewLoadingFallback: React.FC = () => (
   <div className="flex flex-col items-center justify-center min-h-[300px] space-y-3 py-16 animate-fade-in text-center" dir="rtl">
@@ -98,6 +100,7 @@ function AppContent() {
   const [showIconGallery, setShowIconGallery] = useState<boolean>(false);
   const [showSaintsGallery, setShowSaintsGallery] = useState<boolean>(false);
   const [showSaintsStickersModal, setShowSaintsStickersModal] = useState<boolean>(false);
+  const [showSilentRetreat, setShowSilentRetreat] = useState<boolean>(false);
   const [showMobileMenu, setShowMobileMenu] = useState<boolean>(false);
   const [showWelcomeSplash, setShowWelcomeSplash] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
@@ -114,9 +117,6 @@ function AppContent() {
     setCurrentUserState(user);
     setStages(getStoredStages());
     setAnnouncements(getStoredAnnouncements());
-
-    // Schedule smart background prefetch based on user behavior during idle time
-    scheduleSmartPrefetch();
   }, []);
 
   const handleNavigate = (view: AppView) => {
@@ -186,10 +186,11 @@ function AppContent() {
           mobileMenuOpen={showMobileMenu}
           onToggleMobileMenu={() => setShowMobileMenu((prev) => !prev)}
           onCloseMobileMenu={() => setShowMobileMenu(false)}
+          onOpenSilentRetreat={() => setShowSilentRetreat(true)}
         />
 
         {/* Main Content Area */}
-        <main className="max-w-6xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
+        <main className="max-w-6xl mx-auto px-3 sm:px-4 py-3 sm:py-6 pb-28 sm:pb-16">
           {/* Daily Saint & Virtue Alert Banner (Rendered only on home for fast clean standalone screens) */}
           {currentView === 'home' && (
             <div className="mb-6">
@@ -237,6 +238,8 @@ function AppContent() {
                 onNavigateToConsecratedManual={() => handleNavigate('consecrated_manual')}
                 onOpenSaintsStickers={() => setShowSaintsStickersModal(true)}
                 onNavigateToPrayerFortress={() => handleNavigate('prayer_fortress')}
+                onOpenRetreat={() => setShowSilentRetreat(true)}
+                onNavigateToMonasticPuzzle={() => handleNavigate('monastic_puzzle')}
               />
             </motion.div>
           )}
@@ -387,6 +390,12 @@ function AppContent() {
                   onBackToHome={() => handleNavigate('home')}
                 />
               </div>
+            )}
+
+            {currentView === 'monastic_puzzle' && (
+              <MonasticAscentPuzzle
+                onBack={() => handleNavigate('home')}
+              />
             )}
 
             {currentView === 'participants' && (
@@ -600,10 +609,19 @@ function AppContent() {
             currentUser={currentUser}
           />
         )}
+
+        {showSilentRetreat && (
+          <VirtualSilentRetreat
+            isOpen={showSilentRetreat}
+            onClose={() => setShowSilentRetreat(false)}
+          />
+        )}
       </Suspense>
 
       {/* Global Spiritual Hymns Audio Player */}
-      <SpiritualHymnsPlayer />
+      <Suspense fallback={null}>
+        <SpiritualHymnsPlayer />
+      </Suspense>
 
       {/* Native Mobile Bottom Navigation Bar */}
       <MobileBottomNav

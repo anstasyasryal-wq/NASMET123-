@@ -588,3 +588,5 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
     </div>
   );
 };
+
+export default LibraryView;

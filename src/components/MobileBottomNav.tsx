@@ -31,10 +31,10 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = memo(({
   };
 
   const tabs: { id: AppView; label: string; icon: React.FC<{ className?: string }> }[] = [
-    { id: 'home', label: 'العجلة', icon: Compass },
-    { id: 'competitions_hub', label: 'المسابقات', icon: Trophy },
-    { id: 'prayer_fortress', label: 'حصن الصلاة', icon: Shield },
-    { id: 'library', label: 'المكتبة', icon: BookOpen },
+    { id: 'home', label: 'الرئيسية 🌳', icon: Compass },
+    { id: 'competitions_hub', label: 'المسابقات 🏆', icon: Trophy },
+    { id: 'prayer_fortress', label: 'حصن الصلاة 🛡️', icon: Shield },
+    { id: 'library', label: 'المكتبة 📚', icon: BookOpen },
   ];
 
   return (

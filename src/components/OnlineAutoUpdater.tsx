@@ -45,12 +45,8 @@ export const OnlineAutoUpdater: React.FC = () => {
             installingWorker.onstatechange = () => {
               if (installingWorker.state === 'installed') {
                 if (navigator.serviceWorker.controller) {
-                  // New update available! Auto refresh silently
-                  setToastMessage('✨ توفر إصدار جديد - جاري التحديث التلقائي للبركة...');
+                  setToastMessage('✨ توفر محتوى وبركة جديدة في التطبيق');
                   setShowToast(true);
-                  setTimeout(() => {
-                    window.location.reload();
-                  }, 2000);
                 }
               }
             };
