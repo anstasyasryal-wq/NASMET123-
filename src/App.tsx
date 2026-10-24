@@ -23,6 +23,7 @@ import { JoyfulScreenHeader } from './components/JoyfulScreenHeader';
 import { OnlineAutoUpdater } from './components/OnlineAutoUpdater';
 import { recordViewVisit } from './utils/preloadManager';
 import { motion } from 'framer-motion';
+import { SpiritualHymnsPlayer } from './components/SpiritualHymnsPlayer';
 
 // Lazy-loaded Views (Code Splitting for instant mobile startup)
 const StagePlayer = lazy(() => import('./components/StagePlayer').then(m => ({ default: m.StagePlayer })));
@@ -39,8 +40,8 @@ const WorkshopsView = lazy(() => import('./components/WorkshopsView').then(m => 
 const CreativeLab = lazy(() => import('./components/CreativeLab').then(m => ({ default: m.CreativeLab })));
 const StudyToolsView = lazy(() => import('./components/StudyToolsView').then(m => ({ default: m.StudyToolsView })));
 const MonasticOasis = lazy(() => import('./components/MonasticOasis').then(m => ({ default: m.MonasticOasis })));
-import { SpiritualGamesHub } from './components/SpiritualGamesHub';
-import { MonasticAscentPuzzle } from './components/MonasticAscentPuzzle';
+const SpiritualGamesHub = lazy(() => import('./components/SpiritualGamesHub').then(m => ({ default: m.SpiritualGamesHub })));
+const MonasticAscentPuzzle = lazy(() => import('./components/MonasticAscentPuzzle').then(m => ({ default: m.MonasticAscentPuzzle })));
 const CollectiveChallengesView = lazy(() => import('./components/CollectiveChallengesView').then(m => ({ default: m.CollectiveChallengesView })));
 const SpiritualCalendarView = lazy(() => import('./components/SpiritualCalendarView').then(m => ({ default: m.SpiritualCalendarView })));
 const SpiritualFatherCompanion = lazy(() => import('./components/SpiritualFatherCompanion').then(m => ({ default: m.SpiritualFatherCompanion })));
@@ -60,7 +61,6 @@ const IconGalleryModal = lazy(() => import('./components/IconGalleryModal').then
 const ChurchFathersAndSaintsGallery = lazy(() => import('./components/ChurchFathersAndSaintsGallery').then(m => ({ default: m.ChurchFathersAndSaintsGallery })));
 import WelcomeSplashModal from './components/WelcomeSplashModal';
 const VirtualSilentRetreat = lazy(() => import('./components/VirtualSilentRetreat').then(m => ({ default: m.VirtualSilentRetreat })));
-const SpiritualHymnsPlayer = lazy(() => import('./components/SpiritualHymnsPlayer').then(m => ({ default: m.SpiritualHymnsPlayer })));
 
 const ViewLoadingFallback: React.FC = () => (
   <div className="flex flex-col items-center justify-center min-h-[300px] space-y-3 py-16 animate-fade-in text-center" dir="rtl">
