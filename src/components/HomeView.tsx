@@ -1,7 +1,6 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { User, Stage, Announcement } from '../types';
 import { soundManager } from '../utils/audio';
-import { AUTHENTIC_COPTIC_BOOKS, BookItem } from '../data/authenticCopticBooks';
 import { getOrRefreshDailyMessage } from '../utils/heavenlyHistory';
 import { FortuneWheel, WheelSection } from './FortuneWheel';
 import { ConsecrationTree } from './ConsecrationTree';
@@ -111,7 +110,7 @@ export const HomeView: React.FC<HomeViewProps> = React.memo(({
   const [dailyRecord] = useState(() => getOrRefreshDailyMessage(false));
   const dailyMsg = dailyRecord.message;
 
-  // Retrieve last reading progress from storage
+  // Retrieve last reading progress from storage (lightweight without heavy books import)
   const lastActiveReading = useMemo(() => {
     try {
       if (typeof window === 'undefined') return null;
@@ -121,21 +120,37 @@ export const HomeView: React.FC<HomeViewProps> = React.memo(({
       const progressMap: Record<string, BookProgress> =
         parsed && typeof parsed === 'object' && parsed.progress ? parsed.progress : {};
 
-      let bestBook: { book: BookItem; progress: BookProgress } | null = null;
+      let bestBookId: string | null = null;
+      let bestProgress: BookProgress | null = null;
       let latestTime = 0;
 
-      for (const book of AUTHENTIC_COPTIC_BOOKS) {
-        if (!book) continue;
-        const prog = progressMap[book.id];
-        if (prog && prog.lastReadAt) {
-          const t = new Date(prog.lastReadAt).getTime();
+      for (const [bId, prog] of Object.entries(progressMap)) {
+        if (prog && typeof prog === 'object' && (prog as any).lastReadAt) {
+          const t = new Date((prog as any).lastReadAt).getTime();
           if (t > latestTime) {
             latestTime = t;
-            bestBook = { book, progress: prog };
+            bestBookId = bId;
+            bestProgress = prog as BookProgress;
           }
         }
       }
-      return bestBook;
+
+      if (!bestBookId || !bestProgress) return null;
+
+      const bookTitles: Record<string, { title: string; author: string }> = {
+        'book-1': { title: 'تجسد الكلمة (De Incarnatione Verbi Dei)', author: 'القديس أثناسيوس الرسولي' },
+        'book-2': { title: 'رسائل القديس إغناطيوس الأنطاكي', author: 'القديس إغناطيوس' },
+        'book-3': { title: 'الرسالة إلى أهل روما وبوليكاربوس', author: 'القديس بوليكاربوس' },
+        'book-4': { title: 'الديداخي (تعليم الرسل الاثني عشر)', author: 'الآباء الرسل' },
+      };
+
+      const info = bookTitles[bestBookId] || { title: 'كتاب كنسي موثق', author: 'تراث الآباء' };
+      return {
+        id: bestBookId,
+        title: info.title,
+        author: info.author,
+        progress: bestProgress,
+      };
     } catch {
       return null;
     }
@@ -420,14 +435,14 @@ export const HomeView: React.FC<HomeViewProps> = React.memo(({
                   <span>متابعة آخر قراءة</span>
                 </span>
                 <span className="text-[11px] text-stone-400 font-mono">
-                  الفصل {(lastActiveReading.progress.chapterIdx || 0) + 1} من {lastActiveReading.book.chapters?.length || 1}
+                  الفصل {(lastActiveReading.progress.chapterIdx || 0) + 1}
                 </span>
               </div>
               <h3 className="font-spiritual text-base sm:text-lg font-bold text-amber-100 truncate">
-                {lastActiveReading.book.title}
+                {lastActiveReading.title}
               </h3>
               <p className="text-xs text-stone-400 line-clamp-1">
-                بقلم: {lastActiveReading.book.author}
+                بقلم: {lastActiveReading.author}
               </p>
             </div>
 
