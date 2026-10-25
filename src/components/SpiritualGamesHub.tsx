@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { User } from '../types';
 import { soundManager } from '../utils/audio';
 import confetti from 'canvas-confetti';
@@ -26,18 +26,46 @@ import {
   Award,
 } from 'lucide-react';
 
+const JigsawPuzzleEngine = lazy(() => import('./JigsawPuzzleEngine').then(m => ({ default: m.JigsawPuzzleEngine })));
+const TripleTileMatchGame = lazy(() => import('./games/TripleTileMatchGame').then(m => ({ default: m.TripleTileMatchGame })));
+const CopticMemoryGame = lazy(() => import('./games/CopticMemoryGame').then(m => ({ default: m.CopticMemoryGame })));
+const SpotDifferencesGame = lazy(() => import('./games/SpotDifferencesGame').then(m => ({ default: m.SpotDifferencesGame })));
+const MonasticMazeGame = lazy(() => import('./games/MonasticMazeGame').then(m => ({ default: m.MonasticMazeGame })));
+const ReactionFocusGame = lazy(() => import('./games/ReactionFocusGame').then(m => ({ default: m.ReactionFocusGame })));
+
+const GameLoadingFallback: React.FC = () => (
+  <div className="flex flex-col items-center justify-center min-h-[350px] space-y-3 py-16 animate-fade-in text-center bg-stone-900 rounded-3xl border border-amber-600/30">
+    <div className="w-12 h-12 rounded-2xl bg-amber-500/20 border-2 border-amber-500/40 flex items-center justify-center text-2xl animate-pulse shadow-md">
+      🎮
+    </div>
+    <p className="text-xs text-amber-300 font-bold font-spiritual">جاري فتح اللعبة بالبركة...</p>
+  </div>
+);
+
 interface SpiritualGamesHubProps {
   currentUser: User | null;
   onBackToHome: () => void;
 }
 
-type GameMode = 'wilderness_journey' | 'coptic_def_rhythm' | 'riddles' | 'pillars_puzzle' | 'patristic_match' | 'monastic_ascent';
+type GameMode =
+  | 'jigsaw'
+  | 'triple_match'
+  | 'memory_match'
+  | 'spot_diff'
+  | 'maze'
+  | 'reaction'
+  | 'wilderness_journey'
+  | 'coptic_def_rhythm'
+  | 'riddles'
+  | 'pillars_puzzle'
+  | 'patristic_match'
+  | 'monastic_ascent';
 
 export const SpiritualGamesHub: React.FC<SpiritualGamesHubProps> = ({
   currentUser,
   onBackToHome,
 }) => {
-  const [activeGame, setActiveGame] = useState<GameMode>('wilderness_journey');
+  const [activeGame, setActiveGame] = useState<GameMode>('jigsaw');
   const [gameScore, setGameScore] = useState<number>(0);
 
   // Sync points to user consecration bonus
@@ -693,6 +721,96 @@ export const SpiritualGamesHub: React.FC<SpiritualGamesHubProps> = ({
           <button
             onClick={() => {
               soundManager.playTick();
+              setActiveGame('jigsaw');
+            }}
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 shrink-0 cursor-pointer ${
+              activeGame === 'jigsaw'
+                ? 'bg-amber-600 text-white shadow-md'
+                : 'bg-stone-900/80 text-stone-300 hover:bg-stone-800 border border-stone-800'
+            }`}
+          >
+            <span>🖼️</span>
+            <span>تركيب الأيقونات (Jigsaw)</span>
+          </button>
+
+          <button
+            onClick={() => {
+              soundManager.playTick();
+              setActiveGame('triple_match');
+            }}
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 shrink-0 cursor-pointer ${
+              activeGame === 'triple_match'
+                ? 'bg-amber-600 text-white shadow-md'
+                : 'bg-stone-900/80 text-stone-300 hover:bg-stone-800 border border-stone-800'
+            }`}
+          >
+            <span>🧩</span>
+            <span>مطابقة الرموز الثلاثية</span>
+          </button>
+
+          <button
+            onClick={() => {
+              soundManager.playTick();
+              setActiveGame('memory_match');
+            }}
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 shrink-0 cursor-pointer ${
+              activeGame === 'memory_match'
+                ? 'bg-amber-600 text-white shadow-md'
+                : 'bg-stone-900/80 text-stone-300 hover:bg-stone-800 border border-stone-800'
+            }`}
+          >
+            <span>🃏</span>
+            <span>الذاكرة البصرية (بطاقات)</span>
+          </button>
+
+          <button
+            onClick={() => {
+              soundManager.playTick();
+              setActiveGame('spot_diff');
+            }}
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 shrink-0 cursor-pointer ${
+              activeGame === 'spot_diff'
+                ? 'bg-amber-600 text-white shadow-md'
+                : 'bg-stone-900/80 text-stone-300 hover:bg-stone-800 border border-stone-800'
+            }`}
+          >
+            <span>🔍</span>
+            <span>اكتشاف الفروق الخمسة</span>
+          </button>
+
+          <button
+            onClick={() => {
+              soundManager.playTick();
+              setActiveGame('maze');
+            }}
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 shrink-0 cursor-pointer ${
+              activeGame === 'maze'
+                ? 'bg-amber-600 text-white shadow-md'
+                : 'bg-stone-900/80 text-stone-300 hover:bg-stone-800 border border-stone-800'
+            }`}
+          >
+            <span>🏜️</span>
+            <span>متاهة واحة البرية</span>
+          </button>
+
+          <button
+            onClick={() => {
+              soundManager.playTick();
+              setActiveGame('reaction');
+            }}
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 shrink-0 cursor-pointer ${
+              activeGame === 'reaction'
+                ? 'bg-amber-600 text-white shadow-md'
+                : 'bg-stone-900/80 text-stone-300 hover:bg-stone-800 border border-stone-800'
+            }`}
+          >
+            <span>⚡</span>
+            <span>سرعة البديهة والتركيز</span>
+          </button>
+
+          <button
+            onClick={() => {
+              soundManager.playTick();
               setActiveGame('wilderness_journey');
             }}
             className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 shrink-0 cursor-pointer ${
@@ -781,6 +899,51 @@ export const SpiritualGamesHub: React.FC<SpiritualGamesHubProps> = ({
           </button>
         </div>
       </div>
+
+      {/* NEW MODERN GAMES */}
+      <Suspense fallback={<GameLoadingFallback />}>
+        {activeGame === 'jigsaw' && (
+          <JigsawPuzzleEngine
+            onBack={() => setActiveGame('wilderness_journey')}
+            onSuccess={(pts) => addPoints(pts)}
+          />
+        )}
+
+        {activeGame === 'triple_match' && (
+          <TripleTileMatchGame
+            onBack={() => setActiveGame('wilderness_journey')}
+            onSuccess={(pts) => addPoints(pts)}
+          />
+        )}
+
+        {activeGame === 'memory_match' && (
+          <CopticMemoryGame
+            onBack={() => setActiveGame('wilderness_journey')}
+            onSuccess={(pts) => addPoints(pts)}
+          />
+        )}
+
+        {activeGame === 'spot_diff' && (
+          <SpotDifferencesGame
+            onBack={() => setActiveGame('wilderness_journey')}
+            onSuccess={(pts) => addPoints(pts)}
+          />
+        )}
+
+        {activeGame === 'maze' && (
+          <MonasticMazeGame
+            onBack={() => setActiveGame('wilderness_journey')}
+            onSuccess={(pts) => addPoints(pts)}
+          />
+        )}
+
+        {activeGame === 'reaction' && (
+          <ReactionFocusGame
+            onBack={() => setActiveGame('wilderness_journey')}
+            onSuccess={(pts) => addPoints(pts)}
+          />
+        )}
+      </Suspense>
 
       {/* 1. GAME: رحلة الراهب في البرية */}
       {activeGame === 'wilderness_journey' && (

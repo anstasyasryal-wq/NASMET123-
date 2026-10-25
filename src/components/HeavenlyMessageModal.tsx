@@ -62,6 +62,19 @@ export const HeavenlyMessageModal: React.FC<HeavenlyMessageModalProps> = ({
   const [copied, setCopied] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [popupEnabled, setPopupEnabled] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return true;
+    return localStorage.getItem('mokarasa_daily_message_popup_enabled') !== 'false';
+  });
+
+  const togglePopupSetting = () => {
+    const next = !popupEnabled;
+    setPopupEnabled(next);
+    soundManager.playTick();
+    try {
+      localStorage.setItem('mokarasa_daily_message_popup_enabled', String(next));
+    } catch {}
+  };
 
   // Load saved favorites
   useEffect(() => {
@@ -373,17 +386,42 @@ export const HeavenlyMessageModal: React.FC<HeavenlyMessageModalProps> = ({
             <>
               {/* 24-Hour Non-Repeating Status Banner */}
               {activeTab === 'daily' && (
-                <div className="bg-amber-950/40 border border-amber-500/40 rounded-2xl p-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs animate-fade-in">
-                  <div className="flex items-center gap-2 text-amber-200">
-                    <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <div>
-                      <span className="font-bold text-amber-300">حماية عدم التكرار (24 ساعة): </span>
-                      <span className="text-stone-300">مضمون ألا تظهر لك هذه الرسالة مجدداً قبل انقضاء 24 ساعة.</span>
+                <div className="space-y-3">
+                  <div className="bg-amber-950/40 border border-amber-500/40 rounded-2xl p-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs animate-fade-in">
+                    <div className="flex items-center gap-2 text-amber-200">
+                      <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <div>
+                        <span className="font-bold text-amber-300">حماية عدم التكرار (24 ساعة): </span>
+                        <span className="text-stone-300">مضمون ألا تظهر لك هذه الرسالة مجدداً قبل انقضاء 24 ساعة.</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-amber-300 font-bold bg-stone-950/80 px-3 py-1.5 rounded-xl border border-amber-800/40 shrink-0 text-[11px]">
+                      <Clock className="w-3.5 h-3.5 text-amber-400" />
+                      <span>الوقت المتبقي: {formatRemainingTime(dailyInfo.timeRemainingMs)}</span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1.5 text-amber-300 font-bold bg-stone-950/80 px-3 py-1.5 rounded-xl border border-amber-800/40 shrink-0 text-[11px]">
-                    <Clock className="w-3.5 h-3.5 text-amber-400" />
-                    <span>الوقت المتبقي: {formatRemainingTime(dailyInfo.timeRemainingMs)}</span>
+
+                  {/* Settings Toggle for Daily Morning Auto-Popup */}
+                  <div className="bg-stone-900/80 border border-amber-600/30 rounded-2xl p-3.5 flex items-center justify-between gap-3 text-xs">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-300 flex items-center justify-center shrink-0">
+                        ⚙️
+                      </div>
+                      <div>
+                        <span className="font-bold text-amber-200 block">إظهار رسالة الصباح تلقائياً</span>
+                        <span className="text-[11px] text-stone-400">تظهر رسالة اليوم مرة واحدة تلقائياً عند أول فتح للتطبيق كل صباح</span>
+                      </div>
+                    </div>
+                    <button
+                      onClick={togglePopupSetting}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-black transition cursor-pointer border shrink-0 ${
+                        popupEnabled
+                          ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                          : 'bg-stone-800 text-stone-400 border-stone-700'
+                      }`}
+                    >
+                      {popupEnabled ? 'مفعلة ✓' : 'معطلة ✕'}
+                    </button>
                   </div>
                 </div>
               )}

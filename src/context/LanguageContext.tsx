@@ -84,17 +84,23 @@ const LanguageContext = createContext<LanguageContextType>({
 export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [language, setLanguage] = useState<'ar' | 'en'>(() => {
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('mokarasa_lang');
-      if (saved === 'en' || saved === 'ar') return saved;
+      try {
+        const saved = localStorage.getItem('mokarasa_lang');
+        if (saved === 'en' || saved === 'ar') return saved;
+      } catch {}
     }
     return 'ar';
   });
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      localStorage.setItem('mokarasa_lang', language);
-      document.documentElement.lang = language;
-      document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr';
+      try {
+        localStorage.setItem('mokarasa_lang', language);
+      } catch {}
+      try {
+        document.documentElement.lang = language;
+        document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr';
+      } catch {}
     }
   }, [language]);
 

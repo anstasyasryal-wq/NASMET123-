@@ -1,22 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { soundManager } from '../utils/audio';
 import confetti from 'canvas-confetti';
-import { ImageLoader } from './ImageLoader';
 import { JigsawPuzzleEngine } from './JigsawPuzzleEngine';
+import { TripleTileMatchGame } from './games/TripleTileMatchGame';
+import { CopticMemoryGame } from './games/CopticMemoryGame';
+import { SpotDifferencesGame } from './games/SpotDifferencesGame';
+import { MonasticMazeGame } from './games/MonasticMazeGame';
+import { ReactionFocusGame } from './games/ReactionFocusGame';
 import {
   Sparkles,
   Award,
   CheckCircle2,
-  Lock,
   ArrowRight,
   Flame,
-  BookOpen,
-  Grid,
-  RefreshCw,
-  Eye,
-  Brain,
-  Check,
-  Play,
   Clock,
   Compass,
   Gamepad2,
@@ -28,6 +24,8 @@ import {
   Layers,
   Heart,
   Shield,
+  Volume2,
+  VolumeX,
   Search,
 } from 'lucide-react';
 
@@ -35,7 +33,16 @@ interface MonasticAscentPuzzleProps {
   onBack: () => void;
 }
 
-type GameId = 'hub' | 'jigsaw' | 'spot_diff' | 'riddles' | 'pyramid' | 'code_breaker' | 'memory_match' | 'word_quest' | 'story_sequence';
+type GameId =
+  | 'hub'
+  | 'jigsaw'
+  | 'triple_match'
+  | 'memory_match'
+  | 'spot_diff'
+  | 'maze'
+  | 'reaction'
+  | 'riddles'
+  | 'code_breaker';
 
 interface GameStats {
   score: number;
@@ -44,25 +51,6 @@ interface GameStats {
 }
 
 const STORAGE_KEY = 'mokarasa_games_hub_state_v3';
-
-// Gorgeous Coptic Icon SVGs encoded as Data URIs for genuine Jigsaw image slicing
-const COPTIC_ICONS = [
-  {
-    id: 'pantocrator',
-    title: 'أيقونة السيد المسيح ضابط الكل',
-    svgUri: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400"><defs><linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="%23064e3b"/><stop offset="50%" stop-color="%23022c22"/><stop offset="100%" stop-color="%2378350f"/></linearGradient><radialGradient id="halo" cx="50%" cy="40%" r="40%"><stop offset="0%" stop-color="%23f59e0b"/><stop offset="70%" stop-color="%23b45309"/><stop offset="100%" stop-color="%23064e3b"/></radialGradient></defs><rect width="400" height="400" fill="url(%23bg)"/><circle cx="200" cy="180" r="110" fill="url(%23halo)"/><circle cx="200" cy="180" r="95" fill="%23d97706" opacity="0.4"/><path d="M150 280 C150 230 250 230 250 280 L280 380 L120 380 Z" fill="%2392400e"/><path d="M170 140 Q200 110 230 140 Q240 180 200 210 Q160 180 170 140" fill="%23fef3c7"/><circle cx="185" cy="165" r="4" fill="%231c1917"/><circle cx="215" cy="165" r="4" fill="%231c1917"/><path d="M195 190 Q200 195 205 190" stroke="%2378350f" stroke-width="3" fill="none"/><text x="200" y="55" font-size="28" fill="%23fbbf24" font-family="serif" text-anchor="middle" font-weight="bold">Ο ΏΝ</text><text x="200" y="360" font-size="20" fill="%23fde68a" font-family="serif" text-anchor="middle">ضابط الكل</text></svg>`,
-  },
-  {
-    id: 'theotokos',
-    title: 'أيقونة العذراء والدة الإله',
-    svgUri: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400"><defs><linearGradient id="bg2" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="%237f1d1d"/><stop offset="50%" stop-color="%23451a03"/><stop offset="100%" stop-color="%23064e3b"/></linearGradient><radialGradient id="halo2" cx="50%" cy="40%" r="45%"><stop offset="0%" stop-color="%23fbbf24"/><stop offset="70%" stop-color="%23b45309"/><stop offset="100%" stop-color="%237f1d1d"/></radialGradient></defs><rect width="400" height="400" fill="url(%23bg2)"/><circle cx="200" cy="175" r="115" fill="url(%23halo2)"/><path d="M130 270 C130 210 270 210 270 270 L300 380 L100 380 Z" fill="%237c2d12"/><circle cx="200" cy="165" r="75" fill="%23fef3c7"/><rect x="175" y="190" width="50" height="70" fill="%23b45309" rx="10"/><text x="200" y="50" font-size="24" fill="%23fde68a" font-family="serif" text-anchor="middle" font-weight="bold">ΜΗΡ ΘΥ</text><text x="200" y="360" font-size="20" fill="%23fde68a" font-family="serif" text-anchor="middle">والدة الإله القديسة مريم</text></svg>`,
-  },
-  {
-    id: 'st_antony',
-    title: 'أيقونة القديس الأنبا أنطونيوس',
-    svgUri: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400"><defs><linearGradient id="bg3" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="%231e3a8a"/><stop offset="50%" stop-color="%230f172a"/><stop offset="100%" stop-color="%23064e3b"/></linearGradient></defs><rect width="400" height="400" fill="url(%23bg3)"/><path d="M120 280 C120 200 280 200 280 280 L320 380 L80 380 Z" fill="%23334155"/><circle cx="200" cy="170" r="70" fill="%23fef3c7"/><path d="M140 180 Q200 120 260 180" stroke="%23475569" stroke-width="15" fill="none"/><text x="200" y="55" font-size="24" fill="%23fbbf24" font-family="serif" text-anchor="middle" font-weight="bold">أبا أنطونيوس</text><text x="200" y="360" font-size="18" fill="%23e2e8f0" font-family="serif" text-anchor="middle">كوكب البرية وأب الرهبان</text></svg>`,
-  },
-];
 
 export const MonasticAscentPuzzle: React.FC<MonasticAscentPuzzleProps> = ({ onBack }) => {
   const [activeGame, setActiveGame] = useState<GameId>('hub');
@@ -78,105 +66,22 @@ export const MonasticAscentPuzzle: React.FC<MonasticAscentPuzzleProps> = ({ onBa
   const saveStats = (newScoreAdd: number, gameIdCompleted?: string) => {
     setStats((prev) => {
       const updatedScore = prev.score + newScoreAdd;
-      const updatedCompleted = gameIdCompleted && !prev.completedGames.includes(gameIdCompleted)
-        ? [...prev.completedGames, gameIdCompleted]
-        : prev.completedGames;
+      const updatedCompleted =
+        gameIdCompleted && !prev.completedGames.includes(gameIdCompleted)
+          ? [...prev.completedGames, gameIdCompleted]
+          : prev.completedGames;
       const nextState = { ...prev, score: updatedScore, completedGames: updatedCompleted };
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(nextState));
+        // Also sync to global consecration bonus
+        const curBonus = parseInt(localStorage.getItem('mokarasa_consecration_bonus') || '0', 10);
+        localStorage.setItem('mokarasa_consecration_bonus', String(curBonus + newScoreAdd));
       } catch {}
       return nextState;
     });
   };
 
-  // ==================== 1. REAL JIGSAW PUZZLE STATE (WITH GENUINE IMAGE SLICING) ====================
-  const [selectedIconIdx, setSelectedIconIdx] = useState<number>(0);
-  const [jigsawGridSize, setJigsawGridSize] = useState<3 | 4 | 5>(3);
-  const [jigsawTiles, setJigsawTiles] = useState<number[]>([]);
-  const [isJigsawSolved, setIsJigsawSolved] = useState<boolean>(false);
-  const [jigsawMoves, setJigsawMoves] = useState<number>(0);
-  const [jigsawTimer, setJigsawTimer] = useState<number>(0);
-  const [isJigsawRunning, setIsJigsawRunning] = useState<boolean>(false);
-  const [showPreviewModal, setShowPreviewModal] = useState<boolean>(false);
-
-  useEffect(() => {
-    initJigsaw(3, 0);
-  }, []);
-
-  useEffect(() => {
-    let interval: any;
-    if (activeGame === 'jigsaw' && isJigsawRunning && !isJigsawSolved) {
-      interval = setInterval(() => setJigsawTimer((p) => p + 1), 1000);
-    }
-    return () => clearInterval(interval);
-  }, [activeGame, isJigsawRunning, isJigsawSolved]);
-
-  const initJigsaw = (size: 3 | 4 | 5, iconIdx: number) => {
-    setJigsawGridSize(size);
-    setSelectedIconIdx(iconIdx);
-    const total = size * size;
-    const arr = Array.from({ length: total }, (_, i) => i);
-    let shuffled = [...arr];
-    do {
-      shuffled.sort(() => Math.random() - 0.5);
-    } while (shuffled.every((val, idx) => val === idx));
-    setJigsawTiles(shuffled);
-    setIsJigsawSolved(false);
-    setJigsawMoves(0);
-    setJigsawTimer(0);
-    setIsJigsawRunning(true);
-    soundManager.playTick();
-  };
-
-  const handleTileSwap = (index: number) => {
-    soundManager.playTick();
-    if (!isJigsawRunning) setIsJigsawRunning(true);
-    const newTiles = [...jigsawTiles];
-    const temp = newTiles[0];
-    newTiles[0] = newTiles[index];
-    newTiles[index] = temp;
-    setJigsawTiles(newTiles);
-    setJigsawMoves((prev) => prev + 1);
-
-    const winning = Array.from({ length: jigsawGridSize * jigsawGridSize }, (_, i) => i);
-    if (newTiles.every((val, idx) => val === winning[idx])) {
-      setIsJigsawSolved(true);
-      setIsJigsawRunning(false);
-      soundManager.playCorrect();
-      try {
-        confetti({ particleCount: 150, spread: 90, origin: { y: 0.6 } });
-      } catch {}
-      saveStats(150, 'jigsaw');
-    }
-  };
-
-  // ==================== 2. SPOT THE DIFFERENCE STATE ====================
-  const [hiddenItems, setHiddenItems] = useState([
-    { id: 1, name: 'الصليب الخشبي الصامت', found: false, x: 25, y: 40 },
-    { id: 2, name: 'قنديل الزيت المضيء', found: false, x: 70, y: 30 },
-    { id: 3, name: 'مخطوطة الأجبية المفتوحة', found: false, x: 50, y: 75 },
-    { id: 4, name: 'مسبحة صلاة يسوع', found: false, x: 15, y: 80 },
-  ]);
-
-  const handleSpotItem = (id: number) => {
-    soundManager.playTick();
-    const updated = hiddenItems.map((item) => (item.id === id ? { ...item, found: true } : item));
-    setHiddenItems(updated);
-    if (updated.every((it) => it.found)) {
-      soundManager.playCorrect();
-      try {
-        confetti({ particleCount: 120, spread: 80 });
-      } catch {}
-      saveStats(100, 'spot_diff');
-    }
-  };
-
-  const resetSpotDiff = () => {
-    setHiddenItems(hiddenItems.map((it) => ({ ...it, found: false })));
-    soundManager.playTick();
-  };
-
-  // ==================== 3. RIDDLES STATE ====================
+  // ==================== RIDDLES GAME STATE ====================
   const [riddles, setRiddles] = useState([
     {
       id: 1,
@@ -219,7 +124,7 @@ export const MonasticAscentPuzzle: React.FC<MonasticAscentPuzzleProps> = ({ onBa
             try {
               confetti({ particleCount: 80, spread: 60 });
             } catch {}
-            saveStats(50, `riddle_${r.id}`);
+            saveStats(50, 'riddles');
           }
           return { ...r, selectedIndex: optIdx, solved: correct };
         }
@@ -228,253 +133,168 @@ export const MonasticAscentPuzzle: React.FC<MonasticAscentPuzzleProps> = ({ onBa
     );
   };
 
-  // ==================== 4. VIRTUES PYRAMID STATE ====================
-  const [pyramidSteps, setPyramidSteps] = useState([
-    { id: 'p3', title: 'النقاوة الداخلية' },
-    { id: 'p1', title: 'السكوت والصمت' },
-    { id: 'p4', title: 'المحبة الإلهية الكاملة' },
-    { id: 'p2', title: 'الصلاة المخدعية الخاشعة' },
-  ]);
-  const [selectedPyramidId, setSelectedPyramidId] = useState<string | null>(null);
-
-  const handlePyramidClick = (id: string) => {
-    soundManager.playTick();
-    if (!selectedPyramidId) {
-      setSelectedPyramidId(id);
-    } else {
-      const idx1 = pyramidSteps.findIndex((s) => s.id === selectedPyramidId);
-      const idx2 = pyramidSteps.findIndex((s) => s.id === id);
-      const newSteps = [...pyramidSteps];
-      const temp = newSteps[idx1];
-      newSteps[idx1] = newSteps[idx2];
-      newSteps[idx2] = temp;
-      setPyramidSteps(newSteps);
-      setSelectedPyramidId(null);
-
-      if (
-        newSteps[0].id === 'p1' &&
-        newSteps[1].id === 'p2' &&
-        newSteps[2].id === 'p3' &&
-        newSteps[3].id === 'p4'
-      ) {
-        soundManager.playCorrect();
-        try {
-          confetti({ particleCount: 100, spread: 70 });
-        } catch {}
-        saveStats(100, 'pyramid');
-      }
-    }
-  };
-
-  // ==================== 5. CODE BREAKER (رحلة الشيفرة) ====================
-  const [codeSecret] = useState<string[]>(['✝️', '🕊️', '🌿', '🕯️']);
-  const [codeGuesses, setCodeGuesses] = useState<string[][]>([]);
-  const [currentGuess, setCurrentGuess] = useState<string[]>(['✝️', '✝️', '✝️', '✝️']);
+  // ==================== CODE BREAKER GAME STATE ====================
+  const targetCode = [3, 7, 1]; // Mystery spiritual code: الثالوث القدوس، أسرار الكنيسة الـ 7، الإله الواحد
+  const [codeGuess, setCodeGuess] = useState<number[]>([1, 1, 1]);
+  const [codeAttempts, setCodeAttempts] = useState<number>(0);
+  const [codeClues, setCodeClues] = useState<string[]>([]);
   const [codeSolved, setCodeSolved] = useState<boolean>(false);
-  const symbolOptions = ['✝️', '🕊️', '🌿', '🕯️', '👑', '📖'];
 
-  const handleMakeCodeGuess = () => {
+  const checkCode = () => {
     soundManager.playTick();
-    const newGuesses = [...codeGuesses, currentGuess];
-    setCodeGuesses(newGuesses);
-    if (currentGuess.every((sym, i) => sym === codeSecret[i])) {
+    const attempts = codeAttempts + 1;
+    setCodeAttempts(attempts);
+
+    let exact = 0;
+    let contains = 0;
+
+    codeGuess.forEach((digit, idx) => {
+      if (digit === targetCode[idx]) exact++;
+      else if (targetCode.includes(digit)) contains++;
+    });
+
+    if (exact === 3) {
       setCodeSolved(true);
-      soundManager.playCorrect();
+      soundManager.playCelebration();
       try {
-        confetti({ particleCount: 130, spread: 80 });
+        confetti({ particleCount: 150, spread: 100, origin: { y: 0.6 } });
       } catch {}
-      saveStats(120, 'code_breaker');
-    }
-  };
-
-  // ==================== 6. MEMORY MATCH (الذاكرة المقدسة) ====================
-  const symbolsPool = ['✝️', '🕊️', '🌿', '🕯️', '👑', '📖'];
-  const [memoryCards, setMemoryCards] = useState<Array<{ id: number; symbol: string; flipped: boolean; matched: boolean }>>(() => {
-    const deck = [...symbolsPool, ...symbolsPool]
-      .sort(() => Math.random() - 0.5)
-      .map((sym, idx) => ({ id: idx, symbol: sym, flipped: false, matched: false }));
-    return deck;
-  });
-  const [firstFlippedCard, setFirstFlippedCard] = useState<number | null>(null);
-
-  const handleCardClick = (id: number) => {
-    soundManager.playTick();
-    const card = memoryCards.find((c) => c.id === id);
-    if (!card || card.flipped || card.matched) return;
-
-    const updated = memoryCards.map((c) => (c.id === id ? { ...c, flipped: true } : c));
-    setMemoryCards(updated);
-
-    if (firstFlippedCard === null) {
-      setFirstFlippedCard(id);
+      saveStats(150, 'code_breaker');
+      setCodeClues((prev) => [
+        `🎉 عبقري! الرمز الروحي الصحيح هو [3 - 7 - 1] (الثالوث القدوس، أسرار الكنيسة الـ 7، الإله الواحد).`,
+        ...prev,
+      ]);
     } else {
-      const firstCard = memoryCards.find((c) => c.id === firstFlippedCard);
-      if (firstCard && firstCard.symbol === card.symbol) {
-        soundManager.playCorrect();
-        setMemoryCards((prev) => prev.map((c) => (c.id === id || c.id === firstFlippedCard ? { ...c, matched: true } : c)));
-        setFirstFlippedCard(null);
-        if (memoryCards.filter((c) => !c.matched).length <= 2) {
-          try {
-            confetti({ particleCount: 150, spread: 90 });
-          } catch {}
-          saveStats(130, 'memory_match');
-        }
-      } else {
-        setTimeout(() => {
-          setMemoryCards((prev) => prev.map((c) => (c.id === id || c.id === firstFlippedCard ? { ...c, flipped: false } : c)));
-          setFirstFlippedCard(null);
-        }, 800);
-      }
+      setCodeClues((prev) => [
+        `محاولة #${attempts}: ${codeGuess.join(' - ')} ➔ ${exact} رقم في موضعه السليم، و ${contains} رقم موجود لكن في غير موضعه.`,
+        ...prev,
+      ]);
     }
   };
 
-  // ==================== 7. WORD QUEST (تحدّي الكلمات) ====================
-  const wordStages = [
-    { scrambled: 'ة ا ل ص ل ا', correct: 'الصلاة', hint: 'صلة الإنسان بالله وسر الحياة الروحية' },
-    { scrambled: 'ة ب و ت', correct: 'التوبة', hint: 'الرجوع إلى حضن الآب السماوي' },
-    { scrambled: 'ع و ا ت ض ت', correct: 'التواضع', hint: 'أساس كل الفضائل وتاج الجهاد' },
+  // Available Games Registry
+  const ALL_GAMES = [
+    {
+      id: 'jigsaw',
+      title: 'تركيب الأيقونات (Coptic Jigsaw)',
+      desc: 'إعادة بناء أيقونات مارجرجس والعذراء وضابط الكل والأنبا أنطونيوس بقطع متطابقة وثلاثة مستويات',
+      emoji: '🖼️',
+      badge: 'تركيب وبصري',
+      points: 150,
+      highlight: true,
+    },
+    {
+      id: 'triple_match',
+      title: 'مطابقة الرموز الثلاثية (Triple Match)',
+      desc: 'آلية مطابقة حديثة مع طبقات مكدسة وشريط تجميع ذكي وخواص تراجع وخلط لإخلاء اللوحة',
+      emoji: '🧩',
+      badge: 'ذكاء وتكتيك',
+      points: 200,
+      highlight: true,
+    },
+    {
+      id: 'memory_match',
+      title: 'الذاكرة البصرية (Coptic Memory)',
+      desc: 'اقلب البطاقات ثلاثية الأبعاد لاكتشاف أزواج القديسين والرموز الكنسية في أقل وقت وحركات',
+      emoji: '🃏',
+      badge: 'تركيز وذاكرة',
+      points: 120,
+      highlight: true,
+    },
+    {
+      id: 'spot_diff',
+      title: 'اكتشاف الفروق الخمسة (Spot Diff)',
+      desc: 'مقارنة مشهدين تفاعليين لاكتشاف 5 فروق دقيقة في قلاية الراهب وأيقونة مارجرجس مع تلميحات',
+      emoji: '🔍',
+      badge: 'قوة ملاحظة',
+      points: 150,
+      highlight: true,
+    },
+    {
+      id: 'maze',
+      title: 'متاهة واحة البرية (Monastic Maze)',
+      desc: 'وجّه الراهب عبر مسارات صحراوية متعرجة واجمع الفضائل الثلاث للوصول إلى باب الدير الأثري',
+      emoji: '🏜️',
+      badge: 'مغامرة ومسارات',
+      points: 180,
+      highlight: true,
+    },
+    {
+      id: 'reaction',
+      title: 'سرعة البديهة والتركيز (Focus Quest)',
+      desc: 'تحدي سريع ومثير مدته 30 ثانية للنقر على الفضائل وتجنب المشتتات والكسل مع متتالية مضاعفة',
+      emoji: '⚡',
+      badge: 'سرعة ورد فعل',
+      points: 150,
+      highlight: true,
+    },
+    {
+      id: 'riddles',
+      title: 'حكمة الآباء والألغاز الفكرية',
+      desc: 'ألغاز كتابية وآبائية من التراث القبطي الأصيل لاختبار العمق والفهم الروحي السليم',
+      emoji: '📖',
+      badge: 'حكمة ومعرفة',
+      points: 100,
+      highlight: false,
+    },
+    {
+      id: 'code_breaker',
+      title: 'شفرة الأسرار المقدسة (Code Breaker)',
+      desc: 'لغز استنتاج الأرقام الروحية الثلاثة الخفية عبر مؤشرات الدقة والاستدلال المنطقي',
+      emoji: '🔐',
+      badge: 'استنتاج ومنطق',
+      points: 150,
+      highlight: false,
+    },
   ];
-  const [currentWordIdx, setCurrentWordIdx] = useState(0);
-  const [wordInput, setWordInput] = useState('');
-  const [wordSolved, setWordSolved] = useState(false);
-
-  const handleCheckWord = (e: React.FormEvent) => {
-    e.preventDefault();
-    soundManager.playTick();
-    if (wordInput.trim() === wordStages[currentWordIdx].correct) {
-      setWordSolved(true);
-      soundManager.playCorrect();
-      try {
-        confetti({ particleCount: 100, spread: 70 });
-      } catch {}
-      saveStats(80, `word_${currentWordIdx}`);
-    } else {
-      alert('❌ الكلمة غير صحيحة، حاول مرة أخرى.');
-    }
-  };
-
-  // ==================== 8. STORY SEQUENCE (رتّب الحكاية) ====================
-  const [storyCards, setStoryCards] = useState([
-    { id: 's3', text: 'تأسيس الكرازة في مصر على يد مارمرقس الرسولي', correctPos: 2 },
-    { id: 's1', text: 'خروج شعب الله من ارض مصر بقيادة موسى النبي', correctPos: 0 },
-    { id: 's2', text: 'تجسد الكلمة الإلهي وولادة السيد المسيح في بيت لحم', correctPos: 1 },
-    { id: 's4', text: 'انطلاق الرهبنة القبطية للبرية على يد الأنبا أنطونيوس', correctPos: 3 },
-  ]);
-  const [selectedStoryId, setSelectedStoryId] = useState<string | null>(null);
-  const [storySolved, setStorySolved] = useState(false);
-
-  const handleStoryCardClick = (id: string) => {
-    soundManager.playTick();
-    if (!selectedStoryId) {
-      setSelectedStoryId(id);
-    } else {
-      const idx1 = storyCards.findIndex((c) => c.id === selectedStoryId);
-      const idx2 = storyCards.findIndex((c) => c.id === id);
-      const newCards = [...storyCards];
-      const temp = newCards[idx1];
-      newCards[idx1] = newCards[idx2];
-      newCards[idx2] = temp;
-      setStoryCards(newCards);
-      setSelectedStoryId(null);
-
-      if (newCards[0].id === 's1' && newCards[1].id === 's2' && newCards[2].id === 's3' && newCards[3].id === 's4') {
-        setStorySolved(true);
-        soundManager.playCorrect();
-        try {
-          confetti({ particleCount: 120, spread: 80 });
-        } catch {}
-        saveStats(110, 'story_sequence');
-      }
-    }
-  };
 
   return (
-    <div className="min-h-screen bg-[#022C22] text-stone-100 p-3 sm:p-6 font-sans selection:bg-amber-400 selection:text-amber-950" dir="rtl">
-      {/* Top Navigation & Score Header */}
-      <div className="max-w-5xl mx-auto flex items-center justify-between bg-stone-900/90 backdrop-blur-md border border-amber-600/40 rounded-3xl p-4 sm:p-5 shadow-2xl mb-6">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-amber-600 text-white flex items-center justify-center text-2xl shadow-lg border border-amber-400">
-            🎮
-          </div>
-          <div>
-            <h1 className="font-spiritual text-lg sm:text-xl font-bold text-amber-200">
-              مركز ألعاب التنسك والألغاز المقدسة
-            </h1>
-            <p className="text-xs text-stone-300">
-              تجارب تفاعلية غنية بالمعرفة والجهاد الروحي والأيقونات القبطية
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <div className="px-3.5 py-2 rounded-2xl bg-amber-950/80 border border-amber-500/50 text-amber-300 font-bold text-xs flex items-center gap-2 shadow-inner">
-            <Trophy className="w-4 h-4 text-amber-400" />
-            <span>النقاط الكلية: {stats.score}</span>
-          </div>
-          {activeGame !== 'hub' && (
-            <button
-              onClick={() => {
-                soundManager.playTick();
-                setActiveGame('hub');
-              }}
-              className="px-4 py-2 rounded-2xl bg-stone-800 hover:bg-stone-700 text-stone-200 font-bold text-xs shadow transition cursor-pointer flex items-center gap-1.5"
-            >
-              <ArrowRight className="w-4 h-4" />
-              <span>الرئيسية</span>
-            </button>
-          )}
-          <button
-            onClick={onBack}
-            className="px-4 py-2 rounded-2xl bg-stone-950 hover:bg-stone-900 text-amber-400 font-bold text-xs shadow transition cursor-pointer border border-stone-800 flex items-center gap-1.5"
-          >
-            <span>خروج للتطبيق</span>
-          </button>
-        </div>
-      </div>
-
-      {/* MAIN HUB VIEW */}
+    <div dir="rtl" className="min-h-screen bg-stone-900 text-stone-100 font-sans selection:bg-amber-500 selection:text-stone-950 pb-24">
+      {/* ==================== HUB SCREEN ==================== */}
       {activeGame === 'hub' && (
-        <main className="max-w-5xl mx-auto space-y-8 animate-fade-in pb-12">
-          {/* Featured Banner */}
-          <div className="relative rounded-3xl overflow-hidden p-6 sm:p-8 bg-gradient-to-r from-emerald-950 via-stone-900 to-amber-950 border border-amber-600/40 shadow-2xl flex flex-col sm:flex-row items-center justify-between gap-6">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
-            <div className="space-y-3 z-10 text-right max-w-xl">
-              <span className="px-3 py-1 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-bold inline-block">
-                ✨ الألعاب الأكثر تميزاً
-              </span>
-              <h2 className="font-spiritual text-2xl sm:text-3xl font-black text-amber-100">
-                اختبر عقلك وروحك في مسابقات البركة
+        <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 space-y-8 animate-fade-in">
+          {/* Top Header Card */}
+          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-amber-950/80 via-stone-900 to-stone-950 border-2 border-amber-600/40 p-6 sm:p-8 shadow-2xl flex flex-col sm:flex-row items-center justify-between gap-6">
+            <div className="space-y-3 text-right max-w-xl z-10">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-bold">
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>مركز الألعاب والترفيه الروحي التفاعلي</span>
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-black text-amber-100 font-spiritual">
+                ألعاب ترفيهية ذكية بآليات حديثة
               </h2>
               <p className="text-xs sm:text-sm text-stone-300 leading-relaxed">
-                اجمع النقاط، وتدرج في سلم الفضائل، واكتشف الأسرار الخفية في بيئة ترتكز على التراث القبطي الأرثوذكسي العريق.
+                استمتع بتركيب الأيقونات الأصلية، ومطابقة الرموز الثلاثية، وبطاقات الذاكرة ثلاثية الأبعاد، ومتاهة البرية، وسرعة البديهة في بيئة مبهجة تجمع بين المتعة الراقية والعمق القبطي.
               </p>
             </div>
-            <div className="flex flex-col gap-2 z-10 w-full sm:w-auto">
-              <div className="px-4 py-3 rounded-2xl bg-stone-950/80 border border-amber-500/30 text-center font-mono">
-                <span className="text-stone-400 text-[10px] block">الألعاب المكتملة</span>
-                <span className="text-amber-400 text-lg font-bold">{stats.completedGames.length} / 8</span>
+
+            {/* Overall Score Badge */}
+            <div className="flex sm:flex-col gap-3 z-10 w-full sm:w-auto shrink-0">
+              <div className="px-5 py-3 rounded-2xl bg-stone-950/90 border border-amber-500/40 text-center font-mono shadow-lg flex-1 sm:flex-initial">
+                <span className="text-[10px] text-stone-400 block font-sans">النقاط التراكمية</span>
+                <span className="text-2xl font-black text-amber-400">{stats.score}</span>
+              </div>
+              <div className="px-5 py-3 rounded-2xl bg-stone-950/90 border border-amber-500/40 text-center font-mono shadow-lg flex-1 sm:flex-initial">
+                <span className="text-[10px] text-stone-400 block font-sans">الألعاب المكتملة</span>
+                <span className="text-2xl font-black text-emerald-400">
+                  {stats.completedGames.length} / {ALL_GAMES.length}
+                </span>
               </div>
             </div>
           </div>
 
           {/* Games Grid */}
           <div className="space-y-4">
-            <h3 className="font-spiritual text-lg font-bold text-amber-200 flex items-center gap-2">
-              <Gamepad2 className="w-5 h-5 text-amber-400" />
-              <span>قائمة الألعاب والتحديات المقدسة</span>
-            </h3>
+            <div className="flex items-center justify-between border-b border-stone-800 pb-3">
+              <h3 className="font-spiritual text-lg font-bold text-amber-200 flex items-center gap-2">
+                <Gamepad2 className="w-5 h-5 text-amber-400" />
+                <span>اختر اللعبة وابدأ التحدي مباشرة</span>
+              </h3>
+              <span className="text-xs text-stone-400">{ALL_GAMES.length} ألعاب ترفيهية متكاملة</span>
+            </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {[
-                { id: 'jigsaw', title: 'تركيب الأيقونة (Jigsaw)', desc: 'إعادة بناء الأيقونات القبطية بقطع بصرية حقيقية ومستويات متعددة', emoji: '🖼️', badge: 'تركيز وبصري' },
-                { id: 'spot_diff', title: 'أسرار القلاية الصحراوية', desc: 'اكتشاف العناصر والمقتنيات المخفية بدقة داخل المشهد', emoji: '🔍', badge: 'استكشاف وتأمل' },
-                { id: 'riddles', title: 'حكمة الآباء والألغاز', desc: 'أسئلة وتحديات من أقوال الآباء وتراث الكنيسة', emoji: '📖', badge: 'معرفة وعقيدة' },
-                { id: 'pyramid', title: 'سلّم الفضائل الروحي', desc: 'ترتيب خطوات التدرج الروحي تصاعدياً', emoji: '🔺', badge: 'جهاد وسلوك' },
-                { id: 'code_breaker', title: 'رحلة الشيفرة المقدسة', desc: 'استنتاج الرمز الروحي المخفي خلال محاولات محسوبة', emoji: '🔐', badge: 'منطق واستنتاج' },
-                { id: 'memory_match', title: 'الذاكرة المقدسة للأيقونات', desc: 'مطابقة أزواج الأيقونات والرموز بتشويق', emoji: '🃏', badge: 'ذاكرة وتناغم' },
-                { id: 'word_quest', title: 'تحدّي كلمات النعمة', desc: 'تركيب واكتشاف المفردات الروحية العربية السليمة', emoji: '✍️', badge: 'لغة ومعنى' },
-                { id: 'story_sequence', title: 'رتّب الحكاية التاريخية', desc: 'ترتيب المحطات والمراحل الكتابية والتاريخية', emoji: '📜', badge: 'تاريخ وتسلسل' },
-              ].map((game) => {
+              {ALL_GAMES.map((game) => {
                 const isCompleted = stats.completedGames.includes(game.id);
                 return (
                   <div
@@ -483,12 +303,15 @@ export const MonasticAscentPuzzle: React.FC<MonasticAscentPuzzleProps> = ({ onBa
                       soundManager.playTick();
                       setActiveGame(game.id as GameId);
                     }}
-                    className="group relative rounded-3xl bg-stone-900 border border-stone-800 hover:border-amber-500/60 p-5 shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer flex flex-col justify-between overflow-hidden"
+                    className={`group relative rounded-3xl p-5 shadow-xl transition-all duration-300 hover:-translate-y-1.5 cursor-pointer flex flex-col justify-between overflow-hidden border ${
+                      game.highlight
+                        ? 'bg-gradient-to-b from-stone-900 to-stone-950 border-amber-600/40 hover:border-amber-400'
+                        : 'bg-stone-900 border-stone-800 hover:border-amber-500/50'
+                    }`}
                   >
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 rounded-full blur-2xl group-hover:bg-amber-500/15 transition-all" />
                     <div className="space-y-3 z-10">
                       <div className="flex items-center justify-between">
-                        <span className="text-3xl p-3 rounded-2xl bg-stone-950 border border-amber-500/20 shadow-inner">
+                        <span className="text-3xl p-3 rounded-2xl bg-stone-950 border border-amber-500/20 shadow-inner group-hover:scale-110 transition-transform">
                           {game.emoji}
                         </span>
                         <div className="flex flex-col items-end gap-1">
@@ -497,24 +320,25 @@ export const MonasticAscentPuzzle: React.FC<MonasticAscentPuzzleProps> = ({ onBa
                           </span>
                           {isCompleted && (
                             <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full border border-emerald-500/30 font-bold">
-                              ✓ مكتملة
+                              ✓ منجزة
                             </span>
                           )}
                         </div>
                       </div>
+
                       <div>
                         <h4 className="font-spiritual text-base font-bold text-amber-100 group-hover:text-amber-300 transition">
                           {game.title}
                         </h4>
-                        <p className="text-xs text-stone-400 mt-1 leading-relaxed">
+                        <p className="text-xs text-stone-400 mt-1.5 leading-relaxed line-clamp-3">
                           {game.desc}
                         </p>
                       </div>
                     </div>
 
-                    <div className="mt-6 pt-3 border-t border-stone-800 flex items-center justify-between text-xs text-amber-400 font-bold z-10">
-                      <span>ابدأ التحدي</span>
-                      <span className="group-hover:-translate-x-1 transition-transform">←</span>
+                    <div className="mt-5 pt-3 border-t border-stone-800/80 flex items-center justify-between text-xs text-amber-400 font-bold z-10">
+                      <span>العب الآن (+{game.points} نقطة)</span>
+                      <span className="group-hover:-translate-x-1.5 transition-transform">←</span>
                     </div>
                   </div>
                 );
@@ -524,7 +348,7 @@ export const MonasticAscentPuzzle: React.FC<MonasticAscentPuzzleProps> = ({ onBa
         </main>
       )}
 
-      {/* GAME 1: REAL JIGSAW PUZZLE ENGINE WITH HTML5 CANVAS SLICING */}
+      {/* ==================== 1. JIGSAW PUZZLE ENGINE ==================== */}
       {activeGame === 'jigsaw' && (
         <JigsawPuzzleEngine
           onBack={() => setActiveGame('hub')}
@@ -532,84 +356,74 @@ export const MonasticAscentPuzzle: React.FC<MonasticAscentPuzzleProps> = ({ onBa
         />
       )}
 
-      {/* GAME 2: SPOT THE DIFFERENCE / HIDDEN OBJECTS */}
+      {/* ==================== 2. TRIPLE TILE MATCH GAME ==================== */}
+      {activeGame === 'triple_match' && (
+        <TripleTileMatchGame
+          onBack={() => setActiveGame('hub')}
+          onSuccess={(pts) => saveStats(pts, 'triple_match')}
+        />
+      )}
+
+      {/* ==================== 3. COPTIC MEMORY MATCH GAME ==================== */}
+      {activeGame === 'memory_match' && (
+        <CopticMemoryGame
+          onBack={() => setActiveGame('hub')}
+          onSuccess={(pts) => saveStats(pts, 'memory_match')}
+        />
+      )}
+
+      {/* ==================== 4. SPOT THE DIFFERENCES GAME ==================== */}
       {activeGame === 'spot_diff' && (
-        <div className="max-w-3xl mx-auto p-6 sm:p-8 rounded-3xl bg-stone-900 border border-amber-600/40 shadow-2xl space-y-6 animate-fade-in text-right">
-          <div className="flex items-center justify-between border-b border-stone-800 pb-4">
+        <SpotDifferencesGame
+          onBack={() => setActiveGame('hub')}
+          onSuccess={(pts) => saveStats(pts, 'spot_diff')}
+        />
+      )}
+
+      {/* ==================== 5. MONASTIC OASIS MAZE GAME ==================== */}
+      {activeGame === 'maze' && (
+        <MonasticMazeGame
+          onBack={() => setActiveGame('hub')}
+          onSuccess={(pts) => saveStats(pts, 'maze')}
+        />
+      )}
+
+      {/* ==================== 6. REACTION FOCUS QUEST GAME ==================== */}
+      {activeGame === 'reaction' && (
+        <ReactionFocusGame
+          onBack={() => setActiveGame('hub')}
+          onSuccess={(pts) => saveStats(pts, 'reaction')}
+        />
+      )}
+
+      {/* ==================== 7. PATRISTIC RIDDLES GAME ==================== */}
+      {activeGame === 'riddles' && (
+        <div className="max-w-3xl mx-auto p-4 sm:p-8 space-y-6 animate-fade-in text-right">
+          <div className="flex items-center justify-between bg-stone-900 border border-stone-800 p-4 rounded-3xl shadow-xl">
             <div>
               <h3 className="font-spiritual text-lg font-bold text-amber-200">
-                🔍 اكتشاف الأسرار والتفاصيل الخفية في القلاية
+                📖 حكمة الآباء والألغاز الروحية
               </h3>
-              <p className="text-xs text-stone-400 mt-1">
-                تأمل أيقونة القلاية واكتشف العناصر المخفية بالضغط عليها بدقة.
+              <p className="text-xs text-stone-400">
+                أجب عن الأسئلة الفكرية والروحية مستعيناً بالتأمل والإرشاد الآبائي.
               </p>
             </div>
             <button
-              onClick={resetSpotDiff}
-              className="px-3 py-1.5 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-200 font-bold text-xs"
+              type="button"
+              onClick={() => setActiveGame('hub')}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs font-bold border border-stone-700 transition cursor-pointer"
             >
-              إعادة الخلط
+              <ArrowRight className="w-4 h-4" />
+              <span>العودة للمركز</span>
             </button>
           </div>
 
-          <div className="relative w-full h-80 sm:h-96 rounded-3xl bg-gradient-to-br from-amber-950 via-stone-950 to-stone-900 border-2 border-amber-600/40 overflow-hidden shadow-2xl flex items-center justify-center p-6">
-            <div className="absolute inset-0 opacity-15 bg-[radial-gradient(#f59e0b_1px,transparent_1px)] [background-size:16px_16px]" />
-            <div className="text-center z-10 space-y-2 pointer-events-none">
-              <span className="text-6xl">🏜️🕊️</span>
-              <p className="text-xs text-amber-200 font-spiritual">قلاية الأنبا أنطونيوس في الجبل الداخلي</p>
-            </div>
-
-            {hiddenItems.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => handleSpotItem(item.id)}
-                style={{ top: `${item.y}%`, right: `${item.x}%` }}
-                className={`absolute transform -translate-x-1/2 -translate-y-1/2 p-3 rounded-2xl transition cursor-pointer flex items-center gap-1.5 shadow-lg ${
-                  item.found
-                    ? 'bg-emerald-600 text-white scale-110 border-2 border-emerald-300'
-                    : 'bg-amber-600/90 hover:bg-amber-500 text-white animate-pulse border-2 border-amber-300'
-                }`}
-              >
-                <span className="text-xs font-bold">{item.found ? '✓' : '❓'}</span>
-                <span className="text-[11px] font-bold">{item.name}</span>
-              </button>
-            ))}
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {hiddenItems.map((item) => (
-              <div
-                key={item.id}
-                className={`p-3 rounded-2xl border text-xs flex items-center gap-2 ${
-                  item.found ? 'bg-emerald-950/60 border-emerald-500 text-emerald-200' : 'bg-stone-950 border-stone-800 text-stone-400'
-                }`}
-              >
-                <span>{item.found ? '✅' : '⏳'}</span>
-                <span className="font-bold">{item.name}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* GAME 3: RIDDLES */}
-      {activeGame === 'riddles' && (
-        <div className="max-w-3xl mx-auto p-6 sm:p-8 rounded-3xl bg-stone-900 border border-amber-600/40 shadow-2xl space-y-6 animate-fade-in text-right">
-          <div className="border-b border-stone-800 pb-4">
-            <h3 className="font-spiritual text-lg font-bold text-amber-200">
-              📖 حكمة الآباء والألغاز الروحية
-            </h3>
-            <p className="text-xs text-stone-400 mt-1">
-              أجب عن الأسئلة الفكرية والروحية مستعيناً بالتأمل والإرشاد الآبائي.
-            </p>
-          </div>
-
-          <div className="space-y-6">
+          <div className="space-y-4">
             {riddles.map((riddle) => (
               <div
                 key={riddle.id}
-                className={`p-5 rounded-2xl border space-y-4 ${
-                  riddle.solved ? 'bg-emerald-950/40 border-emerald-500/60' : 'bg-stone-950 border-stone-800'
+                className={`p-5 rounded-2xl border space-y-4 shadow-xl ${
+                  riddle.solved ? 'bg-emerald-950/40 border-emerald-500/60' : 'bg-stone-900 border-stone-800'
                 }`}
               >
                 <div className="flex items-start justify-between gap-3">
@@ -623,7 +437,7 @@ export const MonasticAscentPuzzle: React.FC<MonasticAscentPuzzleProps> = ({ onBa
                   {riddle.options.map((opt, optIdx) => {
                     const isSelected = riddle.selectedIndex === optIdx;
                     const isCorrect = optIdx === riddle.correctAnswer;
-                    let btnStyle = 'bg-stone-900 border-stone-800 text-stone-300 hover:border-amber-500';
+                    let btnStyle = 'bg-stone-950 border-stone-800 text-stone-300 hover:border-amber-500';
                     if (riddle.solved && isCorrect) {
                       btnStyle = 'bg-emerald-900/80 border-emerald-400 text-emerald-100 font-bold';
                     } else if (isSelected && !isCorrect) {
@@ -632,6 +446,7 @@ export const MonasticAscentPuzzle: React.FC<MonasticAscentPuzzleProps> = ({ onBa
                     return (
                       <button
                         key={optIdx}
+                        type="button"
                         onClick={() => handleAnswerRiddle(riddle.id, optIdx)}
                         className={`p-3.5 rounded-xl border text-xs font-bold transition cursor-pointer text-right flex items-center justify-between ${btnStyle}`}
                       >
@@ -650,6 +465,7 @@ export const MonasticAscentPuzzle: React.FC<MonasticAscentPuzzleProps> = ({ onBa
                   </div>
                 ) : (
                   <button
+                    type="button"
                     onClick={() => setActiveHintId(riddle.id)}
                     className="text-xs text-amber-400 hover:text-amber-300 underline cursor-pointer font-bold"
                   >
@@ -662,223 +478,88 @@ export const MonasticAscentPuzzle: React.FC<MonasticAscentPuzzleProps> = ({ onBa
         </div>
       )}
 
-      {/* GAME 4: VIRTUES PYRAMID */}
-      {activeGame === 'pyramid' && (
-        <div className="max-w-3xl mx-auto p-6 sm:p-8 rounded-3xl bg-stone-900 border border-amber-600/40 shadow-2xl space-y-6 animate-fade-in text-right">
-          <div className="border-b border-stone-800 pb-4">
-            <h3 className="font-spiritual text-lg font-bold text-amber-200">
-              🔺 سلّم التدرج الروحي (رتب الفضائل من القاعدة إلى القمة)
-            </h3>
-            <p className="text-xs text-stone-400 mt-1">
-              انقر على خطوتين لتبديل مكانيهما وترتيب الهرم الروحي بالترتيب التصاعدي الصحيح.
-            </p>
-          </div>
-
-          <div className="max-w-md mx-auto space-y-3 py-4">
-            {pyramidSteps.map((step, idx) => {
-              const isSelected = selectedPyramidId === step.id;
-              return (
-                <button
-                  key={step.id}
-                  onClick={() => handlePyramidClick(step.id)}
-                  className={`w-full p-4 rounded-2xl border text-sm font-bold font-spiritual transition cursor-pointer flex items-center justify-between shadow-md ${
-                    isSelected
-                      ? 'bg-amber-600 text-white border-amber-400 scale-105'
-                      : 'bg-gradient-to-r from-stone-950 to-amber-950 text-amber-100 border-amber-500/30 hover:bg-stone-900'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="w-7 h-7 rounded-xl bg-amber-500 text-stone-950 font-mono text-xs flex items-center justify-center">
-                      #{idx + 1}
-                    </span>
-                    <span>{step.title}</span>
-                  </div>
-                  <span className="text-xs bg-stone-900 px-2.5 py-1 rounded-lg text-amber-300">
-                    انقر للتبديل
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* GAME 5: CODE BREAKER */}
+      {/* ==================== 8. CODE BREAKER GAME ==================== */}
       {activeGame === 'code_breaker' && (
-        <div className="max-w-3xl mx-auto p-6 sm:p-8 rounded-3xl bg-stone-900 border border-amber-600/40 shadow-2xl space-y-6 animate-fade-in text-right">
-          <div className="border-b border-stone-800 pb-4">
-            <h3 className="font-spiritual text-lg font-bold text-amber-200">
-              🔐 رحلة الشيفرة المقدسة (Code Breaker)
-            </h3>
-            <p className="text-xs text-stone-400 mt-1">
-              استنتج التسلسل الروحي المخفي من الرموز الأربعة خلال المحاولات المتاحة.
-            </p>
+        <div className="max-w-3xl mx-auto p-4 sm:p-8 space-y-6 animate-fade-in text-right">
+          <div className="flex items-center justify-between bg-stone-900 border border-stone-800 p-4 rounded-3xl shadow-xl">
+            <div>
+              <h3 className="font-spiritual text-lg font-bold text-amber-200">
+                🔐 رحلة الشيفرة المقدسة (Code Breaker)
+              </h3>
+              <p className="text-xs text-stone-400">
+                استنتج الأرقام الثلاثة الخفية (من 0 إلى 9) مستعيناً بمؤشرات الدقة في كل محاولة.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setActiveGame('hub')}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs font-bold border border-stone-700 transition cursor-pointer"
+            >
+              <ArrowRight className="w-4 h-4" />
+              <span>العودة للمركز</span>
+            </button>
           </div>
 
-          <div className="space-y-4">
-            <div className="flex justify-center gap-3 py-4">
-              {currentGuess.map((sym, i) => (
-                <div key={i} className="w-14 h-14 rounded-2xl bg-stone-950 border-2 border-amber-500/60 flex items-center justify-center text-2xl shadow-inner">
-                  {sym}
+          <div className="p-6 rounded-3xl bg-stone-900 border border-stone-800 shadow-xl space-y-6 text-center">
+            <div className="flex justify-center gap-4 py-4">
+              {[0, 1, 2].map((pos) => (
+                <div key={pos} className="space-y-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      soundManager.playTick();
+                      setCodeGuess((prev) => {
+                        const next = [...prev];
+                        next[pos] = (next[pos] + 1) % 10;
+                        return next;
+                      });
+                    }}
+                    className="w-16 h-10 rounded-xl bg-stone-800 hover:bg-stone-700 text-amber-300 font-bold flex items-center justify-center cursor-pointer"
+                  >
+                    ▲
+                  </button>
+                  <div className="w-16 h-20 rounded-2xl bg-stone-950 border-2 border-amber-500/60 flex items-center justify-center text-4xl font-mono font-bold text-amber-200 shadow-inner">
+                    {codeGuess[pos]}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      soundManager.playTick();
+                      setCodeGuess((prev) => {
+                        const next = [...prev];
+                        next[pos] = (next[pos] - 1 + 10) % 10;
+                        return next;
+                      });
+                    }}
+                    className="w-16 h-10 rounded-xl bg-stone-800 hover:bg-stone-700 text-amber-300 font-bold flex items-center justify-center cursor-pointer"
+                  >
+                    ▼
+                  </button>
                 </div>
               ))}
             </div>
 
-            <div className="flex justify-center gap-2">
-              {symbolOptions.map((sym) => (
-                <button
-                  key={sym}
-                  onClick={() => {
-                    soundManager.playTick();
-                    const next = [...currentGuess];
-                    const firstIdx = next.findIndex((s) => s === '✝️');
-                    if (firstIdx !== -1) next[firstIdx] = sym;
-                    else next[0] = sym;
-                    setCurrentGuess(next);
-                  }}
-                  className="w-12 h-12 rounded-xl bg-stone-800 hover:bg-stone-700 text-xl flex items-center justify-center border border-stone-700 cursor-pointer"
-                >
-                  {sym}
-                </button>
-              ))}
-            </div>
+            <button
+              type="button"
+              onClick={checkCode}
+              disabled={codeSolved}
+              className="px-8 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-40 text-stone-950 font-bold text-sm shadow-lg transition cursor-pointer"
+            >
+              فحص وتحقق من الشيفرة ➔
+            </button>
 
-            <div className="text-center pt-2">
-              <button
-                onClick={handleMakeCodeGuess}
-                className="px-6 py-2.5 rounded-2xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs shadow-lg cursor-pointer"
-              >
-                تحقق من الشيفرة
-              </button>
-            </div>
-
-            {codeSolved && (
-              <div className="p-4 rounded-2xl bg-emerald-950 border border-emerald-500 text-emerald-200 text-center font-spiritual">
-                ✨ هنيئاً! لقد فككت الشيفرة الروحية بنجاح ونلت 120 نقطة!
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* GAME 6: MEMORY MATCH */}
-      {activeGame === 'memory_match' && (
-        <div className="max-w-3xl mx-auto p-6 sm:p-8 rounded-3xl bg-stone-900 border border-amber-600/40 shadow-2xl space-y-6 animate-fade-in text-right">
-          <div className="border-b border-stone-800 pb-4">
-            <h3 className="font-spiritual text-lg font-bold text-amber-200">
-              🃏 الذاكرة المقدسة للأيقونات والرموز
-            </h3>
-            <p className="text-xs text-stone-400 mt-1">
-              طابق الأزواج المتشابهة باختبار ذاكرتك في أقل عدد من المحاولات.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 max-w-md mx-auto py-4">
-            {memoryCards.map((card) => (
-              <button
-                key={card.id}
-                onClick={() => handleCardClick(card.id)}
-                className={`h-20 rounded-2xl border flex items-center justify-center text-3xl transition-all cursor-pointer ${
-                  card.flipped || card.matched
-                    ? 'bg-amber-950/80 border-amber-500 shadow-inner'
-                    : 'bg-stone-950 hover:bg-stone-800 border-stone-800'
-                }`}
-              >
-                {card.flipped || card.matched ? card.symbol : '❓'}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* GAME 7: WORD QUEST */}
-      {activeGame === 'word_quest' && (
-        <div className="max-w-3xl mx-auto p-6 sm:p-8 rounded-3xl bg-stone-900 border border-amber-600/40 shadow-2xl space-y-6 animate-fade-in text-right">
-          <div className="border-b border-stone-800 pb-4">
-            <h3 className="font-spiritual text-lg font-bold text-amber-200">
-              ✍️ تحدّي كلمات النعمة والمفردات الروحية
-            </h3>
-            <p className="text-xs text-stone-400 mt-1">
-              رتب الحروف المبعثرة لتكوين الكلمة الروحية الصحيحة.
-            </p>
-          </div>
-
-          <div className="max-w-md mx-auto space-y-5 py-6 text-center">
-            <div className="p-6 rounded-3xl bg-stone-950 border border-amber-500/30 space-y-3">
-              <span className="text-3xl sm:text-4xl font-mono tracking-widest text-amber-300 font-bold block">
-                {wordStages[currentWordIdx].scrambled}
-              </span>
-              <p className="text-xs text-stone-400 font-spiritual">
-                💡 <strong>التلميح:</strong> {wordStages[currentWordIdx].hint}
-              </p>
-            </div>
-
-            <form onSubmit={handleCheckWord} className="space-y-3">
-              <input
-                type="text"
-                value={wordInput}
-                onChange={(e) => setWordInput(e.target.value)}
-                placeholder="اكتب الكلمة الصحيحة هنا..."
-                className="w-full px-4 py-3 rounded-2xl bg-stone-950 border border-stone-800 text-stone-100 text-sm text-center focus:border-amber-400 outline-none"
-              />
-              <button
-                type="submit"
-                className="w-full py-3 rounded-2xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs shadow-md transition cursor-pointer"
-              >
-                تحقق من الكلمة
-              </button>
-            </form>
-
-            {wordSolved && (
-              <div className="p-4 rounded-2xl bg-emerald-950 border border-emerald-500 text-emerald-200 font-spiritual">
-                ✨ إجابة صحيحة! بوركت جهودك.
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* GAME 8: STORY SEQUENCE */}
-      {activeGame === 'story_sequence' && (
-        <div className="max-w-3xl mx-auto p-6 sm:p-8 rounded-3xl bg-stone-900 border border-amber-600/40 shadow-2xl space-y-6 animate-fade-in text-right">
-          <div className="border-b border-stone-800 pb-4">
-            <h3 className="font-spiritual text-lg font-bold text-amber-200">
-              📜 رتّب الحكاية والمحطات التاريخية
-            </h3>
-            <p className="text-xs text-stone-400 mt-1">
-              انقر على أي بطاقتين لتبديل مكانيهما حتى يصبح الترتيب الزمني صحيحاً من البداية للنهاية.
-            </p>
-          </div>
-
-          <div className="max-w-md mx-auto space-y-3 py-4">
-            {storyCards.map((card, idx) => {
-              const isSelected = selectedStoryId === card.id;
-              return (
-                <button
-                  key={card.id}
-                  onClick={() => handleStoryCardClick(card.id)}
-                  className={`w-full p-4 rounded-2xl border text-xs sm:text-sm font-bold font-spiritual transition cursor-pointer flex items-center justify-between shadow-md ${
-                    isSelected
-                      ? 'bg-amber-600 text-white border-amber-400 scale-105'
-                      : 'bg-stone-950 text-stone-200 border-stone-800 hover:border-amber-600/50'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="w-7 h-7 rounded-xl bg-amber-500 text-stone-950 font-mono text-xs flex items-center justify-center">
-                      #{idx + 1}
-                    </span>
-                    <span>{card.text}</span>
+            {/* Clues log */}
+            {codeClues.length > 0 && (
+              <div className="space-y-2 pt-4 border-t border-stone-800 text-right max-h-60 overflow-y-auto">
+                <span className="text-xs font-bold text-amber-300">سجل المحاولات والمؤشرات:</span>
+                {codeClues.map((clue, idx) => (
+                  <div
+                    key={idx}
+                    className="p-3 rounded-xl bg-stone-950 border border-stone-800 text-xs font-mono text-stone-300"
+                  >
+                    {clue}
                   </div>
-                  <span className="text-[10px] bg-stone-900 px-2 py-1 rounded-lg text-amber-300">
-                    تبديل
-                  </span>
-                </button>
-              );
-            })}
-
-            {storySolved && (
-              <div className="p-4 rounded-2xl bg-emerald-950 border border-emerald-500 text-emerald-200 text-center font-spiritual">
-                🎉 ممتاز! تم ترتيب المحطات التاريخية بشكل صحيح تماماً! (+110 نقاط)
+                ))}
               </div>
             )}
           </div>
@@ -887,3 +568,5 @@ export const MonasticAscentPuzzle: React.FC<MonasticAscentPuzzleProps> = ({ onBa
     </div>
   );
 };
+
+export default MonasticAscentPuzzle;

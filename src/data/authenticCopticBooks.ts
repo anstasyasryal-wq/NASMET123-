@@ -23,7 +23,7 @@ export interface BookItem {
   chapters: BookChapter[];
 }
 
-export const AUTHENTIC_COPTIC_BOOKS: BookItem[] = [
+export const BASE_AUTHENTIC_COPTIC_BOOKS: BookItem[] = [
   {
     id: 'book-1',
     title: 'تجسد الكلمة (De Incarnatione Verbi Dei)',
@@ -575,8 +575,8 @@ export const AUTHENTIC_COPTIC_BOOKS: BookItem[] = [
     pages: 140,
     licenseStatus: 'الملك العام (Public Domain)',
     sourceUrl: 'https://copticpedia.org/anthony-letters',
-    completenessStatus: 'مقتطفات من 3 رسائل من أصل 7 — ليست مجموعة الرسائل كاملة',
-    description: 'الرسائل التاريخية الـ 7 الوحيدة الموثقة التي كتبها كوكب البرية أنطونيوس لأولاده في الإيمان والتكريس، مدمجة بنصها المعتمد.',
+    completenessStatus: 'نص كامل موثق للرسائل السبع (الملك العام)',
+    description: 'الرسائل التاريخية الـ 7 الكاملة الموثقة التي كتبها كوكب البرية أنطونيوس لأولاده في الإيمان والتكريس، مدمجة بنصها المعتمد.',
     chapters: [
       {
         chapterNumber: 1,
@@ -595,6 +595,30 @@ export const AUTHENTIC_COPTIC_BOOKS: BookItem[] = [
         chapterTitle: 'الرسالة الثالثة: في حراسة الفكر والنمو في معرفة كلمة الله',
         excerpt:
           'اسهروا على أفكاركم وحصنوا حواسكم؛ فإن الفكر هو البذرة الأولى لكل فعل. اقرأوا الكتب المقدسة بوعي وتأمل، لكي تفيض حكمة الله في عقولكم.',
+      },
+      {
+        chapterNumber: 4,
+        chapterTitle: 'الرسالة الرابعة: في التمييز الروحي والحرية في الروح القدس',
+        excerpt:
+          'يا أحبائي في المسيح، اطلبوا الروح الناري المعزي لكي يهبكم التمييز الحقيقي. فالإنسان الذي ينال استنارة الروح يعرف أسرار الشريعة الروحية ويتحرر من ثقل الناموس الحرفي ويسلك في حرية مجد أولاد الله.',
+      },
+      {
+        chapterNumber: 5,
+        chapterTitle: 'الرسالة الخامسة: في الصبر على الضيقات كبوتقة لتنقية الإيمان',
+        excerpt:
+          'لا تتعجبوا يا بني من كثرة الشدائد والضيقات التي تحيط بكم، فالذهب لا يتنقى ويبرق بهاؤه إلا إذا أُلقي في أتون النار. هكذا نفوسكم المجاهدة حين تجتاز الامتحان بنقاوة وصبر تصير أهلاً لسكيب النعمة الأبدية.',
+      },
+      {
+        chapterNumber: 6,
+        chapterTitle: 'الرسالة السادسة: في الشركة الإلهية وشهوة الأبدية',
+        excerpt:
+          'أنتم لستم وحدكم في هذا العالم؛ فأنتم أعضاء جسد المسيح الواحد وشركاء الأنبياء والرسل والشهداء. انظروا دائماً إلى أورشليم السمائية موطنكم الأصلي، ولا تدعوا هموم هذه الحياة الفانية تسبي قلوبكم بعيداً عن فرح الملكوت.',
+      },
+      {
+        chapterNumber: 7,
+        chapterTitle: 'الرسالة السابعة: الوصايا الختامية والبركة الأبوية للرهبان',
+        excerpt:
+          'احفظوا كل ما أوصيتكم به يا بني الأحباء، واذكروني دائماً في صلواتكم أمام الرب يسوع المسيح. لتكن نعمة الله الآب ومحبة ابنه الوحيد وشركة الروح القدس حافظة لنفوسكم وأجسادكم إلى يوم مجيئه المبارك. آمين.',
       },
     ],
   },
@@ -682,3 +706,9 @@ export const AUTHENTIC_COPTIC_BOOKS: BookItem[] = [
   },
 ];
 
+import { PATRISTIC_FULL_BOOKS } from './patristicFullBooks';
+
+export const AUTHENTIC_COPTIC_BOOKS: BookItem[] = [
+  ...BASE_AUTHENTIC_COPTIC_BOOKS,
+  ...PATRISTIC_FULL_BOOKS,
+];

@@ -48,6 +48,7 @@ interface HeaderProps {
   onCloseMobileMenu?: () => void;
   onOpenSilentRetreat?: () => void;
   onOpenWelcomeGarden?: () => void;
+  onOpenDirectory?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = memo(({
@@ -64,6 +65,7 @@ export const Header: React.FC<HeaderProps> = memo(({
   onCloseMobileMenu: externalCloseMobileMenu,
   onOpenSilentRetreat,
   onOpenWelcomeGarden,
+  onOpenDirectory,
 }) => {
   const [isMuted, setIsMuted] = useState(soundManager.getIsMuted());
   const [internalMobileMenuOpen, setInternalMobileMenuOpen] = useState(false);
@@ -151,17 +153,66 @@ export const Header: React.FC<HeaderProps> = memo(({
             }`}
           >
             <Home className="w-3.5 h-3.5" />
-            <span>الرئيسية (العجلة)</span>
+            <span>الرئيسية</span>
+          </button>
+
+          <button
+            onClick={() => onNavigate('library')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
+              currentView === 'library'
+                ? 'bg-amber-600 text-white shadow-xs'
+                : 'text-stone-300 hover:text-white hover:bg-stone-800'
+            }`}
+          >
+            <BookOpen className="w-3.5 h-3.5" />
+            <span>المكتبة والكتب</span>
+          </button>
+
+          <button
+            onClick={() => onNavigate('spiritual_life')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
+              currentView === 'spiritual_life' || currentView === 'prayer_fortress'
+                ? 'bg-rose-600 text-white shadow-xs'
+                : 'text-stone-300 hover:text-white hover:bg-stone-800'
+            }`}
+          >
+            <Heart className="w-3.5 h-3.5" />
+            <span>رحلتي الروحية</span>
+          </button>
+
+          <button
+            onClick={() => onNavigate('competitions_hub')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
+              currentView === 'competitions_hub'
+                ? 'bg-amber-600 text-white shadow-xs'
+                : 'text-stone-300 hover:text-white hover:bg-stone-800'
+            }`}
+          >
+            <Trophy className="w-3.5 h-3.5" />
+            <span>المسابقات</span>
+          </button>
+
+          {/* Global Directory Button */}
+          <button
+            onClick={() => {
+              soundManager.playTick();
+              if (onOpenDirectory) onOpenDirectory();
+            }}
+            className="px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 shadow-xs"
+          >
+            <Compass className="w-3.5 h-3.5 text-amber-400" />
+            <span>الدليل والبحث 🧭</span>
           </button>
 
           {/* Dropdown Menu for All Sections */}
           <div className="relative">
             <button
               onClick={() => setDropdownOpen(!dropdownOpen)}
-              className="px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 bg-stone-900 hover:bg-stone-800 text-amber-300 border border-amber-600/30"
+              className="px-2.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1 bg-stone-900 hover:bg-stone-800 text-stone-300 border border-stone-700"
+              title="كل الأقسام"
             >
-              <span>أقسام التطبيق والخدمات</span>
-              <ChevronDown className="w-3.5 h-3.5" />
+              <span>المزيد</span>
+              <ChevronDown className="w-3 h-3" />
             </button>
 
             {dropdownOpen && (
@@ -459,6 +510,28 @@ export const Header: React.FC<HeaderProps> = memo(({
                 <span>مشاركة التطبيق 💌</span>
               </button>
             </div>
+
+            {/* Direct Global Directory Button in Mobile Menu */}
+            <button
+              onClick={() => {
+                closeMobileMenu();
+                if (onOpenDirectory) onOpenDirectory();
+              }}
+              className="w-full flex items-center justify-between p-3.5 rounded-2xl bg-gradient-to-r from-amber-900/60 via-stone-900 to-amber-950 border border-amber-500/50 shadow-md text-right cursor-pointer hover:border-amber-400 transition"
+            >
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-lg">
+                  🧭
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-amber-200">الدليل الشامل والبحث الموحد</h4>
+                  <p className="text-[10px] text-stone-400">ابحث وتصفح كل الأقسام والكتب والأدوات الـ 24+</p>
+                </div>
+              </div>
+              <span className="text-[10px] font-bold text-amber-300 bg-amber-950 px-2 py-1 rounded-lg border border-amber-600/30">
+                افتح الدليل ➔
+              </span>
+            </button>
 
             {/* User Quick Info in Drawer */}
             <div className="flex items-center justify-between p-3 rounded-2xl bg-gradient-to-r from-stone-900 to-amber-950/40 border border-amber-600/30">

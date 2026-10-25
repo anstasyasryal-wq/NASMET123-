@@ -159,6 +159,10 @@ class SoundEffectsManager {
     }
   }
 
+  public playCelebration() {
+    this.playVictory();
+  }
+
   // Calm Church Tones for Spiritual Life Reminders
   public playCopticBell() {
     if (this.isMuted) return;

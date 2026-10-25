@@ -33,8 +33,7 @@ async function startServer() {
       const vite = await createViteServer({
         server: {
           middlewareMode: true,
-          // Share the app's HTTP server so the HMR WebSocket uses the same port as the proxied preview
-          ws: { server: httpServer },
+          hmr: false,
         },
         appType: 'spa',
       });

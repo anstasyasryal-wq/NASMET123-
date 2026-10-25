@@ -1,381 +1,710 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { soundManager } from '../utils/audio';
 import confetti from 'canvas-confetti';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Trophy, RotateCcw, Clock, Eye, CheckCircle2, ArrowRight } from 'lucide-react';
+import {
+  Trophy,
+  RotateCcw,
+  Clock,
+  Eye,
+  EyeOff,
+  CheckCircle2,
+  ArrowRight,
+  Sparkles,
+  Star,
+  Shuffle,
+  Volume2,
+  VolumeX,
+  Layers,
+  HelpCircle,
+  Award,
+} from 'lucide-react';
 
 interface JigsawPuzzleEngineProps {
   onBack: () => void;
   onSuccess: (points: number) => void;
 }
 
-interface PieceData {
-  id: number;
-  correctIndex: number;
-  currentSlotIndex: number;
-  imgUrl: string;
+export interface PuzzleIconItem {
+  id: string;
+  title: string;
+  subtitle: string;
+  imageSrc: string;
+  themeColor: string;
+  era: string;
 }
 
-const COPTIC_ICONS_SVG = [
+export const PUZZLE_ICONS: PuzzleIconItem[] = [
   {
-    id: 'pantocrator',
-    title: 'السيد المسيح ضابط الكل',
-    svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" width="500" height="500"><defs><linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="%23064e3b"/><stop offset="50%" stop-color="%23022c22"/><stop offset="100%" stop-color="%2378350f"/></linearGradient><radialGradient id="halo" cx="50%" cy="40%" r="40%"><stop offset="0%" stop-color="%23f59e0b"/><stop offset="70%" stop-color="%23b45309"/><stop offset="100%" stop-color="%23064e3b"/></radialGradient></defs><rect width="500" height="500" fill="url(%23bg)"/><circle cx="250" cy="220" r="140" fill="url(%23halo)"/><circle cx="250" cy="220" r="120" fill="%23d97706" opacity="0.4"/><path d="M180 340 C180 280 320 280 320 340 L360 480 L140 480 Z" fill="%2392400e"/><path d="M210 170 Q250 130 290 170 Q305 225 250 260 Q195 225 210 170" fill="%23fef3c7"/><circle cx="230" cy="200" r="5" fill="%231c1917"/><circle cx="270" cy="200" r="5" fill="%231c1917"/><path d="M240 235 Q250 245 260 235" stroke="%2378350f" stroke-width="4" fill="none"/><text x="250" y="60" font-size="32" fill="%23fbbf24" font-family="serif" text-anchor="middle" font-weight="bold">Ο ΏΝ</text></svg>`,
+    id: 'st_george',
+    title: 'أيقونة الشهيد العظيم مارجرجس',
+    subtitle: 'أمير الشهداء يمتطي الجواد الأبيض ويصرع التنين',
+    imageSrc: '/images/icons/st_george.jpg',
+    themeColor: '#059669',
+    era: 'القرن الرابع الميلادي',
   },
   {
-    id: 'theotokos',
-    title: 'السيدة العذراء والدة الإله',
-    svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" width="500" height="500"><defs><linearGradient id="bg2" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="%237f1d1d"/><stop offset="50%" stop-color="%23451a03"/><stop offset="100%" stop-color="%23064e3b"/></linearGradient><radialGradient id="halo2" cx="50%" cy="40%" r="45%"><stop offset="0%" stop-color="%23fbbf24"/><stop offset="70%" stop-color="%23b45309"/><stop offset="100%" stop-color="%237f1d1d"/></radialGradient></defs><rect width="500" height="500" fill="url(%23bg2)"/><circle cx="250" cy="215" r="145" fill="url(%23halo2)"/><path d="M160 330 C160 260 340 260 340 330 L380 480 L120 480 Z" fill="%237c2d12"/><circle cx="250" cy="200" r="95" fill="%23fef3c7"/><rect x="215" y="235" width="70" height="90" fill="%23b45309" rx="12"/><text x="250" y="55" font-size="30" fill="%23fde68a" font-family="serif" text-anchor="middle" font-weight="bold">ΜΗΡ ΘΥ</text></svg>`,
+    id: 'virgin_mary',
+    title: 'أيقونة العذراء والدة الإله',
+    subtitle: 'القديسة مريم تحمل السيد المسيح بهالة النور الذهبية',
+    imageSrc: '/images/icons/virgin_mary.jpg',
+    themeColor: '#b45309',
+    era: 'تراث مجمع أفسس 431 م',
+  },
+  {
+    id: 'pantocrator',
+    title: 'أيقونة السيد المسيح ضابط الكل',
+    subtitle: 'المخلص الجالس على العرش يرفع يد البركة وبيده الإنجيل',
+    imageSrc: '/images/icons/pantocrator.jpg',
+    themeColor: '#1d4ed8',
+    era: 'المدرسة القبطية البيزنطية',
+  },
+  {
+    id: 'st_antony',
+    title: 'أيقونة القديس الأنبا أنطونيوس',
+    subtitle: 'أب الرهبان وكوكب البرية في جبل القلزم بالبحر الأحمر',
+    imageSrc: '/images/icons/st_antony.jpg',
+    themeColor: '#d97706',
+    era: 'القرن الرابع الميلادي',
   },
 ];
 
+export interface PieceSlot {
+  id: number;
+  correctRow: number;
+  correctCol: number;
+  correctIndex: number;
+}
+
+export interface PieceData {
+  id: number;
+  correctIndex: number;
+  correctRow: number;
+  correctCol: number;
+}
+
 export const JigsawPuzzleEngine: React.FC<JigsawPuzzleEngineProps> = ({ onBack, onSuccess }) => {
-  const [gridSize, setGridSize] = useState<3 | 4>(3);
   const [selectedIconIdx, setSelectedIconIdx] = useState<number>(0);
-  const [pieces, setPieces] = useState<PieceData[]>([]);
+  const [gridSize, setGridSize] = useState<3 | 4 | 5>(3);
+  const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
+
+  // Puzzle Board State
   const [slots, setSlots] = useState<(PieceData | null)[]>([]);
-  const [poolPieces, setPoolPieces] = useState<PieceData[]>([]);
+  const [pool, setPool] = useState<PieceData[]>([]);
   const [selectedPoolPieceId, setSelectedPoolPieceId] = useState<number | null>(null);
 
+  // Gameplay State
   const [isSolved, setIsSolved] = useState<boolean>(false);
   const [moves, setMoves] = useState<number>(0);
-  const [timer, setTimer] = useState<number>(0);
+  const [timerSeconds, setTimerSeconds] = useState<number>(0);
   const [isRunning, setIsRunning] = useState<boolean>(false);
-  const [showPreview, setShowPreview] = useState<boolean>(false);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [showGhostGuide, setShowGhostGuide] = useState<boolean>(false);
+  const [showFullPreview, setShowFullPreview] = useState<boolean>(false);
+  const [imageError, setImageError] = useState<boolean>(false);
+  const [imageLoaded, setImageLoaded] = useState<boolean>(false);
 
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [fullImageUrl, setFullImageUrl] = useState<string>('');
+  const activeIcon = PUZZLE_ICONS[selectedIconIdx] || PUZZLE_ICONS[0];
+  const totalPieces = gridSize * gridSize;
 
-  // Slice image using HTML5 Canvas
-  useEffect(() => {
-    setIsLoading(true);
-    const svgString = COPTIC_ICONS_SVG[selectedIconIdx].svg;
-    const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    setFullImageUrl(url);
+  // Initialize or re-shuffle puzzle
+  const initPuzzle = useCallback((size: 3 | 4 | 5, iconIdx: number) => {
+    const total = size * size;
+    const allPieces: PieceData[] = [];
 
-    const img = new Image();
-    img.onload = () => {
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return;
-
-      const size = 500;
-      canvas.width = size;
-      canvas.height = size;
-      ctx.drawImage(img, 0, 0, size, size);
-
-      const totalPieces = gridSize * gridSize;
-      const pieceSize = size / gridSize;
-      const newPieces: PieceData[] = [];
-
-      for (let i = 0; i < totalPieces; i++) {
-        const r = Math.floor(i / gridSize);
-        const c = i % gridSize;
-
-        const pieceCanvas = document.createElement('canvas');
-        pieceCanvas.width = pieceSize;
-        pieceCanvas.height = pieceSize;
-        const pCtx = pieceCanvas.getContext('2d');
-        if (pCtx) {
-          pCtx.drawImage(
-            canvas,
-            c * pieceSize,
-            r * pieceSize,
-            pieceSize,
-            pieceSize,
-            0,
-            0,
-            pieceSize,
-            pieceSize
-          );
-        }
-
-        newPieces.push({
-          id: i,
-          correctIndex: i,
-          currentSlotIndex: -1,
-          imgUrl: pieceCanvas.toDataURL(),
-        });
-      }
-
-      // Shuffle pieces for the pool
-      const shuffled = [...newPieces].sort(() => Math.random() - 0.5);
-      setPieces(newPieces);
-      setPoolPieces(shuffled);
-      setSlots(Array(totalPieces).fill(null));
-      setIsSolved(false);
-      setMoves(0);
-      setTimer(0);
-      setIsRunning(true);
-      setIsLoading(false);
-    };
-
-    img.src = url;
-  }, [gridSize, selectedIconIdx]);
-
-  // Timer effect
-  useEffect(() => {
-    let interval: any;
-    if (isRunning && !isSolved) {
-      interval = setInterval(() => setTimer((p) => p + 1), 1000);
+    for (let i = 0; i < total; i++) {
+      allPieces.push({
+        id: i,
+        correctIndex: i,
+        correctRow: Math.floor(i / size),
+        correctCol: i % size,
+      });
     }
-    return () => clearInterval(interval);
-  }, [isRunning, isSolved]);
 
-  // Handle clicking pool piece to select or place in first empty slot
-  const handleSelectPoolPiece = (piece: PieceData) => {
-    soundManager.playTick();
-    setSelectedPoolPieceId(piece.id);
+    // Shuffle pool pieces
+    const shuffled = [...allPieces].sort(() => Math.random() - 0.5);
+
+    setSlots(Array(total).fill(null));
+    setPool(shuffled);
+    setSelectedPoolPieceId(null);
+    setIsSolved(false);
+    setMoves(0);
+    setTimerSeconds(0);
+    setIsRunning(true);
+  }, []);
+
+  // On grid size or icon change
+  useEffect(() => {
+    setImageLoaded(false);
+    setImageError(false);
+
+    // Preload image
+    const img = new Image();
+    img.src = activeIcon.imageSrc;
+    img.onload = () => {
+      setImageLoaded(true);
+      setImageError(false);
+      initPuzzle(gridSize, selectedIconIdx);
+    };
+    img.onerror = () => {
+      setImageError(true);
+      setImageLoaded(true);
+      initPuzzle(gridSize, selectedIconIdx);
+    };
+  }, [gridSize, selectedIconIdx, activeIcon.imageSrc, initPuzzle]);
+
+  // Timer loop
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval> | null = null;
+    if (isRunning && !isSolved && imageLoaded) {
+      interval = setInterval(() => {
+        setTimerSeconds((prev) => prev + 1);
+      }, 1000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isRunning, isSolved, imageLoaded]);
+
+  // Play sound helper
+  const playSfx = (type: 'tick' | 'place' | 'win') => {
+    if (!soundEnabled) return;
+    try {
+      if (type === 'tick') soundManager.playTick();
+      else if (type === 'place') soundManager.playTick();
+      else if (type === 'win') soundManager.playCorrect();
+    } catch {
+      // ignore
+    }
   };
 
-  // Handle placing selected pool piece into a target slot
-  const handlePlaceInSlot = (slotIdx: number) => {
-    if (selectedPoolPieceId === null) return;
-    soundManager.playTick();
-    setMoves((m) => m + 1);
+  // Calculate accuracy %
+  const accuracy = useMemo(() => {
+    if (slots.length === 0) return 0;
+    const correctCount = slots.filter((p, idx) => p !== null && p.correctIndex === idx).length;
+    return Math.round((correctCount / totalPieces) * 100);
+  }, [slots, totalPieces]);
 
-    const piece = poolPieces.find((p) => p.id === selectedPoolPieceId);
+  // Handle selecting a piece from the pool
+  const handleSelectPoolPiece = (piece: PieceData) => {
+    playSfx('tick');
+    if (selectedPoolPieceId === piece.id) {
+      setSelectedPoolPieceId(null);
+    } else {
+      setSelectedPoolPieceId(piece.id);
+    }
+  };
+
+  // Handle placing the selected piece into a slot
+  const handlePlaceInSlot = (slotIdx: number) => {
+    if (isSolved) return;
+
+    // If no piece is selected from pool, check if slot already has a piece
+    if (selectedPoolPieceId === null) {
+      const existingInSlot = slots[slotIdx];
+      if (existingInSlot) {
+        // Return piece back to pool
+        handleReturnPieceToPool(slotIdx);
+      }
+      return;
+    }
+
+    const piece = pool.find((p) => p.id === selectedPoolPieceId);
     if (!piece) return;
 
-    const newSlots = [...slots];
-    const existingInSlot = newSlots[slotIdx];
+    playSfx('place');
+    setMoves((m) => m + 1);
 
-    // Remove from pool
-    const newPool = poolPieces.filter((p) => p.id !== selectedPoolPieceId);
-    if (existingInSlot) {
-      newPool.push(existingInSlot);
+    const newSlots = [...slots];
+    const targetSlotPiece = newSlots[slotIdx];
+
+    const newPool = pool.filter((p) => p.id !== selectedPoolPieceId);
+    if (targetSlotPiece) {
+      // Swap out back to pool
+      newPool.push(targetSlotPiece);
     }
 
     newSlots[slotIdx] = piece;
     setSlots(newSlots);
-    setPoolPieces(newPool);
+    setPool(newPool);
     setSelectedPoolPieceId(null);
 
-    // Check if solved
-    if (newSlots.every((s, idx) => s !== null && s.correctIndex === idx)) {
+    // Check victory condition
+    const isWin = newSlots.every((s, idx) => s !== null && s.correctIndex === idx);
+    if (isWin) {
       setIsSolved(true);
       setIsRunning(false);
-      soundManager.playCorrect();
+      playSfx('win');
       try {
-        confetti({ particleCount: 160, spread: 100, origin: { y: 0.6 } });
+        confetti({
+          particleCount: 160,
+          spread: 100,
+          origin: { y: 0.6 },
+          colors: ['#f59e0b', '#fbbf24', '#10b981', '#3b82f6'],
+        });
       } catch {}
-      onSuccess(150);
+      const points = gridSize === 3 ? 100 : gridSize === 4 ? 200 : 350;
+      onSuccess(points);
     }
   };
 
-  // Return piece from slot back to pool
-  const handleReturnToPool = (slotIdx: number) => {
-    soundManager.playTick();
+  // Return a placed piece from board to pool
+  const handleReturnPieceToPool = (slotIdx: number) => {
     const piece = slots[slotIdx];
-    if (!piece) return;
+    if (!piece || isSolved) return;
 
+    playSfx('tick');
     const newSlots = [...slots];
     newSlots[slotIdx] = null;
     setSlots(newSlots);
-    setPoolPieces([...poolPieces, piece]);
+    setPool((prev) => [...prev, piece]);
+    if (selectedPoolPieceId === piece.id) {
+      setSelectedPoolPieceId(null);
+    }
+  };
+
+  // Automatically solve (Developer / Hint / Demonstration tool)
+  const handleSolveHint = () => {
+    playSfx('tick');
+    // Find the first empty or wrongly placed slot
+    const wrongSlotIdx = slots.findIndex((s, idx) => s === null || s.correctIndex !== idx);
+    if (wrongSlotIdx === -1) return;
+
+    // Find the correct piece for this slot
+    const correctPieceInPool = pool.find((p) => p.correctIndex === wrongSlotIdx);
+    if (correctPieceInPool) {
+      setSelectedPoolPieceId(correctPieceInPool.id);
+      handlePlaceInSlot(wrongSlotIdx);
+    } else {
+      // Piece is in another slot, swap it
+      const currentSlotOfPiece = slots.findIndex((s) => s?.correctIndex === wrongSlotIdx);
+      if (currentSlotOfPiece !== -1) {
+        handleReturnPieceToPool(currentSlotOfPiece);
+      }
+    }
+  };
+
+  // Calculate background position for a piece
+  const getPieceBackgroundStyle = (piece: PieceData) => {
+    const colPercent = (piece.correctCol / (gridSize - 1)) * 100;
+    const rowPercent = (piece.correctRow / (gridSize - 1)) * 100;
+    return {
+      backgroundImage: `url(${activeIcon.imageSrc})`,
+      backgroundSize: `${gridSize * 100}% ${gridSize * 100}%`,
+      backgroundPosition: `${colPercent}% ${rowPercent}%`,
+      backgroundRepeat: 'no-repeat',
+    };
+  };
+
+  // Format timer
+  const formatTime = (secs: number) => {
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
   return (
-    <div className="min-h-screen bg-[#022C22] text-stone-100 p-4 sm:p-6 font-sans selection:bg-amber-400 selection:text-amber-950" dir="rtl">
-      <canvas ref={canvasRef} className="hidden" />
-
-      {/* Header */}
-      <div className="max-w-4xl mx-auto flex items-center justify-between bg-stone-900/90 backdrop-blur-md border border-amber-600/40 rounded-3xl p-4 sm:p-5 shadow-2xl mb-6">
+    <div dir="rtl" className="max-w-5xl mx-auto space-y-6 animate-fade-in p-2 sm:p-4">
+      {/* Top Header / Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-4 bg-stone-900 border border-amber-600/30 p-4 sm:p-5 rounded-3xl shadow-xl">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-amber-600 text-white flex items-center justify-center text-2xl shadow-lg border border-amber-400">
-            🧩
+          <div className="w-12 h-12 rounded-2xl bg-amber-500/15 border-2 border-amber-500/40 flex items-center justify-center text-2xl shadow-md">
+            🖼️
           </div>
           <div>
-            <h1 className="font-spiritual text-lg sm:text-xl font-bold text-amber-200">
-              محرك تركيب الأيقونات المتقدم (Jigsaw Engine)
-            </h1>
-            <p className="text-xs text-stone-300">
-              تقطيع بصري حقيقي عبر HTML5 Canvas مع سحب وإفلات وتثبيت ذكي
+            <h2 className="text-lg sm:text-xl font-black text-amber-300 font-spiritual">
+              تركيب الأيقونات القبطية (Coptic Jigsaw)
+            </h2>
+            <p className="text-xs text-stone-400">
+              اختر أيقونة أصلية، ركّب قطع الصورة المتحركة وطابقها بدقة حتى تكتمل اللوحة بالكامل.
             </p>
           </div>
         </div>
 
-        <button
-          onClick={onBack}
-          className="px-4 py-2 rounded-2xl bg-stone-800 hover:bg-stone-700 text-stone-200 font-bold text-xs shadow transition cursor-pointer flex items-center gap-1.5"
-        >
-          <ArrowRight className="w-4 h-4" />
-          <span>العودة للمركز</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setSoundEnabled((prev) => !prev)}
+            className={`p-2.5 rounded-xl border transition cursor-pointer ${
+              soundEnabled
+                ? 'bg-amber-500/20 border-amber-500/50 text-amber-300'
+                : 'bg-stone-800 border-stone-700 text-stone-500'
+            }`}
+            title={soundEnabled ? 'كتم الصوت' : 'تشغيل الصوت'}
+          >
+            {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+          </button>
+
+          <button
+            type="button"
+            onClick={onBack}
+            className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs font-bold border border-stone-700 transition cursor-pointer"
+          >
+            <ArrowRight className="w-4 h-4" />
+            <span>العودة لمركز الألعاب</span>
+          </button>
+        </div>
       </div>
 
-      <main className="max-w-4xl mx-auto space-y-6">
-        {/* Controls Bar */}
-        <div className="flex flex-wrap items-center justify-between bg-stone-900 p-4 rounded-3xl border border-stone-800 gap-4 shadow-xl">
-          <div className="flex items-center gap-3">
-            <span className="text-xs font-bold text-stone-400">اختر الأيقونة:</span>
-            {COPTIC_ICONS_SVG.map((icon, idx) => (
-              <button
-                key={icon.id}
-                onClick={() => setSelectedIconIdx(idx)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
-                  selectedIconIdx === idx ? 'bg-amber-600 text-white' : 'bg-stone-800 text-stone-300 hover:bg-stone-700'
-                }`}
-              >
-                {icon.title}
-              </button>
-            ))}
-          </div>
+      {/* Icon Selector Bar */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {PUZZLE_ICONS.map((icon, idx) => {
+          const isSelected = selectedIconIdx === idx;
+          return (
+            <button
+              key={icon.id}
+              type="button"
+              onClick={() => {
+                if (selectedIconIdx !== idx) {
+                  playSfx('tick');
+                  setSelectedIconIdx(idx);
+                }
+              }}
+              className={`p-3 rounded-2xl border text-right transition cursor-pointer flex items-center gap-3 relative overflow-hidden ${
+                isSelected
+                  ? 'bg-amber-950/60 border-amber-500 ring-2 ring-amber-500/40 shadow-lg'
+                  : 'bg-stone-900 border-stone-800 hover:border-amber-500/50 text-stone-300'
+              }`}
+            >
+              <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0 border border-stone-700 bg-stone-950 shadow-inner">
+                <img
+                  src={icon.imageSrc}
+                  alt={icon.title}
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                  onError={(e) => {
+                    // Fallback visual indicator
+                    (e.target as HTMLElement).style.display = 'none';
+                  }}
+                />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-bold text-stone-100 truncate">{icon.title}</p>
+                <p className="text-[10px] text-amber-400/80 truncate">{icon.era}</p>
+              </div>
+              {isSelected && (
+                <div className="absolute top-1.5 left-1.5 w-2 h-2 rounded-full bg-amber-400" />
+              )}
+            </button>
+          );
+        })}
+      </div>
 
-          <div className="flex items-center gap-3">
-            <span className="text-xs font-bold text-stone-400">المستوى:</span>
-            {([3, 4] as const).map((sz) => (
+      {/* Control Bar: Difficulty, Stats, Previews */}
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-stone-950 p-4 rounded-2xl border border-stone-800 text-xs">
+        {/* Difficulty Selection */}
+        <div className="flex items-center gap-2">
+          <span className="text-stone-400 font-bold">المستوى:</span>
+          {([3, 4, 5] as const).map((sz) => {
+            const isCurrent = gridSize === sz;
+            const labels = { 3: 'سهل (3×3)', 4: 'متوسط (4×4)', 5: 'متقدم (5×5)' };
+            return (
               <button
                 key={sz}
-                onClick={() => setGridSize(sz)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
-                  gridSize === sz ? 'bg-amber-600 text-white' : 'bg-stone-800 text-stone-300 hover:bg-stone-700'
+                type="button"
+                onClick={() => {
+                  if (gridSize !== sz) {
+                    playSfx('tick');
+                    setGridSize(sz);
+                  }
+                }}
+                className={`px-3 py-1.5 rounded-xl font-bold transition cursor-pointer ${
+                  isCurrent
+                    ? 'bg-amber-500 text-stone-950 shadow-md'
+                    : 'bg-stone-800 text-stone-300 hover:bg-stone-700'
                 }`}
               >
-                {sz}×{sz}
+                {labels[sz]}
               </button>
-            ))}
-            <button
-              onClick={() => setShowPreview(true)}
-              className="px-3 py-1.5 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold text-xs flex items-center gap-1.5 hover:bg-amber-500/30 transition cursor-pointer"
+            );
+          })}
+        </div>
+
+        {/* Action Buttons: Preview & Ghost */}
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setShowGhostGuide((prev) => !prev)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border transition cursor-pointer font-bold ${
+              showGhostGuide
+                ? 'bg-amber-950 border-amber-500 text-amber-300'
+                : 'bg-stone-900 border-stone-800 text-stone-400 hover:text-stone-200'
+            }`}
+            title="إظهار صورة إرشادية خفيفة خلف لوحة التركيب"
+          >
+            {showGhostGuide ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+            <span>{showGhostGuide ? 'إخفاء الإرشاد' : 'إرشاد شفاف'}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setShowFullPreview(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-stone-900 hover:bg-stone-800 border border-stone-800 text-amber-300 font-bold transition cursor-pointer"
+          >
+            <Eye className="w-3.5 h-3.5" />
+            <span>معاينة الأصل</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => initPuzzle(gridSize, selectedIconIdx)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-stone-900 hover:bg-stone-800 border border-stone-800 text-stone-300 font-bold transition cursor-pointer"
+            title="إعادة خلط القطع"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span>إعادة خلط</span>
+          </button>
+        </div>
+
+        {/* Live Counters */}
+        <div className="flex items-center gap-4 text-stone-300 font-mono">
+          <div className="flex items-center gap-1.5">
+            <Clock className="w-4 h-4 text-amber-400" />
+            <span>{formatTime(timerSeconds)}</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Layers className="w-4 h-4 text-amber-400" />
+            <span>الحركات: {moves}</span>
+          </div>
+          <div className="flex items-center gap-1.5 font-bold text-amber-300">
+            <span>الاكتمال: {accuracy}%</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Game Arena */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* Left: The Target Assembly Board (7 cols on desktop) */}
+        <div className="lg:col-span-7 bg-stone-900 border border-stone-800 p-4 sm:p-6 rounded-3xl shadow-2xl space-y-4">
+          <div className="flex items-center justify-between border-b border-stone-800 pb-3">
+            <div>
+              <h3 className="font-spiritual text-base font-bold text-amber-200">
+                لوحة التركيب والتجميع ({gridSize}×{gridSize} = {totalPieces} قطعة)
+              </h3>
+              <p className="text-[11px] text-stone-400">
+                اختر قطعة من المخزن على اليسار، ثم اضغط على المربع المناسب في هذه اللوحة لتثبيتها.
+              </p>
+            </div>
+            {isSolved && (
+              <span className="flex items-center gap-1 text-emerald-400 font-bold text-xs bg-emerald-950/80 px-3 py-1 rounded-full border border-emerald-500">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                مكتملة بنجاح!
+              </span>
+            )}
+          </div>
+
+          {/* Board Grid Container */}
+          <div className="relative w-full aspect-square max-w-[480px] mx-auto rounded-2xl overflow-hidden border-2 border-amber-600/40 bg-stone-950 shadow-inner">
+            {/* Optional Ghost Guide Background */}
+            {showGhostGuide && (
+              <div
+                className="absolute inset-0 pointer-events-none opacity-25"
+                style={{
+                  backgroundImage: `url(${activeIcon.imageSrc})`,
+                  backgroundSize: '100% 100%',
+                  backgroundRepeat: 'no-repeat',
+                }}
+              />
+            )}
+
+            {/* Slots Grid */}
+            <div
+              className="absolute inset-0 grid gap-1 p-1.5"
+              style={{
+                gridTemplateColumns: `repeat(${gridSize}, minmax(0, 1fr))`,
+                gridTemplateRows: `repeat(${gridSize}, minmax(0, 1fr))`,
+              }}
             >
-              <Eye className="w-4 h-4" />
-              <span>معاينة الأصل</span>
+              {slots.map((piece, slotIdx) => {
+                const isCorrect = piece !== null && piece.correctIndex === slotIdx;
+                const isSelected = selectedPoolPieceId !== null;
+
+                return (
+                  <div
+                    key={slotIdx}
+                    onClick={() => handlePlaceInSlot(slotIdx)}
+                    className={`relative rounded-xl overflow-hidden transition cursor-pointer flex items-center justify-center select-none ${
+                      piece === null
+                        ? 'border border-dashed border-stone-700/80 hover:border-amber-400/90 bg-stone-900/60 hover:bg-amber-500/10'
+                        : isCorrect
+                        ? 'ring-2 ring-emerald-500 border-emerald-400 shadow-md'
+                        : 'ring-1 ring-amber-500/70 border-amber-600'
+                    }`}
+                  >
+                    {piece === null ? (
+                      <span className="text-[10px] sm:text-xs font-mono font-bold text-stone-600 group-hover:text-amber-300">
+                        #{slotIdx + 1}
+                      </span>
+                    ) : (
+                      <div
+                        className="w-full h-full transform transition duration-200"
+                        style={getPieceBackgroundStyle(piece)}
+                      >
+                        {/* Lock badge on correct match */}
+                        {isCorrect && (
+                          <div className="absolute top-1 right-1 w-4 h-4 rounded-full bg-emerald-500/90 text-stone-950 flex items-center justify-center text-[10px] shadow">
+                            ✓
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Quick Instructions & Hint */}
+          <div className="flex items-center justify-between text-[11px] text-stone-400 pt-2">
+            <span>💡 نصيحة: للرجوع بقطعة من اللوحة إلى المخزن، اضغط عليها مباشرة.</span>
+            <button
+              type="button"
+              onClick={handleSolveHint}
+              className="text-amber-400 hover:text-amber-300 underline font-bold cursor-pointer"
+            >
+              مساعدة خطوة واحدة (تلميح)
             </button>
           </div>
         </div>
 
-        {/* Status Bar */}
-        <div className="flex items-center justify-between bg-stone-950 p-4 rounded-2xl border border-stone-800 text-xs font-mono text-amber-300">
-          <div className="flex items-center gap-2">
-            <Clock className="w-4 h-4 text-amber-500" />
-            <span>الوقت: {timer} ثانية</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <RotateCcw className="w-4 h-4 text-amber-500" />
-            <span>الحركات: {moves}</span>
-          </div>
-        </div>
-
-        {isLoading ? (
-          <div className="py-24 text-center space-y-3">
-            <div className="w-10 h-10 border-4 border-amber-500 border-t-transparent rounded-full animate-spin mx-auto" />
-            <p className="text-xs text-amber-300 font-spiritual">جاري تقطيع الصورة ورسم القطع بالـ Canvas...</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Target Puzzle Board */}
-            <div className="p-6 rounded-3xl bg-stone-900 border border-stone-800 shadow-xl space-y-4">
-              <h3 className="font-spiritual text-sm font-bold text-amber-200">لوحة التركيب المستهدفة:</h3>
-              <div
-                className="grid gap-1.5 p-3 bg-stone-950 rounded-2xl shadow-inner w-full aspect-square border-2 border-amber-600/40"
-                style={{ gridTemplateColumns: `repeat(${gridSize}, minmax(0, 1fr))` }}
+        {/* Right: Pool of Available Shuffled Pieces (5 cols on desktop) */}
+        <div className="lg:col-span-5 bg-stone-900 border border-stone-800 p-4 sm:p-6 rounded-3xl shadow-2xl space-y-4 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between border-b border-stone-800 pb-3 mb-3">
+              <h3 className="font-spiritual text-base font-bold text-amber-200">
+                مخزن القطع ({pool.length} قطعة متبقية)
+              </h3>
+              <button
+                type="button"
+                onClick={() => setPool((p) => [...p].sort(() => Math.random() - 0.5))}
+                className="text-xs text-stone-400 hover:text-amber-300 flex items-center gap-1 cursor-pointer font-bold"
               >
-                {slots.map((piece, slotIdx) => {
-                  const isCorrectMatch = piece !== null && piece.correctIndex === slotIdx;
+                <Shuffle className="w-3.5 h-3.5" />
+                <span>إعادة ترتيب</span>
+              </button>
+            </div>
+
+            {selectedPoolPieceId !== null && (
+              <div className="p-3 mb-3 rounded-2xl bg-amber-500/15 border border-amber-500/40 text-amber-200 text-xs font-spiritual flex items-center gap-2 animate-pulse">
+                <span>🎯</span>
+                <span>تم تحديد قطعة! الآن اضغط على مكانها المستهدف في اللوحة.</span>
+              </div>
+            )}
+
+            {pool.length === 0 ? (
+              <div className="py-16 text-center space-y-2">
+                <CheckCircle2 className="w-12 h-12 text-emerald-400 mx-auto animate-bounce" />
+                <p className="font-spiritual text-sm font-bold text-emerald-300">
+                  ممتاز! تم نقل جميع القطع إلى اللوحة المستهدفة.
+                </p>
+                <p className="text-xs text-stone-400">
+                  تأكد من مطابقة جميع القطع مع الأصل لإعلان الفوز.
+                </p>
+              </div>
+            ) : (
+              <div
+                className="grid gap-2 p-3 bg-stone-950 rounded-2xl border border-stone-800 max-h-[440px] overflow-y-auto"
+                style={{
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(75px, 1fr))',
+                }}
+              >
+                {pool.map((piece) => {
+                  const isSelected = selectedPoolPieceId === piece.id;
                   return (
-                    <div
-                      key={slotIdx}
-                      onClick={() => handlePlaceInSlot(slotIdx)}
-                      onDoubleClick={() => handleReturnToPool(slotIdx)}
-                      className={`relative rounded-xl overflow-hidden aspect-square border-2 transition cursor-pointer flex items-center justify-center ${
-                        piece === null
-                          ? 'border-dashed border-stone-700 bg-stone-900/60 hover:border-amber-500 text-stone-500 text-xs font-mono'
-                          : isCorrectMatch
-                          ? 'border-emerald-500 ring-2 ring-emerald-500/50 shadow-md'
-                          : 'border-amber-500/80'
+                    <button
+                      key={piece.id}
+                      type="button"
+                      onClick={() => handleSelectPoolPiece(piece)}
+                      className={`relative aspect-square rounded-xl overflow-hidden transition cursor-pointer shadow-md transform ${
+                        isSelected
+                          ? 'ring-4 ring-amber-400 border-2 border-white scale-105 z-10'
+                          : 'border border-stone-700 hover:border-amber-400 hover:scale-102'
                       }`}
                     >
-                      {piece === null ? (
-                        <span>#{slotIdx + 1}</span>
-                      ) : (
-                        <motion.img
-                          initial={{ scale: 0.8, opacity: 0 }}
-                          animate={{ scale: 1, opacity: 1 }}
-                          src={piece.imgUrl}
-                          alt={`قطعة ${slotIdx}`}
-                          className="w-full h-full object-cover"
-                        />
-                      )}
-                    </div>
+                      <div className="w-full h-full" style={getPieceBackgroundStyle(piece)} />
+                      <div className="absolute bottom-0.5 left-0.5 px-1 py-0.2 rounded bg-black/60 text-[9px] font-mono text-stone-300">
+                        #{piece.id + 1}
+                      </div>
+                    </button>
                   );
                 })}
               </div>
-              <p className="text-[11px] text-stone-400 text-center">
-                انقر على قطعة من القطع المتاحة أدناه، ثم انقر على الفراغ المناسب في اللوحة لوضعها.
-              </p>
-            </div>
-
-            {/* Available Pieces Pool */}
-            <div className="p-6 rounded-3xl bg-stone-900 border border-stone-800 shadow-xl space-y-4 flex flex-col justify-between">
-              <div>
-                <h3 className="font-spiritual text-sm font-bold text-amber-200 mb-3">القطع المتاحة للتركيب:</h3>
-                {poolPieces.length === 0 ? (
-                  <div className="py-12 text-center text-emerald-400 font-spiritual font-bold text-sm">
-                    ✨ تم استخدام كافة القطع في اللوحة!
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-3 gap-3 p-3 bg-stone-950 rounded-2xl border border-stone-800 max-h-[320px] overflow-y-auto">
-                    {poolPieces.map((piece) => {
-                      const isSelected = selectedPoolPieceId === piece.id;
-                      return (
-                        <motion.button
-                          key={piece.id}
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                          onClick={() => handleSelectPoolPiece(piece)}
-                          className={`relative rounded-xl overflow-hidden aspect-square border-2 transition cursor-pointer shadow-md ${
-                            isSelected ? 'border-amber-400 ring-4 ring-amber-500/40 scale-105' : 'border-stone-700 hover:border-amber-500'
-                          }`}
-                        >
-                          <img src={piece.imgUrl} alt="قطعة بازل" className="w-full h-full object-cover" />
-                        </motion.button>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-
-              {selectedPoolPieceId !== null && (
-                <div className="p-3 rounded-2xl bg-amber-950/80 border border-amber-500 text-amber-200 text-xs text-center font-spiritual animate-pulse">
-                  🎯 تم اختيار القطعة! انقر الآن على المربع الفارغ المناسب في لوحة التركيب.
-                </div>
-              )}
-
-              {isSolved && (
-                <div className="p-4 rounded-2xl bg-emerald-950 border border-emerald-500 text-emerald-200 text-center font-spiritual text-sm animate-bounce">
-                  🎉 هنيئاً لك! تم إتمام تركيب الصورة بالكامل بنجاح ونلت 150 نقطة بركة!
-                </div>
-              )}
-            </div>
+            )}
           </div>
-        )}
-      </main>
 
-      {/* Preview Modal */}
+          {/* Victory Card */}
+          {isSolved && (
+            <div className="p-5 rounded-2xl bg-gradient-to-r from-emerald-950/80 to-amber-950/80 border border-emerald-500/60 text-center space-y-3 animate-fade-in shadow-xl">
+              <div className="flex justify-center gap-1 text-amber-400 text-xl">
+                <Star className="w-6 h-6 fill-amber-400 text-amber-400" />
+                <Star className="w-6 h-6 fill-amber-400 text-amber-400" />
+                <Star className="w-6 h-6 fill-amber-400 text-amber-400" />
+              </div>
+              <h4 className="font-spiritual text-base font-bold text-emerald-200">
+                🎉 مبارك! تم تركيب الأيقونة بالكامل بنجاح
+              </h4>
+              <p className="text-xs text-stone-300 leading-relaxed">
+                أنجزت بازل «{activeIcon.title}» في {formatTime(timerSeconds)} وخلال {moves} حركة!
+                نلت بركة مضاعفة ونقاط تفوق تم تسجيلها برصيدك.
+              </p>
+              <div className="flex gap-2 justify-center pt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const nextIconIdx = (selectedIconIdx + 1) % PUZZLE_ICONS.length;
+                    setSelectedIconIdx(nextIconIdx);
+                  }}
+                  className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 text-xs font-bold transition shadow-md cursor-pointer"
+                >
+                  الانتقال للأيقونة التالية ➔
+                </button>
+                <button
+                  type="button"
+                  onClick={() => initPuzzle(gridSize, selectedIconIdx)}
+                  className="px-4 py-2 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs font-semibold border border-stone-700 transition cursor-pointer"
+                >
+                  إعادة اللعب
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Full Preview Modal */}
       <AnimatePresence>
-        {showPreview && (
+        {showFullPreview && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+            className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4"
           >
-            <div className="bg-stone-900 border border-amber-600 rounded-3xl max-w-sm w-full p-6 space-y-4 text-center shadow-2xl">
-              <h3 className="font-spiritual text-lg font-bold text-amber-200">
-                {COPTIC_ICONS_SVG[selectedIconIdx].title}
-              </h3>
-              <div className="w-64 h-64 mx-auto rounded-2xl overflow-hidden shadow-lg border-2 border-amber-500">
-                <img src={fullImageUrl} alt="الأيقونة الأصلية" className="w-full h-full object-cover" />
+            <div className="bg-stone-900 border-2 border-amber-500/50 rounded-3xl max-w-md w-full p-6 text-center space-y-4 shadow-2xl">
+              <div className="space-y-1">
+                <h3 className="font-spiritual text-lg font-bold text-amber-300">
+                  {activeIcon.title}
+                </h3>
+                <p className="text-xs text-stone-400">{activeIcon.subtitle}</p>
               </div>
+
+              <div className="w-72 h-72 mx-auto rounded-2xl overflow-hidden border-2 border-amber-500 shadow-xl bg-stone-950">
+                <img
+                  src={activeIcon.imageSrc}
+                  alt={activeIcon.title}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+
+              <p className="text-xs text-amber-200/90 font-spiritual">
+                تأمل في تفاصيل الأيقونة وألوانها وهالاتها النورانية قبل مواصلة التركيب.
+              </p>
+
               <button
-                onClick={() => setShowPreview(false)}
-                className="w-full py-2.5 rounded-xl bg-amber-600 text-white font-bold text-xs hover:bg-amber-500 transition cursor-pointer"
+                type="button"
+                onClick={() => setShowFullPreview(false)}
+                className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold text-xs transition cursor-pointer"
               >
-                إغلاق المعاينة
+                إغلاق والعودة للتركيب
               </button>
             </div>
           </motion.div>
@@ -384,3 +713,5 @@ export const JigsawPuzzleEngine: React.FC<JigsawPuzzleEngineProps> = ({ onBack, 
     </div>
   );
 };
+
+export default JigsawPuzzleEngine;

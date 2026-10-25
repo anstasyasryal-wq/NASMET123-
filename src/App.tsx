@@ -24,6 +24,7 @@ import { OnlineAutoUpdater } from './components/OnlineAutoUpdater';
 import { recordViewVisit } from './utils/preloadManager';
 import { motion } from 'framer-motion';
 import { SpiritualHymnsPlayer } from './components/SpiritualHymnsPlayer';
+import { FloatingSpiritualGuideFAB } from './components/FloatingSpiritualGuideFAB';
 
 // Lazy-loaded Views (Code Splitting for instant mobile startup)
 const StagePlayer = lazy(() => import('./components/StagePlayer').then(m => ({ default: m.StagePlayer })));
@@ -61,6 +62,7 @@ const IconGalleryModal = lazy(() => import('./components/IconGalleryModal').then
 const ChurchFathersAndSaintsGallery = lazy(() => import('./components/ChurchFathersAndSaintsGallery').then(m => ({ default: m.ChurchFathersAndSaintsGallery })));
 import WelcomeSplashModal from './components/WelcomeSplashModal';
 const VirtualSilentRetreat = lazy(() => import('./components/VirtualSilentRetreat').then(m => ({ default: m.VirtualSilentRetreat })));
+const ComprehensiveDirectoryModal = lazy(() => import('./components/ComprehensiveDirectoryModal').then(m => ({ default: m.ComprehensiveDirectoryModal })));
 
 const ViewLoadingFallback: React.FC = () => (
   <div className="flex flex-col items-center justify-center min-h-[300px] space-y-3 py-16 animate-fade-in text-center" dir="rtl">
@@ -74,16 +76,24 @@ const ViewLoadingFallback: React.FC = () => (
 function AppContent() {
   const [currentView, setCurrentView] = useState<AppView>(() => {
     if (typeof window !== 'undefined') {
-      const saved = sessionStorage.getItem('mokarasa_current_view') as AppView;
-      if (saved) return saved;
+      try {
+        const saved = sessionStorage.getItem('mokarasa_current_view') as AppView;
+        if (saved) return saved;
+      } catch {
+        // Fallback to home if storage is restricted
+      }
     }
     return 'home';
   });
   const [currentUser, setCurrentUserState] = useState<User | null>(null);
   const [activeStageId, setActiveStageId] = useState<number>(() => {
     if (typeof window !== 'undefined') {
-      const saved = sessionStorage.getItem('mokarasa_active_stage_id');
-      if (saved) return parseInt(saved) || 1;
+      try {
+        const saved = sessionStorage.getItem('mokarasa_active_stage_id');
+        if (saved) return parseInt(saved) || 1;
+      } catch {
+        // Fallback to stage 1
+      }
     }
     return 1;
   });
@@ -101,6 +111,7 @@ function AppContent() {
   const [showSaintsGallery, setShowSaintsGallery] = useState<boolean>(false);
   const [showSaintsStickersModal, setShowSaintsStickersModal] = useState<boolean>(false);
   const [showSilentRetreat, setShowSilentRetreat] = useState<boolean>(false);
+  const [showDirectoryModal, setShowDirectoryModal] = useState<boolean>(false);
   const [showMobileMenu, setShowMobileMenu] = useState<boolean>(false);
   const [showWelcomeSplash, setShowWelcomeSplash] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
@@ -121,6 +132,26 @@ function AppContent() {
     setCurrentUserState(user);
     setStages(getStoredStages());
     setAnnouncements(getStoredAnnouncements());
+
+    // Automatic daily morning message popup check on first app open of the day
+    if (typeof window !== 'undefined') {
+      try {
+        const popupEnabled = localStorage.getItem('mokarasa_daily_message_popup_enabled') !== 'false';
+        if (popupEnabled) {
+          const todayStr = new Date().toDateString();
+          const lastPopupDate = localStorage.getItem('mokarasa_last_heavenly_popup_date');
+          if (lastPopupDate !== todayStr) {
+            const timer = setTimeout(() => {
+              setShowHeavenlyMessageModal(true);
+              localStorage.setItem('mokarasa_last_heavenly_popup_date', todayStr);
+            }, 1000);
+            return () => clearTimeout(timer);
+          }
+        }
+      } catch {
+        // ignore
+      }
+    }
   }, []);
 
   const handleNavigate = (view: AppView) => {
@@ -192,6 +223,7 @@ function AppContent() {
           onCloseMobileMenu={() => setShowMobileMenu(false)}
           onOpenSilentRetreat={() => setShowSilentRetreat(true)}
           onOpenWelcomeGarden={() => setShowWelcomeSplash(true)}
+          onOpenDirectory={() => setShowDirectoryModal(true)}
         />
 
         {/* Main Content Area */}
@@ -245,6 +277,7 @@ function AppContent() {
                 onNavigateToPrayerFortress={() => handleNavigate('prayer_fortress')}
                 onOpenRetreat={() => setShowSilentRetreat(true)}
                 onNavigateToMonasticPuzzle={() => handleNavigate('monastic_puzzle')}
+                onOpenDirectory={() => setShowDirectoryModal(true)}
               />
             </motion.div>
           )}
@@ -623,6 +656,23 @@ function AppContent() {
             onClose={() => setShowSilentRetreat(false)}
           />
         )}
+
+        {showDirectoryModal && (
+          <ComprehensiveDirectoryModal
+            isOpen={showDirectoryModal}
+            onClose={() => setShowDirectoryModal(false)}
+            onNavigate={(view) => handleNavigate(view)}
+            onOpenSpiritualGuide={() => setShowSpiritualGuideModal(true)}
+            onOpenEmergencyModal={handleOpenEmergency}
+            onOpenSilentRetreat={() => setShowSilentRetreat(true)}
+            onOpenSaintsStickers={() => setShowSaintsStickersModal(true)}
+            onOpenHeavenlyMessage={() => setShowHeavenlyMessageModal(true)}
+            onOpenSpiritualJournal={() => setShowSpiritualJournal(true)}
+            onOpenIconGallery={() => setShowIconGallery(true)}
+            onOpenSaintsGallery={() => setShowSaintsGallery(true)}
+            currentUser={currentUser}
+          />
+        )}
       </Suspense>
 
       {/* Global Spiritual Hymns Audio Player */}
@@ -630,11 +680,19 @@ function AppContent() {
         <SpiritualHymnsPlayer />
       </Suspense>
 
-      {/* Native Mobile Bottom Navigation Bar */}
+      {/* Floating Spiritual Guide FAB */}
+      <FloatingSpiritualGuideFAB
+        onOpenSpiritualGuide={() => setShowSpiritualGuideModal(true)}
+        currentView={currentView}
+      />
+
+      {/* Native Mobile Bottom Navigation Bar (5 Unified Pillars) */}
       <MobileBottomNav
         currentView={currentView}
         onNavigate={handleNavigate}
         onOpenMobileMenu={() => setShowMobileMenu(true)}
+        onOpenSpiritualGuide={() => setShowSpiritualGuideModal(true)}
+        onOpenDirectory={() => setShowDirectoryModal(true)}
       />
     </div>
   );

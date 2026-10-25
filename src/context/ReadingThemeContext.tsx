@@ -17,7 +17,9 @@ const ReadingThemeContext = createContext<ReadingThemeContextType>({
 export const ReadingThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isNightMode, setIsNightMode] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('mokarasa_night_mode') === 'true';
+      try {
+        return localStorage.getItem('mokarasa_night_mode') === 'true';
+      } catch {}
     }
     return false;
   });
@@ -26,7 +28,9 @@ export const ReadingThemeProvider: React.FC<{ children: React.ReactNode }> = ({ 
     setIsNightMode((prev) => {
       const next = !prev;
       if (typeof window !== 'undefined') {
-        localStorage.setItem('mokarasa_night_mode', String(next));
+        try {
+          localStorage.setItem('mokarasa_night_mode', String(next));
+        } catch {}
       }
       return next;
     });

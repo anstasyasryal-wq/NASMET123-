@@ -2,40 +2,48 @@ import React, { memo } from 'react';
 import { AppView } from '../types';
 import { soundManager } from '../utils/audio';
 import {
-  Compass,
-  Trophy,
-  Shield,
+  Home,
   BookOpen,
-  Menu,
+  Heart,
+  HelpCircle,
+  Compass,
 } from 'lucide-react';
 
 interface MobileBottomNavProps {
   currentView: AppView;
   onNavigate: (view: AppView) => void;
   onOpenMobileMenu: () => void;
+  onOpenSpiritualGuide?: () => void;
+  onOpenDirectory?: () => void;
 }
 
 export const MobileBottomNav: React.FC<MobileBottomNavProps> = memo(({
   currentView,
   onNavigate,
   onOpenMobileMenu,
+  onOpenSpiritualGuide,
+  onOpenDirectory,
 }) => {
   const handleNavClick = (view: AppView) => {
     soundManager.playTick();
     onNavigate(view);
   };
 
-  const handleMenuClick = () => {
+  const handleGuideClick = () => {
     soundManager.playTick();
-    onOpenMobileMenu();
+    if (onOpenSpiritualGuide) {
+      onOpenSpiritualGuide();
+    }
   };
 
-  const tabs: { id: AppView; label: string; icon: React.FC<{ className?: string }> }[] = [
-    { id: 'home', label: 'الرئيسية 🌳', icon: Compass },
-    { id: 'competitions_hub', label: 'المسابقات 🏆', icon: Trophy },
-    { id: 'prayer_fortress', label: 'حصن الصلاة 🛡️', icon: Shield },
-    { id: 'library', label: 'المكتبة 📚', icon: BookOpen },
-  ];
+  const handleDirectoryClick = () => {
+    soundManager.playTick();
+    if (onOpenDirectory) {
+      onOpenDirectory();
+    } else {
+      onOpenMobileMenu();
+    }
+  };
 
   return (
     <nav
@@ -45,45 +53,93 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = memo(({
         paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom, 0.5rem))',
       }}
     >
-      <div className="flex items-center justify-around px-2 py-1.5 max-w-lg mx-auto">
-        {tabs.map((tab) => {
-          const isActive = currentView === tab.id;
-          const Icon = tab.icon;
-
-          return (
-            <button
-              key={tab.id}
-              onClick={() => handleNavClick(tab.id)}
-              className={`flex-1 flex flex-col items-center justify-center py-1 px-1 rounded-xl transition cursor-pointer select-none min-h-[48px] touch-manipulation ${
-                isActive
-                  ? 'text-amber-400 font-bold'
-                  : 'text-stone-400 hover:text-stone-200'
-              }`}
-            >
-              <div
-                className={`w-9 h-7 flex items-center justify-center rounded-xl transition ${
-                  isActive ? 'bg-amber-500/20 shadow-xs' : ''
-                }`}
-              >
-                <Icon className={`w-5 h-5 transition-transform ${isActive ? 'scale-110 text-amber-400' : ''}`} />
-              </div>
-              <span className="text-[10px] tracking-tight mt-0.5 whitespace-nowrap">
-                {tab.label}
-              </span>
-            </button>
-          );
-        })}
-
-        {/* More / Menu Drawer Button */}
+      <div className="flex items-center justify-around px-1 py-1 max-w-lg mx-auto">
+        {/* 1. الرئيسية */}
         <button
-          onClick={handleMenuClick}
-          className="flex-1 flex flex-col items-center justify-center py-1 px-1 rounded-xl text-stone-400 hover:text-stone-200 transition cursor-pointer select-none min-h-[48px] touch-manipulation"
+          onClick={() => handleNavClick('home')}
+          className={`flex-1 flex flex-col items-center justify-center py-1 px-1 rounded-xl transition cursor-pointer select-none min-h-[48px] touch-manipulation ${
+            currentView === 'home'
+              ? 'text-amber-400 font-bold'
+              : 'text-stone-400 hover:text-stone-200'
+          }`}
         >
-          <div className="w-9 h-7 flex items-center justify-center rounded-xl bg-stone-900 border border-stone-800">
-            <Menu className="w-5 h-5 text-amber-400" />
+          <div
+            className={`w-9 h-7 flex items-center justify-center rounded-xl transition ${
+              currentView === 'home' ? 'bg-amber-500/20 shadow-xs' : ''
+            }`}
+          >
+            <Home className={`w-5 h-5 transition-transform ${currentView === 'home' ? 'scale-110 text-amber-400' : ''}`} />
           </div>
           <span className="text-[10px] tracking-tight mt-0.5 whitespace-nowrap">
-            المزيد
+            الرئيسية
+          </span>
+        </button>
+
+        {/* 2. المكتبة */}
+        <button
+          onClick={() => handleNavClick('library')}
+          className={`flex-1 flex flex-col items-center justify-center py-1 px-1 rounded-xl transition cursor-pointer select-none min-h-[48px] touch-manipulation ${
+            currentView === 'library'
+              ? 'text-amber-400 font-bold'
+              : 'text-stone-400 hover:text-stone-200'
+          }`}
+        >
+          <div
+            className={`w-9 h-7 flex items-center justify-center rounded-xl transition ${
+              currentView === 'library' ? 'bg-amber-500/20 shadow-xs' : ''
+            }`}
+          >
+            <BookOpen className={`w-5 h-5 transition-transform ${currentView === 'library' ? 'scale-110 text-amber-400' : ''}`} />
+          </div>
+          <span className="text-[10px] tracking-tight mt-0.5 whitespace-nowrap">
+            المكتبة 📚
+          </span>
+        </button>
+
+        {/* 3. رحلتي الروحية / المخدع */}
+        <button
+          onClick={() => handleNavClick('spiritual_life')}
+          className={`flex-1 flex flex-col items-center justify-center py-1 px-1 rounded-xl transition cursor-pointer select-none min-h-[48px] touch-manipulation ${
+            currentView === 'spiritual_life' || currentView === 'prayer_fortress'
+              ? 'text-rose-400 font-bold'
+              : 'text-stone-400 hover:text-stone-200'
+          }`}
+        >
+          <div
+            className={`w-9 h-7 flex items-center justify-center rounded-xl transition ${
+              currentView === 'spiritual_life' || currentView === 'prayer_fortress' ? 'bg-rose-500/20 shadow-xs' : ''
+            }`}
+          >
+            <Heart className={`w-5 h-5 transition-transform ${currentView === 'spiritual_life' || currentView === 'prayer_fortress' ? 'scale-110 text-rose-400' : ''}`} />
+          </div>
+          <span className="text-[10px] tracking-tight mt-0.5 whitespace-nowrap">
+            مخدعي 🕊️
+          </span>
+        </button>
+
+        {/* 4. المرشد الروحي */}
+        <button
+          onClick={handleGuideClick}
+          className="flex-1 flex flex-col items-center justify-center py-1 px-1 rounded-xl text-stone-400 hover:text-cyan-300 transition cursor-pointer select-none min-h-[48px] touch-manipulation"
+        >
+          <div className="w-9 h-7 flex items-center justify-center rounded-xl bg-cyan-950/60 border border-cyan-800/60">
+            <HelpCircle className="w-4 h-4 text-cyan-400" />
+          </div>
+          <span className="text-[10px] tracking-tight mt-0.5 whitespace-nowrap text-cyan-300">
+            المرشد
+          </span>
+        </button>
+
+        {/* 5. الدليل الشامل والمزيد */}
+        <button
+          onClick={handleDirectoryClick}
+          className="flex-1 flex flex-col items-center justify-center py-1 px-1 rounded-xl text-stone-400 hover:text-amber-300 transition cursor-pointer select-none min-h-[48px] touch-manipulation"
+        >
+          <div className="w-9 h-7 flex items-center justify-center rounded-xl bg-stone-900 border border-amber-600/40">
+            <Compass className="w-4 h-4 text-amber-400" />
+          </div>
+          <span className="text-[10px] tracking-tight mt-0.5 whitespace-nowrap text-amber-300 font-bold">
+            الدليل 🧭
           </span>
         </button>
       </div>

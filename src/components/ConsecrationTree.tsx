@@ -47,8 +47,12 @@ export const ConsecrationTree: React.FC<ConsecrationTreeProps> = ({
 
   const [bonusPoints, setBonusPoints] = useState<number>(() => {
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('mokarasa_consecration_bonus');
-      return saved ? parseInt(saved, 10) || 0 : 0;
+      try {
+        const saved = localStorage.getItem('mokarasa_consecration_bonus');
+        return saved ? parseInt(saved, 10) || 0 : 0;
+      } catch {
+        return 0;
+      }
     }
     return 0;
   });
