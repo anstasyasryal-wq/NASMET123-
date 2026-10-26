@@ -4,6 +4,7 @@ import { soundManager } from '../utils/audio';
 import { getOrRefreshDailyMessage } from '../utils/heavenlyHistory';
 import { FortuneWheel, WheelSection } from './FortuneWheel';
 import { ConsecrationTree } from './ConsecrationTree';
+import { ConsecrationProgressBar } from './ConsecrationProgressBar';
 import { useLanguage } from '../context/LanguageContext';
 import {
   Compass,
@@ -379,6 +380,12 @@ export const HomeView: React.FC<HomeViewProps> = React.memo(({
           </button>
         </div>
       </section>
+
+      {/* Consecration Progress Bar (شريط تقدم التكريس والمسار الروحي) */}
+      <ConsecrationProgressBar
+        onOpenConsecrationManual={onNavigateToConsecratedManual}
+        onOpenSpiritualLife={onNavigateToSpiritualLife}
+      />
 
       {/* 2. Three Prominent Required Cards (Heavenly Message, Growth Tree, Consecrated Constitution) */}
       <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
