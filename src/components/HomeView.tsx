@@ -23,6 +23,9 @@ import {
   CheckCircle2,
   Gamepad2,
   Brain,
+  Download,
+  Share2,
+  Smartphone,
 } from 'lucide-react';
 
 interface BookProgress {
@@ -324,6 +327,56 @@ export const HomeView: React.FC<HomeViewProps> = React.memo(({
               <ChevronLeft className={`w-4 h-4 ${!isRTL ? 'rotate-180' : ''}`} />
             </button>
           </div>
+        </div>
+      </section>
+
+      {/* PWA Mobile Install & Share Ribbon */}
+      <section className="rounded-2xl border border-amber-500/30 bg-gradient-to-r from-stone-900 via-amber-950/40 to-stone-900 p-3 sm:p-4 shadow-md flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-amber-300 shrink-0">
+            <Smartphone className="w-5 h-5 text-amber-400" />
+          </div>
+          <div className={isRTL ? 'text-right' : 'text-left'}>
+            <div className="flex items-center gap-2">
+              <span className="text-xs sm:text-sm font-bold text-amber-100">
+                {language === 'ar' ? 'تثبيت ومشاركة تطبيق «حسب قلب الله»' : 'Install & Share "After God\'s Heart"'}
+              </span>
+              <span className="text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/40 px-1.5 py-0.2 rounded font-bold">
+                PWA
+              </span>
+            </div>
+            <p className="text-[11px] text-stone-300">
+              {language === 'ar' 
+                ? 'ثبّت التطبيق على شاشة هاتفك الرئيسية ليعمل بدون إنترنت كأي تطبيق أصلي، وشاركه للبركة.'
+                : 'Install the app directly on your phone home screen for offline access and share with others.'}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 w-full sm:w-auto justify-end shrink-0">
+          <button
+            type="button"
+            onClick={() => {
+              soundManager.playTick();
+              window.dispatchEvent(new Event('show-install-prompt'));
+            }}
+            className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 text-stone-950 font-bold text-xs shadow-xs transition active:scale-95 cursor-pointer"
+          >
+            <Download className="w-4 h-4 text-stone-950" />
+            <span>{t('installApp')}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              soundManager.playTick();
+              window.dispatchEvent(new Event('show-share-modal'));
+            }}
+            className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-stone-800 hover:bg-stone-700 border border-stone-700 text-amber-300 font-bold text-xs transition active:scale-95 cursor-pointer"
+          >
+            <Share2 className="w-4 h-4 text-amber-400" />
+            <span>{t('share')}</span>
+          </button>
         </div>
       </section>
 

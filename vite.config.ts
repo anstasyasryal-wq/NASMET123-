@@ -21,9 +21,10 @@ export default defineConfig({
       registerType: 'autoUpdate',
       injectRegister: 'auto',
       devOptions: {
-        enabled: false,
+        enabled: true,
+        type: 'module',
       },
-      includeAssets: ['icons/favicon-64.png', 'icons/apple-touch-icon.png'],
+      includeAssets: ['icon.svg', 'apple-touch-icon.png', 'icons/favicon-64.png', 'icons/apple-touch-icon.png'],
       manifest: {
         id: '/',
         name: 'حسب قلب الله',
@@ -40,8 +41,11 @@ export default defineConfig({
         theme_color: '#0c0a09',
         categories: ['education', 'lifestyle', 'books'],
         icons: [
-          { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
-          { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
+          { src: '/pwa-192x192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: '/pwa-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+          { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+          { src: '/pwa-maskable-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
           { src: '/icons/maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       },

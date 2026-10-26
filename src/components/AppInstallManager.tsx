@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useRegisterSW } from 'virtual:pwa-register/react';
+import { useLanguage } from '../context/LanguageContext';
 import {
   Download,
   RefreshCw,
@@ -9,30 +10,30 @@ import {
   Copy,
   Check,
   Smartphone,
-  Sparkles,
   ExternalLink,
   MessageCircle,
   Send,
+  Sparkles,
 } from 'lucide-react';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
-  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform?: string }>;
 }
 
-const UPDATE_CHECK_INTERVAL_MS = 30 * 60 * 1000;
+const UPDATE_CHECK_INTERVAL_MS = 15 * 60 * 1000; // Check every 15 minutes
 const INSTALL_DISMISSED_KEY = 'pwa-install-dismissed-at';
-const INSTALL_DISMISS_DAYS = 7;
+const INSTALL_DISMISS_DAYS = 5;
 
-export const isStandalone = () => {
+export const isStandalone = (): boolean => {
   if (typeof window === 'undefined') return false;
   return (
     window.matchMedia('(display-mode: standalone)').matches ||
-    (navigator as Navigator & { standalone?: boolean }).standalone === true
+    (navigator as unknown as { standalone?: boolean }).standalone === true
   );
 };
 
-export const isIos = () => {
+export const isIos = (): boolean => {
   if (typeof window === 'undefined') return false;
   return (
     /iphone|ipad|ipod/i.test(navigator.userAgent) ||
@@ -40,12 +41,12 @@ export const isIos = () => {
   );
 };
 
-export const isAndroid = () => {
+export const isAndroid = (): boolean => {
   if (typeof window === 'undefined') return false;
   return /android/i.test(navigator.userAgent);
 };
 
-const wasRecentlyDismissed = () => {
+const wasRecentlyDismissed = (): boolean => {
   try {
     const dismissedAt = Number(localStorage.getItem(INSTALL_DISMISSED_KEY) || 0);
     return Date.now() - dismissedAt < INSTALL_DISMISS_DAYS * 24 * 60 * 60 * 1000;
@@ -55,6 +56,7 @@ const wasRecentlyDismissed = () => {
 };
 
 export default function AppInstallManager() {
+  const { t, language, dir, isRTL } = useLanguage();
   const [installEvent, setInstallEvent] = useState<BeforeInstallPromptEvent | null>(null);
   const [showInstallModal, setShowInstallModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
@@ -65,6 +67,7 @@ export default function AppInstallManager() {
   const [isOnline, setIsOnline] = useState<boolean>(typeof navigator !== 'undefined' ? navigator.onLine : true);
   const [showOfflineToast, setShowOfflineToast] = useState<boolean>(false);
 
+  // Auto-Update registration using VitePWA workbox-window hook
   const {
     needRefresh: [needRefresh, setNeedRefresh],
     offlineReady: [offlineReady, setOfflineReady],
@@ -74,21 +77,43 @@ export default function AppInstallManager() {
       if (!registration) return;
       const checkForUpdate = async () => {
         if (registration.installing || !navigator.onLine) return;
-        const response = await fetch(swUrl, {
-          cache: 'no-store',
-          headers: { 'cache-control': 'no-cache' },
-        }).catch(() => null);
-        if (response?.status === 200) await registration.update();
+        try {
+          const response = await fetch(swUrl, {
+            cache: 'no-store',
+            headers: { 'cache-control': 'no-cache' },
+          });
+          if (response?.status === 200) {
+            await registration.update();
+          }
+        } catch {
+          // Ignore network check errors
+        }
       };
-      setInterval(checkForUpdate, UPDATE_CHECK_INTERVAL_MS);
-      document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'visible') checkForUpdate();
-      });
+
+      // Periodic check
+      const intervalId = setInterval(checkForUpdate, UPDATE_CHECK_INTERVAL_MS);
+
+      // Visibility change trigger
+      const handleVisibilityChange = () => {
+        if (document.visibilityState === 'visible') {
+          checkForUpdate();
+        }
+      };
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+
+      return () => {
+        clearInterval(intervalId);
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+      };
+    },
+    onRegisterError(error) {
+      // Quiet fail in restricted preview iframes
+      console.debug('[PWA] SW register notice:', error);
     },
   });
 
   useEffect(() => {
-    // Determine platform
+    // Detect device platform for default tab
     if (isIos()) {
       setActiveTab('ios');
     } else if (isAndroid()) {
@@ -116,15 +141,17 @@ export default function AppInstallManager() {
 
     const handleOpenInstallPrompt = () => {
       if (installEvent) {
-        installEvent.prompt().then(() => {
-          return installEvent.userChoice;
-        }).then((choice) => {
-          if (choice.outcome === 'accepted') {
-            setInstallEvent(null);
-          }
-        }).catch(() => {
-          setShowInstallModal(true);
-        });
+        installEvent
+          .prompt()
+          .then(() => installEvent.userChoice)
+          .then((choice) => {
+            if (choice.outcome === 'accepted') {
+              setInstallEvent(null);
+            }
+          })
+          .catch(() => {
+            setShowInstallModal(true);
+          });
       } else {
         setShowInstallModal(true);
       }
@@ -147,6 +174,7 @@ export default function AppInstallManager() {
     };
   }, [installEvent]);
 
+  // Online / Offline monitor
   useEffect(() => {
     const handleOnline = () => {
       setIsOnline(true);
@@ -174,9 +202,10 @@ export default function AppInstallManager() {
     };
   }, []);
 
+  // Offline ready auto-dismiss
   useEffect(() => {
     if (!offlineReady) return;
-    const timer = setTimeout(() => setOfflineReady(false), 4000);
+    const timer = setTimeout(() => setOfflineReady(false), 4500);
     return () => clearTimeout(timer);
   }, [offlineReady, setOfflineReady]);
 
@@ -206,12 +235,16 @@ export default function AppInstallManager() {
 
   const handleUpdate = async () => {
     setIsUpdating(true);
-    await updateServiceWorker(true);
+    try {
+      await updateServiceWorker(true);
+    } catch {
+      window.location.reload();
+    }
   };
 
   const shareData = {
-    title: 'تطبيق حسب قلب الله',
-    text: 'تطبيق «حسب قلب الله» - المنصة القبطية الأرثوذكسية الشاملة للتكريس والعلوم الكنسية والتقييم الروحي',
+    title: t('appTitle'),
+    text: `${t('appTitle')} - ${t('appSubtitle')}`,
     url: typeof window !== 'undefined' ? window.location.origin : '',
   };
 
@@ -225,19 +258,18 @@ export default function AppInstallManager() {
         if ((err as Error)?.name === 'AbortError') return;
       }
     }
-    // Fallback: Copy link
     handleCopyLink();
   };
 
   const handleCopyLink = async () => {
+    const targetUrl = shareData.url || (typeof window !== 'undefined' ? window.location.href : '');
     try {
-      await navigator.clipboard.writeText(shareData.url || window.location.href);
+      await navigator.clipboard.writeText(targetUrl);
       setCopiedLink(true);
       setTimeout(() => setCopiedLink(false), 2500);
     } catch {
-      // Fallback input copy
       const input = document.createElement('input');
-      input.value = shareData.url || window.location.href;
+      input.value = targetUrl;
       document.body.appendChild(input);
       input.select();
       document.execCommand('copy');
@@ -258,26 +290,31 @@ export default function AppInstallManager() {
     window.open(`https://t.me/share/url?url=${url}&text=${text}`, '_blank');
   };
 
-  // 1. Update Notification Banner
+  const shareViaFacebook = () => {
+    const url = encodeURIComponent(shareData.url);
+    window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}`, '_blank');
+  };
+
+  // 1. Auto-Update Notification Banner (New Version Available)
   if (needRefresh) {
     return (
-      <Banner>
+      <Banner dir={dir}>
         <div className="flex items-start gap-3">
           <IconBadge>
             <RefreshCw className={`h-5 w-5 ${isUpdating ? 'animate-spin' : ''}`} aria-hidden="true" />
           </IconBadge>
-          <div className="flex-1 text-right">
-            <p className="font-bold text-amber-100">يتوفر تحديث جديد للتطبيق</p>
-            <p className="mt-1 text-xs leading-relaxed text-stone-300">حدِّث الآن للحصول على أحدث الميزات والمحتوى الروحي المحفوظ.</p>
+          <div className={`flex-1 ${isRTL ? 'text-right' : 'text-left'}`}>
+            <p className="font-bold text-amber-100 text-sm">{t('updateAvailable')}</p>
+            <p className="mt-1 text-xs leading-relaxed text-stone-300">{t('updateDesc')}</p>
           </div>
-          <CloseButton onClick={() => setNeedRefresh(false)} label="تأجيل التحديث" />
+          <CloseButton onClick={() => setNeedRefresh(false)} label={t('dismiss')} />
         </div>
         <div className="mt-3 flex gap-2">
           <PrimaryButton onClick={handleUpdate} disabled={isUpdating}>
-            <RefreshCw className="h-4 w-4" aria-hidden="true" />
-            {isUpdating ? 'جارٍ التحديث...' : 'تحديث الآن'}
+            <RefreshCw className={`h-4 w-4 ${isUpdating ? 'animate-spin' : ''}`} aria-hidden="true" />
+            {isUpdating ? t('updating') : t('updateNow')}
           </PrimaryButton>
-          <SecondaryButton onClick={() => setNeedRefresh(false)}>لاحقًا</SecondaryButton>
+          <SecondaryButton onClick={() => setNeedRefresh(false)}>{t('installLater')}</SecondaryButton>
         </div>
       </Banner>
     );
@@ -286,15 +323,15 @@ export default function AppInstallManager() {
   // 2. Offline Ready Banner
   if (offlineReady) {
     return (
-      <Banner>
+      <Banner dir={dir}>
         <div className="flex items-center gap-3">
           <IconBadge>
-            <CheckCircle2 className="h-5 w-5" aria-hidden="true" />
+            <CheckCircle2 className="h-5 w-5 text-emerald-400" aria-hidden="true" />
           </IconBadge>
-          <p className="flex-1 text-sm font-semibold text-amber-100 text-right">
-            التطبيق جاهز للعمل بدون إنترنت (Offline Mode)
+          <p className={`flex-1 text-xs sm:text-sm font-semibold text-amber-100 ${isRTL ? 'text-right' : 'text-left'}`}>
+            {t('offlineReadyNotice')}
           </p>
-          <CloseButton onClick={() => setOfflineReady(false)} label="إغلاق" />
+          <CloseButton onClick={() => setOfflineReady(false)} label={t('close')} />
         </div>
       </Banner>
     );
@@ -306,38 +343,44 @@ export default function AppInstallManager() {
     <>
       {/* 3. Ambient Install Banner for mobile / new visitors */}
       {showAmbientBanner && (
-        <Banner>
+        <Banner dir={dir}>
           <div className="flex items-start gap-3">
             <img
               src="/icons/icon-192.png"
               alt="شعار حسب قلب الله"
               className="h-11 w-11 shrink-0 rounded-xl border border-amber-500/40 shadow-sm"
+              onError={(e) => {
+                // Fallback to svg if png fails
+                (e.target as HTMLImageElement).src = '/icon.svg';
+              }}
             />
-            <div className="flex-1 text-right">
+            <div className={`flex-1 ${isRTL ? 'text-right' : 'text-left'}`}>
               <div className="flex items-center gap-1.5">
-                <span className="font-bold text-amber-100 text-sm">تثبيت تطبيق حسب قلب الله</span>
-                <span className="rounded bg-amber-500/20 px-1.5 py-0.2 text-[10px] font-bold text-amber-300">مجاني</span>
+                <span className="font-bold text-amber-100 text-sm">{t('appTitle')}</span>
+                <span className="rounded bg-amber-500/20 px-1.5 py-0.2 text-[10px] font-bold text-amber-300">
+                  {t('installFree')}
+                </span>
               </div>
               <p className="mt-0.5 text-xs leading-relaxed text-stone-300">
-                ثبّت التطبيق على شاشتك لفتحه فورًا كتطبيق مستقل وسريع وبدون إنترنت.
+                {t('installAppDesc')}
               </p>
             </div>
-            <CloseButton onClick={dismissBanner} label="إغلاق اقتراح التثبيت" />
+            <CloseButton onClick={dismissBanner} label={t('close')} />
           </div>
           <div className="mt-3 flex items-center gap-2">
             <PrimaryButton onClick={handleNativeInstall}>
               <Download className="h-4 w-4" aria-hidden="true" />
-              تثبيت الآن
+              {t('installNow')}
             </PrimaryButton>
             <button
               type="button"
               onClick={() => setShowShareModal(true)}
-              className="flex items-center justify-center gap-1.5 rounded-xl border border-stone-700 bg-stone-900/80 px-3 py-2 text-xs font-semibold text-amber-300 transition hover:bg-stone-800"
+              className="flex items-center justify-center gap-1.5 rounded-xl border border-stone-700 bg-stone-900/80 px-3 py-2 text-xs font-semibold text-amber-300 transition hover:bg-stone-800 cursor-pointer"
             >
               <Share2 className="h-3.5 w-3.5" />
-              مشاركة
+              <span>{t('share')}</span>
             </button>
-            <SecondaryButton onClick={dismissBanner}>لاحقًا</SecondaryButton>
+            <SecondaryButton onClick={dismissBanner}>{t('installLater')}</SecondaryButton>
           </div>
         </Banner>
       )}
@@ -347,42 +390,44 @@ export default function AppInstallManager() {
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-[120] flex items-center justify-center bg-black/80 p-3 sm:p-4 backdrop-blur-sm animate-fade-in text-right"
+          dir={dir}
+          className="fixed inset-0 z-[120] flex items-center justify-center bg-black/80 p-3 sm:p-4 backdrop-blur-sm animate-fade-in"
         >
-          <div className="w-full max-w-lg rounded-3xl border border-amber-500/40 bg-stone-950 p-5 sm:p-6 text-stone-100 shadow-2xl space-y-4">
+          <div className={`w-full max-w-lg rounded-3xl border border-amber-500/40 bg-stone-950 p-5 sm:p-6 text-stone-100 shadow-2xl space-y-4 ${isRTL ? 'text-right' : 'text-left'}`}>
             <div className="flex items-center justify-between border-b border-stone-800 pb-3">
               <div className="flex items-center gap-2.5">
                 <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-tr from-amber-600 to-amber-400 text-stone-950 shadow-md">
                   <Download className="h-5 w-5" />
                 </div>
                 <div>
-                  <h3 className="text-base sm:text-lg font-bold text-amber-100">تثبيت التطبيق على جهازك</h3>
-                  <p className="text-[11px] text-amber-400/80">يعمل كأي تطبيق أصلي على أندرويد والآيفون والكمبيوتر</p>
+                  <h3 className="text-base sm:text-lg font-bold text-amber-100">{t('installAppTitle')}</h3>
+                  <p className="text-[11px] text-amber-400/80">{t('installAppDesc')}</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setShowInstallModal(false)}
-                className="rounded-xl p-1.5 text-stone-400 hover:bg-stone-800 hover:text-stone-100 transition"
+                className="rounded-xl p-1.5 text-stone-400 hover:bg-stone-800 hover:text-stone-100 transition cursor-pointer"
+                aria-label={t('close')}
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
 
-            {/* Direct Native Install Button if event is available */}
+            {/* Direct Native Install Button if browser event is available */}
             {installEvent && (
               <div className="rounded-2xl border border-emerald-500/40 bg-emerald-950/30 p-3.5 flex items-center justify-between gap-3">
-                <div className="text-right">
-                  <p className="text-xs font-bold text-emerald-300">متصفحك يدعم التثبيت المباشر بنقرة واحدة</p>
-                  <p className="text-[11px] text-stone-300">اضغط الزر لتثبيته فورًا على شاشتك الرئيسية</p>
+                <div className={isRTL ? 'text-right' : 'text-left'}>
+                  <p className="text-xs font-bold text-emerald-300">{t('installSupportedDirect')}</p>
+                  <p className="text-[11px] text-stone-300">{t('installDirectHint')}</p>
                 </div>
                 <button
                   type="button"
                   onClick={handleNativeInstall}
-                  className="flex items-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 px-3.5 py-2 text-xs font-bold text-white transition shrink-0 shadow-xs"
+                  className="flex items-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 px-3.5 py-2 text-xs font-bold text-white transition shrink-0 shadow-xs cursor-pointer"
                 >
                   <Download className="h-4 w-4" />
-                  تثبيت الآن
+                  {t('installNow')}
                 </button>
               </div>
             )}
@@ -392,51 +437,51 @@ export default function AppInstallManager() {
               <button
                 type="button"
                 onClick={() => setActiveTab('android')}
-                className={`flex-1 py-1.5 rounded-lg transition ${
+                className={`flex-1 py-1.5 rounded-lg transition cursor-pointer ${
                   activeTab === 'android' ? 'bg-amber-600 text-white shadow-xs' : 'text-stone-400 hover:text-stone-200'
                 }`}
               >
-                📱 أندرويد (Android)
+                {t('installTabAndroid')}
               </button>
               <button
                 type="button"
                 onClick={() => setActiveTab('ios')}
-                className={`flex-1 py-1.5 rounded-lg transition ${
+                className={`flex-1 py-1.5 rounded-lg transition cursor-pointer ${
                   activeTab === 'ios' ? 'bg-amber-600 text-white shadow-xs' : 'text-stone-400 hover:text-stone-200'
                 }`}
               >
-                🍎 آيفون وآيباد (iOS)
+                {t('installTabIOS')}
               </button>
               <button
                 type="button"
                 onClick={() => setActiveTab('desktop')}
-                className={`flex-1 py-1.5 rounded-lg transition ${
+                className={`flex-1 py-1.5 rounded-lg transition cursor-pointer ${
                   activeTab === 'desktop' ? 'bg-amber-600 text-white shadow-xs' : 'text-stone-400 hover:text-stone-200'
                 }`}
               >
-                💻 كمبيوتر / ماك
+                {t('installTabDesktop')}
               </button>
             </div>
 
-            {/* Step-by-Step Instructions based on Platform */}
+            {/* Step-by-Step Instructions based on Selected Platform */}
             <div className="rounded-2xl border border-stone-800 bg-stone-900/60 p-4 space-y-3">
               {activeTab === 'android' && (
                 <div className="space-y-2.5 text-xs text-stone-200">
                   <div className="flex items-start gap-2.5">
                     <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-500 text-[11px] font-bold text-stone-950">1</span>
-                    <p>افتح الرابط في متصفح <strong>Google Chrome</strong> على هاتفك.</p>
+                    <p>{t('androidStep1')}</p>
                   </div>
                   <div className="flex items-start gap-2.5">
                     <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-500 text-[11px] font-bold text-stone-950">2</span>
-                    <p>اضغط على قائمة الخيارات <strong>(الثلاث نقاط ⋮)</strong> بأعلى أو أسفل الشاشة.</p>
+                    <p>{t('androidStep2')}</p>
                   </div>
                   <div className="flex items-start gap-2.5">
                     <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-500 text-[11px] font-bold text-stone-950">3</span>
-                    <p>اختر <strong>«تثبيت التطبيق» (Install App)</strong> أو <strong>«إضافة إلى الشاشة الرئيسية»</strong>.</p>
+                    <p>{t('androidStep3')}</p>
                   </div>
                   <div className="flex items-start gap-2.5">
                     <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-500 text-[11px] font-bold text-stone-950">4</span>
-                    <p>سيظهر التطبيق كأيقونة مستقلة كاملة الشاشة مع كل بياناتك الروحية بدون إنترنت.</p>
+                    <p>{t('androidStep4')}</p>
                   </div>
                 </div>
               )}
@@ -445,19 +490,19 @@ export default function AppInstallManager() {
                 <div className="space-y-2.5 text-xs text-stone-200">
                   <div className="flex items-start gap-2.5">
                     <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-500 text-[11px] font-bold text-stone-950">1</span>
-                    <p>افتح الرابط في متصفح <strong>Safari</strong> على الآيفون أو الآيباد.</p>
+                    <p>{t('iosStep1')}</p>
                   </div>
                   <div className="flex items-start gap-2.5">
                     <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-500 text-[11px] font-bold text-stone-950">2</span>
-                    <p>اضغط على زر المشاركة بالأسفل <strong>(مربع به سهم لأعلى ⬆️)</strong>.</p>
+                    <p>{t('iosStep2')}</p>
                   </div>
                   <div className="flex items-start gap-2.5">
                     <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-500 text-[11px] font-bold text-stone-950">3</span>
-                    <p>مرر للأسفل واختر <strong>«إضافة إلى الشاشة الرئيسية» (Add to Home Screen ➕)</strong>.</p>
+                    <p>{t('iosStep3')}</p>
                   </div>
                   <div className="flex items-start gap-2.5">
                     <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-500 text-[11px] font-bold text-stone-950">4</span>
-                    <p>اضغط <strong>«إضافة» (Add)</strong> بأعلى اليمين، وسيصبح التطبيق موجوداً على هاتفك.</p>
+                    <p>{t('iosStep4')}</p>
                   </div>
                 </div>
               )}
@@ -466,15 +511,15 @@ export default function AppInstallManager() {
                 <div className="space-y-2.5 text-xs text-stone-200">
                   <div className="flex items-start gap-2.5">
                     <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-500 text-[11px] font-bold text-stone-950">1</span>
-                    <p>في متصفح Chrome أو Edge، انظر إلى شريط العنوان في الأعلى جهة اليسار/اليمين.</p>
+                    <p>{t('desktopStep1')}</p>
                   </div>
                   <div className="flex items-start gap-2.5">
                     <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-500 text-[11px] font-bold text-stone-950">2</span>
-                    <p>اضغط على أيقونة التثبيت <strong>(شاشة بها سهم 💻 أو علامة ⊕)</strong>.</p>
+                    <p>{t('desktopStep2')}</p>
                   </div>
                   <div className="flex items-start gap-2.5">
                     <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-500 text-[11px] font-bold text-stone-950">3</span>
-                    <p>اختر <strong>«تثبيت»</strong> وسيفتح التطبيق في نافذة مستقلة وسريعة كأي برنامج على جهازك.</p>
+                    <p>{t('desktopStep3')}</p>
                   </div>
                 </div>
               )}
@@ -491,15 +536,15 @@ export default function AppInstallManager() {
                 className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-amber-600 hover:bg-amber-500 py-2.5 px-3 text-xs font-bold text-stone-950 transition cursor-pointer"
               >
                 <Share2 className="h-4 w-4" />
-                مشاركة رابط التطبيق للآخرين
+                <span>{t('shareApp')}</span>
               </button>
               <button
                 type="button"
                 onClick={handleCopyLink}
-                className="flex items-center justify-center gap-1.5 rounded-xl border border-stone-700 bg-stone-900 py-2.5 px-4 text-xs font-bold text-stone-200 hover:bg-stone-800 transition"
+                className="flex items-center justify-center gap-1.5 rounded-xl border border-stone-700 bg-stone-900 py-2.5 px-4 text-xs font-bold text-stone-200 hover:bg-stone-800 transition cursor-pointer"
               >
                 {copiedLink ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
-                {copiedLink ? 'تم النسخ!' : 'نسخ الرابط'}
+                <span>{copiedLink ? t('copiedLink') : t('copyLink')}</span>
               </button>
             </div>
           </div>
@@ -511,23 +556,25 @@ export default function AppInstallManager() {
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-[130] flex items-center justify-center bg-black/80 p-3 sm:p-4 backdrop-blur-sm animate-fade-in text-right"
+          dir={dir}
+          className="fixed inset-0 z-[130] flex items-center justify-center bg-black/80 p-3 sm:p-4 backdrop-blur-sm animate-fade-in"
         >
-          <div className="w-full max-w-md rounded-3xl border border-amber-500/40 bg-stone-950 p-5 sm:p-6 text-stone-100 shadow-2xl space-y-4">
+          <div className={`w-full max-w-md rounded-3xl border border-amber-500/40 bg-stone-950 p-5 sm:p-6 text-stone-100 shadow-2xl space-y-4 ${isRTL ? 'text-right' : 'text-left'}`}>
             <div className="flex items-center justify-between border-b border-stone-800 pb-3">
               <div className="flex items-center gap-2.5">
                 <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-tr from-amber-600 to-amber-400 text-stone-950 shadow-md">
                   <Share2 className="h-5 w-5" />
                 </div>
                 <div>
-                  <h3 className="text-base sm:text-lg font-bold text-amber-100">مشاركة تطبيق «حسب قلب الله»</h3>
-                  <p className="text-[11px] text-amber-400/80">شاركه مع آباء الكهنة والمكرسين والمخدومين</p>
+                  <h3 className="text-base sm:text-lg font-bold text-amber-100">{t('shareTitle')}</h3>
+                  <p className="text-[11px] text-amber-400/80">{t('shareSubtitle')}</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setShowShareModal(false)}
-                className="rounded-xl p-1.5 text-stone-400 hover:bg-stone-800 hover:text-stone-100 transition"
+                className="rounded-xl p-1.5 text-stone-400 hover:bg-stone-800 hover:text-stone-100 transition cursor-pointer"
+                aria-label={t('close')}
               >
                 <X className="h-5 w-5" />
               </button>
@@ -538,35 +585,45 @@ export default function AppInstallManager() {
               <button
                 type="button"
                 onClick={shareViaWhatsApp}
-                className="flex items-center justify-center gap-2 rounded-2xl border border-emerald-600/40 bg-emerald-950/40 hover:bg-emerald-900/50 p-3 text-emerald-200 text-xs font-bold transition shadow-xs cursor-pointer"
+                className="flex items-center justify-center gap-2 rounded-2xl border border-emerald-600/40 bg-emerald-950/40 hover:bg-emerald-900/50 p-3 text-emerald-200 text-xs font-bold transition shadow-xs cursor-pointer active:scale-95"
               >
                 <MessageCircle className="h-5 w-5 text-emerald-400" />
-                <span>واتساب (WhatsApp)</span>
+                <span>{t('shareWhatsApp')}</span>
               </button>
 
               <button
                 type="button"
                 onClick={shareViaTelegram}
-                className="flex items-center justify-center gap-2 rounded-2xl border border-sky-600/40 bg-sky-950/40 hover:bg-sky-900/50 p-3 text-sky-200 text-xs font-bold transition shadow-xs cursor-pointer"
+                className="flex items-center justify-center gap-2 rounded-2xl border border-sky-600/40 bg-sky-950/40 hover:bg-sky-900/50 p-3 text-sky-200 text-xs font-bold transition shadow-xs cursor-pointer active:scale-95"
               >
                 <Send className="h-5 w-5 text-sky-400" />
-                <span>تيليجرام (Telegram)</span>
+                <span>{t('shareTelegram')}</span>
               </button>
             </div>
+
+            {/* Facebook Share Button */}
+            <button
+              type="button"
+              onClick={shareViaFacebook}
+              className="w-full flex items-center justify-center gap-2 rounded-2xl border border-blue-600/40 bg-blue-950/40 hover:bg-blue-900/50 p-2.5 text-blue-200 text-xs font-bold transition shadow-xs cursor-pointer active:scale-95"
+            >
+              <ExternalLink className="h-4 w-4 text-blue-400" />
+              <span>{language === 'ar' ? 'مشاركة على فيسبوك (Facebook)' : 'Share on Facebook'}</span>
+            </button>
 
             {/* Native Mobile Share Button */}
             <button
               type="button"
               onClick={handleNativeShare}
-              className="w-full flex items-center justify-center gap-2 rounded-2xl bg-amber-600 hover:bg-amber-500 p-3 text-stone-950 text-xs font-bold transition shadow-md cursor-pointer"
+              className="w-full flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 p-3 text-stone-950 text-xs font-bold transition shadow-md cursor-pointer active:scale-95"
             >
               <Smartphone className="h-4 w-4" />
-              <span>مشاركة عبر قائمة الهاتف (فيسبوك، ماسنجر، بريد...)</span>
+              <span>{t('shareMobileNative')}</span>
             </button>
 
             {/* Copy Link Input Bar */}
             <div className="rounded-2xl border border-stone-800 bg-stone-900/90 p-3 space-y-2">
-              <span className="text-[11px] font-bold text-amber-400/80 block">رابط التطبيق المباشر:</span>
+              <span className="text-[11px] font-bold text-amber-400/80 block">{t('appDirectLink')}</span>
               <div className="flex items-center gap-2 bg-stone-950 rounded-xl p-1.5 border border-stone-800">
                 <input
                   type="text"
@@ -578,31 +635,31 @@ export default function AppInstallManager() {
                 <button
                   type="button"
                   onClick={handleCopyLink}
-                  className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition shrink-0 ${
+                  className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition shrink-0 cursor-pointer ${
                     copiedLink ? 'bg-emerald-600 text-white' : 'bg-amber-500 hover:bg-amber-400 text-stone-950'
                   }`}
                 >
                   {copiedLink ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-                  {copiedLink ? 'تم النسخ!' : 'نسخ'}
+                  <span>{copiedLink ? t('copiedLink') : t('copy')}</span>
                 </button>
               </div>
             </div>
 
             <div className="text-center pt-1">
-              <p className="text-[11px] text-stone-400">
-                «كُونُوا مُشْتَرِكِينَ فِي احْتِيَاجَاتِ الْقِدِّيسِينَ» (رو 12: 13)
+              <p className="text-[11px] text-stone-400 italic">
+                {t('shareVerse')}
               </p>
             </div>
           </div>
         </div>
       )}
 
-      {/* Offline Status Toast Notification */}
+      {/* Offline / Online Status Toast Notification */}
       {showOfflineToast && (
         <div
           role="status"
           aria-live="polite"
-          dir="rtl"
+          dir={dir}
           className="fixed inset-x-3 bottom-3 z-[125] mx-auto max-w-md rounded-2xl border border-amber-600/40 bg-stone-950/95 p-3.5 sm:p-4 text-stone-100 shadow-2xl shadow-black/60 backdrop-blur-md animate-fade-in sm:bottom-6"
           style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}
         >
@@ -612,21 +669,19 @@ export default function AppInstallManager() {
             }`}>
               {isOnline ? '🌐' : '📶'}
             </div>
-            <div className="flex-1 text-right space-y-1">
+            <div className={`flex-1 space-y-1 ${isRTL ? 'text-right' : 'text-left'}`}>
               <p className="font-bold text-amber-100 text-xs sm:text-sm">
-                {isOnline ? 'تم استعادة الاتصال بالإنترنت 🕊️' : 'أنت تعمل حالياً بدون إنترنت (وضع عدم الاتصال)'}
+                {isOnline ? t('onlineRestored') : t('offlineRunningNotice')}
               </p>
               <p className="text-[11px] leading-relaxed text-stone-300">
-                {isOnline 
-                  ? 'تم مزامنة المحتوى تلقائياً بنجاح.' 
-                  : 'جميع الميزات الأساسية والكتب ومخدع الصلاة وحصن المزامير متاحة ومحفوظة للعمل بكفاءة عالية.'}
+                {isOnline ? t('onlineSynced') : t('offlineFeaturesNotice')}
               </p>
             </div>
             <button
               type="button"
               onClick={() => setShowOfflineToast(false)}
-              className="rounded-lg p-1 text-stone-400 hover:bg-stone-800 hover:text-stone-100 transition"
-              aria-label="إغلاق التنبيه"
+              className="rounded-lg p-1 text-stone-400 hover:bg-stone-800 hover:text-stone-100 transition cursor-pointer"
+              aria-label={t('close')}
             >
               <X className="h-5 w-5" />
             </button>
@@ -637,13 +692,13 @@ export default function AppInstallManager() {
   );
 }
 
-function Banner({ children }: { children: React.ReactNode }) {
+function Banner({ children, dir }: { children: React.ReactNode; dir?: string }) {
   return (
     <div
       role="status"
       aria-live="polite"
-      dir="rtl"
-      className="fixed inset-x-3 bottom-3 z-[100] mx-auto max-w-md rounded-2xl border border-amber-600/30 bg-stone-950/95 p-3.5 sm:p-4 text-stone-100 shadow-2xl shadow-black/50 backdrop-blur-md sm:bottom-6"
+      dir={dir || 'rtl'}
+      className="fixed inset-x-3 bottom-3 z-[100] mx-auto max-w-md rounded-2xl border border-amber-600/30 bg-stone-950/95 p-3.5 sm:p-4 text-stone-100 shadow-2xl shadow-black/50 backdrop-blur-md sm:bottom-6 animate-fade-in"
       style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}
     >
       {children}
@@ -653,7 +708,7 @@ function Banner({ children }: { children: React.ReactNode }) {
 
 function IconBadge({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-tr from-amber-600 to-amber-400 text-stone-950">
+    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-tr from-amber-600 to-amber-400 text-stone-950 shadow-xs">
       {children}
     </div>
   );
@@ -665,7 +720,7 @@ function CloseButton({ onClick, label }: { onClick: () => void; label: string })
       type="button"
       onClick={onClick}
       aria-label={label}
-      className="rounded-lg p-1 text-stone-400 transition hover:bg-stone-800 hover:text-stone-100"
+      className="rounded-lg p-1 text-stone-400 transition hover:bg-stone-800 hover:text-stone-100 cursor-pointer"
     >
       <X className="h-5 w-5" aria-hidden="true" />
     </button>
@@ -686,7 +741,7 @@ function PrimaryButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-amber-500 px-3.5 py-2 text-xs font-bold text-stone-950 transition hover:bg-amber-400 disabled:opacity-60 cursor-pointer"
+      className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-amber-500 px-3.5 py-2 text-xs font-bold text-stone-950 transition hover:bg-amber-400 disabled:opacity-60 cursor-pointer shadow-xs active:scale-95"
     >
       {children}
     </button>
@@ -698,7 +753,7 @@ function SecondaryButton({ children, onClick }: { children: React.ReactNode; onC
     <button
       type="button"
       onClick={onClick}
-      className="rounded-xl border border-stone-700 px-3 py-2 text-xs font-semibold text-stone-300 transition hover:bg-stone-800 cursor-pointer"
+      className="rounded-xl border border-stone-700 px-3 py-2 text-xs font-semibold text-stone-300 transition hover:bg-stone-800 cursor-pointer active:scale-95"
     >
       {children}
     </button>

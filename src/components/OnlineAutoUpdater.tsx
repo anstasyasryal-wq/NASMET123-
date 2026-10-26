@@ -1,21 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useLanguage } from '../context/LanguageContext';
 
 export const OnlineAutoUpdater: React.FC = () => {
-  const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
+  const { t, language, dir, isRTL } = useLanguage();
+  const [isOnline, setIsOnline] = useState<boolean>(() => (typeof navigator !== 'undefined' ? navigator.onLine : true));
   const [showToast, setShowToast] = useState<boolean>(false);
-  const [toastMessage, setToastMessage] = useState<string>('تم الاتصال بالإنترنت - جاري تحديث المحتوى تلقائياً بالبركة ✝️');
+  const [toastMessage, setToastMessage] = useState<string>('');
 
   useEffect(() => {
     const handleOnline = () => {
       setIsOnline(true);
-      setToastMessage('✝️ تم استعادة الاتصال بالإنترنت - تم تحديث المحتوى والرسائل الروحية تلقائياً');
+      setToastMessage(language === 'ar' 
+        ? '✝️ تم استعادة الاتصال بالإنترنت - تم تحديث المحتوى والرسائل الروحية تلقائياً' 
+        : '✝️ Internet connection restored - Spiritual content and messages updated');
       setShowToast(true);
 
       // Trigger automatic content refresh / sync event
       window.dispatchEvent(new CustomEvent('app-auto-sync', { detail: { timestamp: Date.now() } }));
 
-      // Auto-hide toast after 4 seconds
       const timer = setTimeout(() => {
         setShowToast(false);
       }, 4500);
@@ -24,7 +27,9 @@ export const OnlineAutoUpdater: React.FC = () => {
 
     const handleOffline = () => {
       setIsOnline(false);
-      setToastMessage('⚠️ أنت تعمل حالياً في وضع غير متصل بالإنترنت - المحفوظات المحلية جاهزة');
+      setToastMessage(language === 'ar'
+        ? '⚠️ أنت تعمل حالياً في وضع غير متصل بالإنترنت - المحفوظات المحلية جاهزة'
+        : '⚠️ You are currently working offline - Offline cache is active');
       setShowToast(true);
 
       const timer = setTimeout(() => {
@@ -37,7 +42,7 @@ export const OnlineAutoUpdater: React.FC = () => {
     window.addEventListener('offline', handleOffline);
 
     // Also check for Service Worker updates if available
-    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+    if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator && navigator.serviceWorker.controller) {
       try {
         navigator.serviceWorker.ready
           .then((registration) => {
@@ -46,11 +51,11 @@ export const OnlineAutoUpdater: React.FC = () => {
               const installingWorker = registration.installing;
               if (installingWorker) {
                 installingWorker.onstatechange = () => {
-                  if (installingWorker.state === 'installed') {
-                    if (navigator.serviceWorker.controller) {
-                      setToastMessage('✨ توفر محتوى وبركة جديدة في التطبيق');
-                      setShowToast(true);
-                    }
+                  if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                    setToastMessage(language === 'ar' 
+                      ? '✨ توفر محتوى وتحديث جديد للتطبيق' 
+                      : '✨ New app update and content available');
+                    setShowToast(true);
                   }
                 };
               }
@@ -66,7 +71,7 @@ export const OnlineAutoUpdater: React.FC = () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-  }, []);
+  }, [language]);
 
   return (
     <AnimatePresence>
@@ -77,7 +82,7 @@ export const OnlineAutoUpdater: React.FC = () => {
           exit={{ opacity: 0, y: -30, scale: 0.95 }}
           transition={{ duration: 0.3, ease: 'easeOut' }}
           className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 max-w-md w-full px-4"
-          dir="rtl"
+          dir={dir}
         >
           <div className={`shadow-2xl rounded-2xl p-4 flex items-center justify-between border backdrop-blur-md ${
             isOnline 
@@ -88,18 +93,20 @@ export const OnlineAutoUpdater: React.FC = () => {
               <span className="text-2xl animate-bounce">
                 {isOnline ? '🕊️' : '📶'}
               </span>
-              <div>
+              <div className={isRTL ? 'text-right' : 'text-left'}>
                 <p className="text-xs font-bold font-spiritual">{toastMessage}</p>
                 <p className="text-[10px] opacity-80">
-                  {isOnline ? 'مزامنة فورية للبيانات والرسائل والمسابقات' : 'يعمل بسلاسة بدون انترنت'}
+                  {isOnline 
+                    ? (language === 'ar' ? 'مزامنة فورية للبيانات والرسائل والمسابقات' : 'Instant sync for data and stages')
+                    : (language === 'ar' ? 'يعمل بسلاسة وبدون إنترنت' : 'Works smoothly offline')}
                 </p>
               </div>
             </div>
             <button
               onClick={() => setShowToast(false)}
-              className="text-xs px-2 py-1 bg-white/10 hover:bg-white/20 rounded-lg transition-colors"
+              className="text-xs px-2.5 py-1 bg-white/10 hover:bg-white/20 rounded-lg transition-colors cursor-pointer"
             >
-              إخفاء
+              {t('dismiss')}
             </button>
           </div>
         </motion.div>
