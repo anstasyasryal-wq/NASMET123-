@@ -37,22 +37,29 @@ export const OnlineAutoUpdater: React.FC = () => {
     window.addEventListener('offline', handleOffline);
 
     // Also check for Service Worker updates if available
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.ready.then((registration) => {
-        registration.onupdatefound = () => {
-          const installingWorker = registration.installing;
-          if (installingWorker) {
-            installingWorker.onstatechange = () => {
-              if (installingWorker.state === 'installed') {
-                if (navigator.serviceWorker.controller) {
-                  setToastMessage('✨ توفر محتوى وبركة جديدة في التطبيق');
-                  setShowToast(true);
-                }
+    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+      try {
+        navigator.serviceWorker.ready
+          .then((registration) => {
+            if (!registration) return;
+            registration.onupdatefound = () => {
+              const installingWorker = registration.installing;
+              if (installingWorker) {
+                installingWorker.onstatechange = () => {
+                  if (installingWorker.state === 'installed') {
+                    if (navigator.serviceWorker.controller) {
+                      setToastMessage('✨ توفر محتوى وبركة جديدة في التطبيق');
+                      setShowToast(true);
+                    }
+                  }
+                };
               }
             };
-          }
-        };
-      });
+          })
+          .catch(() => {});
+      } catch {
+        // Storage or SW restricted in iframe
+      }
     }
 
     return () => {

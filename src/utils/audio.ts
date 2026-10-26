@@ -9,9 +9,13 @@ class SoundEffectsManager {
 
   constructor() {
     if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('mokarasa_sound_muted');
-      if (stored !== null) {
-        this.isMuted = stored === 'true';
+      try {
+        const stored = localStorage.getItem('mokarasa_sound_muted');
+        if (stored !== null) {
+          this.isMuted = stored === 'true';
+        }
+      } catch {
+        // Storage restricted in iframe/webview
       }
     }
   }

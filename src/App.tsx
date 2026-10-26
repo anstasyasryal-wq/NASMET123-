@@ -25,6 +25,7 @@ import { recordViewVisit } from './utils/preloadManager';
 import { motion } from 'framer-motion';
 import { SpiritualHymnsPlayer } from './components/SpiritualHymnsPlayer';
 import { FloatingSpiritualGuideFAB } from './components/FloatingSpiritualGuideFAB';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 // Lazy-loaded Views (Code Splitting for instant mobile startup)
 const StagePlayer = lazy(() => import('./components/StagePlayer').then(m => ({ default: m.StagePlayer })));
@@ -700,13 +701,15 @@ function AppContent() {
 
 export default function App() {
   return (
-    <LanguageProvider>
-      <ReadingThemeProvider>
-        <HymnsAudioProvider>
-          <AppContent />
-          <AppInstallManager />
-        </HymnsAudioProvider>
-      </ReadingThemeProvider>
-    </LanguageProvider>
+    <ErrorBoundary>
+      <LanguageProvider>
+        <ReadingThemeProvider>
+          <HymnsAudioProvider>
+            <AppContent />
+            <AppInstallManager />
+          </HymnsAudioProvider>
+        </ReadingThemeProvider>
+      </LanguageProvider>
+    </ErrorBoundary>
   );
 }

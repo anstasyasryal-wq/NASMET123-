@@ -62,6 +62,8 @@ export default function AppInstallManager() {
   const [isUpdating, setIsUpdating] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const [activeTab, setActiveTab] = useState<'android' | 'ios' | 'desktop'>('android');
+  const [isOnline, setIsOnline] = useState<boolean>(typeof navigator !== 'undefined' ? navigator.onLine : true);
+  const [showOfflineToast, setShowOfflineToast] = useState<boolean>(false);
 
   const {
     needRefresh: [needRefresh, setNeedRefresh],
@@ -144,6 +146,33 @@ export default function AppInstallManager() {
       window.removeEventListener('show-share-modal', handleOpenShareModal);
     };
   }, [installEvent]);
+
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true);
+      setShowOfflineToast(true);
+      const timer = setTimeout(() => setShowOfflineToast(false), 4500);
+      return () => clearTimeout(timer);
+    };
+
+    const handleOffline = () => {
+      setIsOnline(false);
+      setShowOfflineToast(true);
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      setIsOnline(false);
+      setShowOfflineToast(true);
+    }
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   useEffect(() => {
     if (!offlineReady) return;
@@ -564,6 +593,43 @@ export default function AppInstallManager() {
                 «كُونُوا مُشْتَرِكِينَ فِي احْتِيَاجَاتِ الْقِدِّيسِينَ» (رو 12: 13)
               </p>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Offline Status Toast Notification */}
+      {showOfflineToast && (
+        <div
+          role="status"
+          aria-live="polite"
+          dir="rtl"
+          className="fixed inset-x-3 bottom-3 z-[125] mx-auto max-w-md rounded-2xl border border-amber-600/40 bg-stone-950/95 p-3.5 sm:p-4 text-stone-100 shadow-2xl shadow-black/60 backdrop-blur-md animate-fade-in sm:bottom-6"
+          style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}
+        >
+          <div className="flex items-start gap-3">
+            <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-stone-950 font-bold ${
+              isOnline ? 'bg-emerald-400' : 'bg-amber-500'
+            }`}>
+              {isOnline ? '🌐' : '📶'}
+            </div>
+            <div className="flex-1 text-right space-y-1">
+              <p className="font-bold text-amber-100 text-xs sm:text-sm">
+                {isOnline ? 'تم استعادة الاتصال بالإنترنت 🕊️' : 'أنت تعمل حالياً بدون إنترنت (وضع عدم الاتصال)'}
+              </p>
+              <p className="text-[11px] leading-relaxed text-stone-300">
+                {isOnline 
+                  ? 'تم مزامنة المحتوى تلقائياً بنجاح.' 
+                  : 'جميع الميزات الأساسية والكتب ومخدع الصلاة وحصن المزامير متاحة ومحفوظة للعمل بكفاءة عالية.'}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowOfflineToast(false)}
+              className="rounded-lg p-1 text-stone-400 hover:bg-stone-800 hover:text-stone-100 transition"
+              aria-label="إغلاق التنبيه"
+            >
+              <X className="h-5 w-5" />
+            </button>
           </div>
         </div>
       )}

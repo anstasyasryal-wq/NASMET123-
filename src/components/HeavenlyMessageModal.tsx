@@ -36,6 +36,7 @@ import {
   recordMessageSeen,
 } from '../utils/heavenlyHistory';
 import { soundManager } from '../utils/audio';
+import { speakEgyptianText, stopSpeech } from '../utils/speechHelper';
 
 interface HeavenlyMessageModalProps {
   isOpen: boolean;
@@ -224,35 +225,31 @@ export const HeavenlyMessageModal: React.FC<HeavenlyMessageModalProps> = ({
     }
   };
 
-  // Read message aloud using speech synthesis
+  // Read message aloud using speech synthesis with Egyptian accent & full text preservation
   const handleToggleSpeech = () => {
     if (typeof window === 'undefined' || !window.speechSynthesis) return;
 
     if (isSpeaking) {
-      window.speechSynthesis.cancel();
+      stopSpeech();
       setIsSpeaking(false);
       return;
     }
 
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(
-      `${currentMessage.salutation}. ${currentMessage.message}. الشاهد من الكتاب المقدس: ${currentMessage.verse}. ${currentMessage.verseRef}. تأمل اليوم: ${currentMessage.reflection}.`
-    );
-    utterance.lang = 'ar-SA';
-    utterance.rate = 0.9;
-    utterance.onend = () => setIsSpeaking(false);
-    utterance.onerror = () => setIsSpeaking(false);
+    const fullTextToSpeak = `${currentMessage.salutation}. ${currentMessage.message}. الشاهد من الكتاب المقدس: ${currentMessage.verse}. ${currentMessage.verseRef}. تأمل اليوم: ${currentMessage.reflection}.`;
 
     setIsSpeaking(true);
-    window.speechSynthesis.speak(utterance);
+    speakEgyptianText(
+      fullTextToSpeak,
+      () => setIsSpeaking(true),
+      () => setIsSpeaking(false),
+      () => setIsSpeaking(false)
+    );
   };
 
   // Stop speaking when closed
   useEffect(() => {
     if (!isOpen && isSpeaking) {
-      if (typeof window !== 'undefined' && window.speechSynthesis) {
-        window.speechSynthesis.cancel();
-      }
+      stopSpeech();
       setIsSpeaking(false);
     }
   }, [isOpen, isSpeaking]);

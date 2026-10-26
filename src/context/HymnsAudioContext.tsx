@@ -625,8 +625,7 @@ export const HymnsAudioProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       timerRef.current = window.setInterval(() => {
         setCurrentTime((prev) => {
           if (prev >= duration) {
-            // Auto-advance
-            nextTrack();
+            nextTrackRef.current();
             return 0;
           }
           return prev + 1;
@@ -644,7 +643,7 @@ export const HymnsAudioProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         timerRef.current = null;
       }
     };
-  }, [isPlaying, usingFile, duration, currentTrackIndex, currentOccasionIndex]);
+  }, [isPlaying, usingFile, duration]);
 
   // Clean on unmount
   useEffect(() => {

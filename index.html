@@ -26,16 +26,133 @@
     <link rel="dns-prefetch" href="https://fonts.gstatic.com">
     <link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
     <script>
-      // Defensive guard for WebSocket/HMR errors in iframe preview
-      window.addEventListener('error', function(event) {
-        if (event && event.message && (
-          event.message.indexOf("reading 'send'") !== -1 ||
-          event.message.indexOf('WebSocket') !== -1
-        )) {
-          event.stopImmediatePropagation();
-          event.preventDefault();
+      (function() {
+        // App Boot Diagnostics & Structured Logging System
+        var logs = [];
+        var startTime = performance.now();
+
+        function log(level, message, extra) {
+          var time = ((performance.now() - startTime) / 1000).toFixed(3) + 's';
+          var logEntry = { time: time, level: level, message: message, extra: extra || null };
+          logs.push(logEntry);
+
+          var prefix = '%c[AppBoot ' + time + '] [' + level + ']';
+          var style = level === 'ERROR' ? 'color: #ef4444; font-weight: bold;' :
+                      level === 'WARN'  ? 'color: #f59e0b; font-weight: bold;' :
+                      level === 'SUCCESS' ? 'color: #10b981; font-weight: bold;' :
+                      'color: #3b82f6; font-weight: bold;';
+
+          if (extra !== undefined && extra !== null) {
+            console.log(prefix + ' ' + message, style, extra);
+          } else {
+            console.log(prefix + ' ' + message, style);
+          }
         }
-      }, true);
+
+        window.__APP_BOOT_LOGGER__ = {
+          log: log,
+          getLogs: function() { return logs; },
+          markMounted: function() {
+            log('SUCCESS', 'React App mounted successfully!');
+            window.__REACT_MOUNTED__ = true;
+          }
+        };
+
+        log('INFO', 'Initializing "حسب قلب الله" Boot Sequence...');
+
+        // 1. React Fast Refresh Preamble Guard for Vite preview
+        window.$RefreshReg$ = window.$RefreshReg$ || function() {};
+        window.$RefreshSig$ = window.$RefreshSig$ || function() { return function(type) { return type; }; };
+        window.__vite_plugin_react_preamble_installed__ = true;
+        log('INFO', 'Vite Fast Refresh Preamble Guard installed.');
+
+        // 2. Storage & Web API Capability Check
+        try {
+          var testKey = '__boot_storage_test__';
+          localStorage.setItem(testKey, '1');
+          localStorage.removeItem(testKey);
+          log('INFO', 'Local Storage accessibility confirmed.');
+        } catch (e) {
+          log('WARN', 'Local Storage restricted or unavailable in window context.', e.message);
+        }
+
+        // 3. Uncaught Error Event Listener
+        window.addEventListener('error', function(event) {
+          var msg = event && event.message ? event.message : 'Unknown script error';
+          var source = event && event.filename ? event.filename : 'Unknown source';
+          var line = event && event.lineno ? event.lineno : 0;
+          var col = event && event.colno ? event.colno : 0;
+          var err = event && event.error ? event.error : null;
+
+          // Non-fatal preview noise filters
+          if (msg.indexOf("reading 'send'") !== -1 ||
+              msg.indexOf('WebSocket') !== -1 ||
+              msg.indexOf('preamble') !== -1 ||
+              msg.indexOf('serviceWorker') !== -1) {
+            log('WARN', 'Suppressed non-fatal background event: ' + msg);
+            event.stopImmediatePropagation();
+            event.preventDefault();
+            return;
+          }
+
+          log('ERROR', 'Uncaught Runtime Error: ' + msg + ' @ ' + source + ':' + line + ':' + col, err);
+
+          // If React root has not mounted yet, display diagnostic notice
+          if (!window.__REACT_MOUNTED__) {
+            showDiagnosticNotice(msg, source + ':' + line);
+          }
+        }, true);
+
+        // 4. Unhandled Promise Rejection Listener
+        window.addEventListener('unhandledrejection', function(event) {
+          var reason = event && event.reason;
+          var reasonMsg = reason && reason.message ? reason.message : String(reason);
+
+          if (reasonMsg.indexOf('WebSocket') !== -1 ||
+              reasonMsg.indexOf('serviceWorker') !== -1 ||
+              reasonMsg.indexOf('Failed to fetch dynamically imported module') !== -1) {
+            log('WARN', 'Handled transient network/module rejection: ' + reasonMsg);
+            event.preventDefault();
+            return;
+          }
+
+          log('ERROR', 'Unhandled Promise Rejection: ' + reasonMsg, reason);
+
+          if (!window.__REACT_MOUNTED__) {
+            showDiagnosticNotice('Promise Rejection: ' + reasonMsg, 'Async Initializer');
+          }
+        });
+
+        // 5. Watchdog Timeout for Initial Load
+        setTimeout(function() {
+          if (!window.__REACT_MOUNTED__) {
+            log('WARN', 'App boot timeout (>8s). React root has not mounted yet.');
+          }
+        }, 8000);
+
+        // Helper to render diagnostic UI on initial load failure
+        function showDiagnosticNotice(errorMsg, locationStr) {
+          var rootEl = document.getElementById('root');
+          if (!rootEl || window.__REACT_MOUNTED__) return;
+
+          rootEl.innerHTML =
+            '<div style="min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; background-color: #0c0a09; color: #f5f5f4; text-align: center; font-family: system-ui, -apple-system, sans-serif; padding: 24px;" dir="rtl">' +
+              '<div style="width: 72px; height: 72px; border-radius: 20px; background: rgba(245, 158, 11, 0.15); border: 2px solid rgba(245, 158, 11, 0.4); display: flex; align-items: center; justify-content: center; font-size: 36px; margin-bottom: 16px;">' +
+                '✝️' +
+              '</div>' +
+              '<h1 style="font-size: 20px; font-weight: 800; color: #fbbf24; margin: 0 0 8px 0;">حسب قلب الله</h1>' +
+              '<p style="font-size: 13px; color: #d6d3d1; max-width: 360px; line-height: 1.6; margin: 0 0 16px 0;">' +
+                'جاري ضبط الاتصال وإتاحة التطبيق بالكامل...' +
+              '</p>' +
+              '<div style="background: rgba(28, 25, 23, 0.9); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 12px; padding: 10px 14px; font-size: 11px; font-family: monospace; color: #fbbf24; max-width: 420px; text-align: left; direction: ltr; margin-bottom: 20px; word-break: break-all; box-shadow: 0 8px 20px rgba(0,0,0,0.4);">' +
+                'Boot Error: ' + (errorMsg || 'Load Failure').replace(/</g, '&lt;') + '<br>Context: ' + (locationStr || 'main.tsx').replace(/</g, '&lt;') +
+              '</div>' +
+              '<button onclick="window.location.reload()" style="background: #f59e0b; color: #0c0a09; border: none; padding: 10px 22px; border-radius: 12px; font-weight: 800; font-size: 13px; cursor: pointer; box-shadow: 0 4px 12px rgba(245,158,11,0.3);">' +
+                'إعادة التحميل 🔄' +
+              '</button>' +
+            '</div>';
+        }
+      })();
     </script>
     <style>
       @keyframes spinLoader {

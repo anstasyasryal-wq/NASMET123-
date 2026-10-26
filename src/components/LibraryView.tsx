@@ -19,6 +19,7 @@ import {
   ShieldCheck,
   Globe,
 } from 'lucide-react';
+import { useReadingTheme } from '../context/ReadingThemeContext';
 import { useVirtualGrid } from '../hooks/useVirtualList';
 import { AUTHENTIC_COPTIC_BOOKS, BookItem } from '../data/authenticCopticBooks';
 
@@ -331,6 +332,7 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
   const [readingBook, setReadingBook] = useState<BookItem | null>(null);
   const [activeChapterIdx, setActiveChapterIdx] = useState<number>(0);
   const [fontSize, setFontSize] = useState<'normal' | 'large' | 'huge'>('normal');
+  const { themeMode, setThemeMode, getReadingContainerClass, getReadingTextClass } = useReadingTheme();
 
   const [readingArticle, setReadingArticle] = useState<DeepArticle | null>(null);
   const [quizAnswers, setQuizAnswers] = useState<Record<string, number>>({});
@@ -532,15 +534,43 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
         </button>
       </div>
 
-      <div className="rounded-3xl bg-gradient-to-r from-stone-900 via-amber-950 to-stone-900 text-stone-100 p-6 sm:p-8 border border-amber-800/50 shadow-xl space-y-4">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-900/60 border border-amber-600/40 text-amber-300 text-xs font-semibold">
-          <BookOpen className="w-3.5 h-3.5 text-amber-400" />
-          <span>المستودع الرقمي والوثائقي للكتب المسيحية الموثوقة</span>
+      <div className={`rounded-3xl p-6 sm:p-8 border shadow-xl space-y-4 ${getReadingContainerClass()}`}>
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-900/60 border border-amber-600/40 text-amber-300 text-xs font-semibold">
+            <BookOpen className="w-3.5 h-3.5 text-amber-400" />
+            <span>المستودع الرقمي والوثائقي للكتب المسيحية الموثوقة</span>
+          </div>
+
+          {/* Auto Eye-Comfort Theme Selector */}
+          <div className="flex items-center gap-1.5 bg-stone-950/80 p-1.5 rounded-2xl border border-stone-800 text-xs font-bold">
+            <span className="text-[11px] text-amber-300 px-1.5">وضع القراءة:</span>
+            <button
+              onClick={() => setThemeMode('light')}
+              className={`px-2.5 py-1 rounded-xl transition ${themeMode === 'light' ? 'bg-amber-600 text-white' : 'text-stone-400 hover:text-stone-200'}`}
+            >
+              ☀️ نهاري
+            </button>
+            <button
+              onClick={() => setThemeMode('night')}
+              className={`px-2.5 py-1 rounded-xl transition ${themeMode === 'night' ? 'bg-amber-600 text-white' : 'text-stone-400 hover:text-stone-200'}`}
+            >
+              🌙 ليلي
+            </button>
+            <button
+              onClick={() => setThemeMode('auto')}
+              className={`px-2.5 py-1 rounded-xl transition flex items-center gap-1 ${themeMode === 'auto' ? 'bg-emerald-600 text-white' : 'text-stone-400 hover:text-stone-200'}`}
+              title="تعديل تلقائي للإضاءة وراحة العين"
+            >
+              <span>👁️</span>
+              <span>تلقائي</span>
+            </button>
+          </div>
         </div>
+
         <h1 className="font-spiritual text-2xl sm:text-3xl font-bold text-amber-100">
           📚 مكتبة الكتب والمراجع الآبائية والأرثوذكسية الكاملة
         </h1>
-        <p className="text-xs sm:text-sm text-stone-300 leading-relaxed max-w-2xl">
+        <p className={`text-xs sm:text-sm leading-relaxed max-w-2xl ${getReadingTextClass()}`}>
           مكتبة مسيحية موثقة تضم أمهات الكتب الآبائية واللاهوتية والنسكية والطقسية بالنصوص الكاملة المتاحة تحت رخص الملك العام والبحث العلمي.
         </p>
 
