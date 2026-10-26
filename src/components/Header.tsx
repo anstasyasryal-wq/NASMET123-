@@ -31,6 +31,7 @@ import {
   ChevronDown,
   Download,
   Share2,
+  Type,
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -70,9 +71,9 @@ export const Header: React.FC<HeaderProps> = memo(({
   const [isMuted, setIsMuted] = useState(soundManager.getIsMuted());
   const [internalMobileMenuOpen, setInternalMobileMenuOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const { isNightMode, toggleNightMode } = useReadingTheme();
+  const { isNightMode, toggleNightMode, openFontModal } = useReadingTheme();
   const { isPlaying, openPlayerModal, currentOccasion } = useHymnsAudio();
-  const { language, toggleLanguage } = useLanguage();
+  const { language, toggleLanguage, t, dir, isRTL } = useLanguage();
 
   const isMobileMenuOpen = externalMobileMenuOpen !== undefined ? externalMobileMenuOpen : internalMobileMenuOpen;
 
@@ -99,17 +100,17 @@ export const Header: React.FC<HeaderProps> = memo(({
   };
 
   const navLinks = [
-    { view: 'home' as AppView, label: 'الرئيسية (العجلة)', icon: Home, badge: 'المركز' },
-    { view: 'competitions_hub' as AppView, label: 'المسابقات والمراحل', icon: Trophy, badge: 'المسابقة' },
-    { view: 'prayer_fortress' as AppView, label: 'حصن الصلاة اليومي', icon: Shield, badge: 'يومي' },
-    { view: 'virtue_jar' as AppView, label: 'حصالة الفضائل', icon: Coins, badge: 'تفاعلي' },
-    { view: 'consecrated_manual' as AppView, label: 'مرجع المكرس', icon: ScrollText, badge: 'وثائقي' },
-    { view: 'spiritual_father' as AppView, label: 'أبوي الروحي وإعداد الاعتراف', icon: ShieldCheck, badge: 'إرشاد' },
-    { view: 'monastic_oasis' as AppView, label: 'دستور المكرس', icon: Compass, badge: 'نسكي' },
-    { view: 'spiritual_life' as AppView, label: 'الحياة الروحية', icon: Heart, badge: 'مخدع' },
-    { view: 'library' as AppView, label: 'المكتبة والآباء', icon: BookOpen, badge: 'مراجع' },
-    { view: 'collective_challenges' as AppView, label: 'التحديات الجماعية', icon: Users, badge: 'مشاركات' },
-    { view: 'spiritual_calendar' as AppView, label: 'التقويم الكنسي', icon: Calendar, badge: 'طقسي' },
+    { view: 'home' as AppView, label: t('homeWheel'), icon: Home, badge: language === 'ar' ? 'المركز' : 'Hub' },
+    { view: 'competitions_hub' as AppView, label: t('competitions'), icon: Trophy, badge: language === 'ar' ? 'المسابقة' : 'Contest' },
+    { view: 'prayer_fortress' as AppView, label: t('prayerFortressTitle'), icon: Shield, badge: language === 'ar' ? 'يومي' : 'Daily' },
+    { view: 'virtue_jar' as AppView, label: t('virtueJar'), icon: Coins, badge: language === 'ar' ? 'تفاعلي' : 'Virtues' },
+    { view: 'consecrated_manual' as AppView, label: t('consecratedManual'), icon: ScrollText, badge: language === 'ar' ? 'وثائقي' : 'Manual' },
+    { view: 'spiritual_father' as AppView, label: t('spiritualFather'), icon: ShieldCheck, badge: language === 'ar' ? 'إرشاد' : 'Guidance' },
+    { view: 'monastic_oasis' as AppView, label: t('monasticOasis'), icon: Compass, badge: language === 'ar' ? 'نسكي' : 'Oasis' },
+    { view: 'spiritual_life' as AppView, label: t('spiritualLife'), icon: Heart, badge: language === 'ar' ? 'مخدع' : 'Closet' },
+    { view: 'library' as AppView, label: t('library'), icon: BookOpen, badge: language === 'ar' ? 'مراجع' : 'Library' },
+    { view: 'collective_challenges' as AppView, label: t('collectiveChallenges'), icon: Users, badge: language === 'ar' ? 'مشاركات' : 'Shared' },
+    { view: 'spiritual_calendar' as AppView, label: t('spiritualCalendar'), icon: Calendar, badge: language === 'ar' ? 'طقسي' : 'Calendar' },
   ];
 
   return (
@@ -127,17 +128,17 @@ export const Header: React.FC<HeaderProps> = memo(({
             onNavigate('home');
             closeMobileMenu();
           }}
-          className="flex items-center gap-1.5 sm:gap-2 cursor-pointer group select-none text-right shrink-0 min-w-0"
+          className={`flex items-center gap-1.5 sm:gap-2 cursor-pointer group select-none shrink-0 min-w-0 ${isRTL ? 'text-right' : 'text-left'}`}
         >
           <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-amber-600 to-amber-400 text-stone-950 flex items-center justify-center shadow-md shadow-amber-600/20 group-hover:scale-105 transition font-bold text-base sm:text-xl shrink-0">
             ✝️
           </div>
           <div className="min-w-0">
             <span className="font-spiritual font-black text-sm min-[380px]:text-base sm:text-xl tracking-wide text-amber-100 block truncate">
-              حسب قلب الله
+              {t('appTitle')}
             </span>
             <p className="text-[9px] text-amber-400/80 hidden sm:block truncate">
-              بوابة التكريس والعلوم الكنسية والتقييم الروحي
+              {t('appSubtitle')}
             </p>
           </div>
         </div>
@@ -153,7 +154,7 @@ export const Header: React.FC<HeaderProps> = memo(({
             }`}
           >
             <Home className="w-3.5 h-3.5" />
-            <span>الرئيسية</span>
+            <span>{t('home')}</span>
           </button>
 
           <button
@@ -165,7 +166,7 @@ export const Header: React.FC<HeaderProps> = memo(({
             }`}
           >
             <BookOpen className="w-3.5 h-3.5" />
-            <span>المكتبة والكتب</span>
+            <span>{t('libraryNav')}</span>
           </button>
 
           <button
@@ -177,7 +178,7 @@ export const Header: React.FC<HeaderProps> = memo(({
             }`}
           >
             <Heart className="w-3.5 h-3.5" />
-            <span>رحلتي الروحية</span>
+            <span>{t('mySpiritualJourney')}</span>
           </button>
 
           <button
@@ -189,7 +190,7 @@ export const Header: React.FC<HeaderProps> = memo(({
             }`}
           >
             <Trophy className="w-3.5 h-3.5" />
-            <span>المسابقات</span>
+            <span>{t('competitions')}</span>
           </button>
 
           {/* Global Directory Button */}
@@ -201,7 +202,7 @@ export const Header: React.FC<HeaderProps> = memo(({
             className="px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 shadow-xs"
           >
             <Compass className="w-3.5 h-3.5 text-amber-400" />
-            <span>الدليل والبحث 🧭</span>
+            <span>{t('directoryNav')}</span>
           </button>
 
           {/* Dropdown Menu for All Sections */}
@@ -209,16 +210,16 @@ export const Header: React.FC<HeaderProps> = memo(({
             <button
               onClick={() => setDropdownOpen(!dropdownOpen)}
               className="px-2.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1 bg-stone-900 hover:bg-stone-800 text-stone-300 border border-stone-700"
-              title="كل الأقسام"
+              title={t('more')}
             >
-              <span>المزيد</span>
+              <span>{t('more')}</span>
               <ChevronDown className="w-3 h-3" />
             </button>
 
             {dropdownOpen && (
-              <div className="absolute top-full right-0 mt-2 w-72 bg-stone-950 border border-amber-600/40 rounded-2xl shadow-2xl p-2 z-50 space-y-1 animate-fade-in text-right">
+              <div className={`absolute top-full ${isRTL ? 'right-0 text-right' : 'left-0 text-left'} mt-2 w-72 bg-stone-950 border border-amber-600/40 rounded-2xl shadow-2xl p-2 z-50 space-y-1 animate-fade-in`}>
                 <div className="text-[10px] font-bold text-amber-400/80 px-3 py-1 border-b border-stone-800 mb-1">
-                  الخدمات الروحية والمكتسبات
+                  {t('servicesAndGains')}
                 </div>
                 {navLinks.slice(1).map((l) => {
                   const IconComponent = l.icon;
@@ -231,14 +232,15 @@ export const Header: React.FC<HeaderProps> = memo(({
                       }}
                       onMouseEnter={() => prefetchView(l.view)}
                       onTouchStart={() => prefetchView(l.view)}
-                      className={`w-full px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2.5 text-right cursor-pointer ${
+                      className={`w-full px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2.5 cursor-pointer ${isRTL ? 'text-right' : 'text-left'} ${
                         currentView === l.view
                           ? 'bg-amber-600 text-white'
                           : 'text-stone-200 hover:bg-stone-900 hover:text-amber-200'
                       }`}
                     >
                       <IconComponent className="w-4 h-4 text-amber-400 shrink-0" />
-                      <span>{l.label}</span>
+                      <span className="flex-1">{l.label}</span>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-stone-800 text-stone-400">{l.badge}</span>
                     </button>
                   );
                 })}
@@ -257,10 +259,10 @@ export const Header: React.FC<HeaderProps> = memo(({
                 ? 'bg-emerald-800/60 text-emerald-200 border-emerald-500'
                 : 'bg-emerald-950/40 hover:bg-emerald-900/50 text-emerald-300 border-emerald-600/40'
             }`}
-            title="شجرة التكريس والإنجاز اليومي"
+            title={t('spiritualTreeCard')}
           >
             <span className="text-sm">🌳</span>
-            <span className="hidden md:inline">شجرة التكريس</span>
+            <span className="hidden md:inline">{t('spiritualTreeCard')}</span>
           </button>
 
           {/* Daily Prayer Fortress Button - Desktop only */}
@@ -273,10 +275,10 @@ export const Header: React.FC<HeaderProps> = memo(({
                 ? 'bg-amber-600 text-white border-amber-400'
                 : 'bg-gradient-to-r from-amber-600/20 via-stone-900 to-amber-700/20 hover:from-amber-600/30 text-amber-200 border-amber-500/40'
             }`}
-            title="حصن الصلاة اليومي"
+            title={t('prayerFortressTitle')}
           >
             <span className="text-sm">🛡️</span>
-            <span>حصن الصلاة</span>
+            <span>{t('prayerFortress')}</span>
           </button>
 
           {/* Spiritual Guide Button - Large screen only */}
@@ -334,7 +336,7 @@ export const Header: React.FC<HeaderProps> = memo(({
           <button
             onClick={toggleNightMode}
             className="hidden sm:flex items-center justify-center w-10 h-10 rounded-xl bg-stone-900/90 hover:bg-stone-800 border border-stone-800 text-amber-400 transition cursor-pointer shrink-0 touch-manipulation active:scale-95 shadow-xs"
-            title={isNightMode ? 'الوضع النهاري' : 'الوضع الليلي'}
+            title={isNightMode ? t('dayMode') : t('nightMode')}
             aria-label="تبديل وضع القراءة"
           >
             {isNightMode ? (
@@ -344,14 +346,24 @@ export const Header: React.FC<HeaderProps> = memo(({
             )}
           </button>
 
+          {/* Eye Comfort Font Picker - Desktop only */}
+          <button
+            onClick={openFontModal}
+            className="hidden sm:flex items-center justify-center w-10 h-10 rounded-xl bg-stone-900/90 hover:bg-stone-800 border border-stone-800 text-amber-300 transition cursor-pointer shrink-0 touch-manipulation active:scale-95 shadow-xs"
+            title={t('eyeComfortFonts')}
+            aria-label={t('eyeComfortFonts')}
+          >
+            <Type className="w-4 h-4 text-amber-300" />
+          </button>
+
           {/* Language Toggle Button - Desktop only */}
           <button
             onClick={toggleLanguage}
             className="hidden sm:flex items-center justify-center w-10 h-10 rounded-xl bg-stone-900/90 hover:bg-stone-800 border border-stone-800 text-amber-300 font-bold text-xs transition cursor-pointer shrink-0 touch-manipulation active:scale-95 shadow-xs"
-            title="تبديل اللغة (العربية / English)"
+            title={language === 'ar' ? 'Switch to English' : 'التحويل إلى العربية'}
             aria-label="تبديل اللغة"
           >
-            {language === 'ar' ? 'EN' : 'AR'}
+            {language === 'ar' ? 'EN' : 'عربي'}
           </button>
 
           {/* Silent Retreat Button - Desktop only */}
@@ -359,8 +371,8 @@ export const Header: React.FC<HeaderProps> = memo(({
             <button
               onClick={onOpenSilentRetreat}
               className="hidden sm:flex items-center justify-center w-10 h-10 rounded-xl bg-amber-600/20 hover:bg-amber-600/30 border border-amber-500/40 text-amber-300 transition cursor-pointer shrink-0 touch-manipulation active:scale-95 shadow-xs text-sm"
-              title="خلوة الصمت السكونية"
-              aria-label="خلوة الصمت"
+              title={t('silentRetreat')}
+              aria-label={t('silentRetreat')}
             >
               🕯️
             </button>
@@ -370,34 +382,34 @@ export const Header: React.FC<HeaderProps> = memo(({
           <button
             onClick={() => window.dispatchEvent(new Event('show-share-modal'))}
             className="flex items-center justify-center gap-1.5 h-9 px-2.5 sm:h-10 sm:px-3 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-200 transition cursor-pointer shrink-0 touch-manipulation active:scale-95 shadow-xs text-xs font-bold"
-            title="مشاركة التطبيق مع الآخرين"
-            aria-label="مشاركة التطبيق"
+            title={t('shareApp')}
+            aria-label={t('share')}
           >
             <Share2 className="w-4 h-4 text-amber-400 shrink-0" />
-            <span className="hidden sm:inline">مشاركة</span>
+            <span className="hidden sm:inline">{t('share')}</span>
           </button>
 
           {/* Install App Button */}
           <button
             onClick={() => window.dispatchEvent(new Event('show-install-prompt'))}
             className="hidden md:flex items-center justify-center gap-1.5 h-10 px-3 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-200 transition cursor-pointer shrink-0 touch-manipulation active:scale-95 shadow-xs text-xs font-bold"
-            title="تثبيت التطبيق على جهازك"
-            aria-label="تثبيت التطبيق"
+            title={t('installApp')}
+            aria-label={t('installApp')}
           >
             <Download className="w-4 h-4 text-amber-400 shrink-0" />
-            <span>تثبيت التطبيق</span>
+            <span>{t('installApp')}</span>
           </button>
 
           {/* User Profile / Login Button */}
           <button
             onClick={onOpenLogin}
             className="relative flex items-center justify-center sm:justify-start gap-1.5 w-9 h-9 sm:w-auto sm:px-3 sm:h-10 rounded-xl bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 text-white text-xs font-bold shadow-xs transition cursor-pointer shrink-0 touch-manipulation active:scale-95 border border-amber-500/30"
-            title={currentUser ? `حساب: ${currentUser.name}` : 'تسجيل الدخول'}
+            title={currentUser ? `${t('myAccount')}: ${currentUser.name}` : t('loginTitle')}
             aria-label="حساب المستخدم"
           >
             <UserIcon className="w-4 h-4 shrink-0" />
             <span className="hidden sm:inline truncate max-w-[80px] md:max-w-[120px]">
-              {currentUser ? currentUser.name.split(' ')[0] : 'تسجيل'}
+              {currentUser ? currentUser.name.split(' ')[0] : t('login')}
             </span>
             {currentUser && (
               <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-stone-950" />
@@ -428,61 +440,73 @@ export const Header: React.FC<HeaderProps> = memo(({
       {isMobileMenuOpen && (
         <div className="lg:hidden fixed inset-x-0 top-14 sm:top-16 bottom-0 z-50 bg-black/80 backdrop-blur-sm animate-fade-in flex flex-col justify-end">
           <div
-            className="bg-stone-950 border-t border-amber-500/40 rounded-t-3xl p-4 sm:p-5 shadow-2xl max-h-[85vh] overflow-y-auto space-y-4 text-right"
+            className={`bg-stone-950 border-t border-amber-500/40 rounded-t-3xl p-4 sm:p-5 shadow-2xl max-h-[85vh] overflow-y-auto space-y-4 ${isRTL ? 'text-right' : 'text-left'}`}
             style={{ paddingBottom: 'max(5.5rem, env(safe-area-inset-bottom, 5.5rem))' }}
           >
             <div className="flex items-center justify-between border-b border-stone-800 pb-3">
               <div className="flex items-center gap-2">
                 <span className="text-xl">🌟</span>
                 <span className="font-spiritual text-base font-bold text-amber-200">
-                  لوحة الخدمات والأقسام
+                  {t('mobileMenuTitle')}
                 </span>
               </div>
               <button
                 onClick={closeMobileMenu}
                 className="w-8 h-8 rounded-xl bg-stone-900 border border-stone-800 text-stone-400 hover:text-white flex items-center justify-center cursor-pointer transition active:scale-95"
-                aria-label="إغلاق القائمة"
+                aria-label={t('close')}
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            {/* Quick Mobile Utility Controls Row */}
-            <div className="grid grid-cols-4 gap-2 bg-stone-900/90 p-2 rounded-2xl border border-stone-800 text-center">
+            {/* Quick Mobile Utility Controls Row (5 Columns) */}
+            <div className="grid grid-cols-5 gap-1.5 bg-stone-900/90 p-2 rounded-2xl border border-stone-800 text-center">
               <button
                 onClick={toggleNightMode}
-                className="flex flex-col items-center justify-center p-2 rounded-xl bg-stone-950/80 hover:bg-stone-800 border border-stone-800/80 text-amber-300 transition cursor-pointer"
-                title="الوضع النهاري / الليلي"
+                className="flex flex-col items-center justify-center p-1.5 rounded-xl bg-stone-950/80 hover:bg-stone-800 border border-stone-800/80 text-amber-300 transition cursor-pointer"
+                title={t('readingLightMode')}
               >
-                {isNightMode ? <Sun className="w-4 h-4 mb-1 text-amber-300" /> : <Moon className="w-4 h-4 mb-1 text-amber-400" />}
-                <span className="text-[10px] font-bold">{isNightMode ? 'نهاري' : 'ليلي'}</span>
+                {isNightMode ? <Sun className="w-4 h-4 mb-0.5 text-amber-300" /> : <Moon className="w-4 h-4 mb-0.5 text-amber-400" />}
+                <span className="text-[9px] font-bold">{isNightMode ? t('day') : t('night')}</span>
               </button>
 
               <button
                 onClick={toggleSound}
-                className="flex flex-col items-center justify-center p-2 rounded-xl bg-stone-950/80 hover:bg-stone-800 border border-stone-800/80 text-amber-400 transition cursor-pointer"
-                title="المؤثرات الصوتية"
+                className="flex flex-col items-center justify-center p-1.5 rounded-xl bg-stone-950/80 hover:bg-stone-800 border border-stone-800/80 text-amber-400 transition cursor-pointer"
+                title={t('soundEffects')}
               >
-                {isMuted ? <VolumeX className="w-4 h-4 mb-1 text-stone-500" /> : <Volume2 className="w-4 h-4 mb-1 text-emerald-400" />}
-                <span className="text-[10px] font-bold">{isMuted ? 'صامت' : 'مسموع'}</span>
+                {isMuted ? <VolumeX className="w-4 h-4 mb-0.5 text-stone-500" /> : <Volume2 className="w-4 h-4 mb-0.5 text-emerald-400" />}
+                <span className="text-[9px] font-bold">{isMuted ? t('soundOff') : t('soundOn')}</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  closeMobileMenu();
+                  openFontModal();
+                }}
+                className="flex flex-col items-center justify-center p-1.5 rounded-xl bg-stone-950/80 hover:bg-stone-800 border border-stone-800/80 text-amber-300 transition cursor-pointer font-bold"
+                title={t('eyeComfortFonts')}
+              >
+                <Type className="w-4 h-4 mb-0.5 text-amber-300" />
+                <span className="text-[9px] font-bold">{language === 'ar' ? 'الخط' : 'Font'}</span>
               </button>
 
               <button
                 onClick={toggleLanguage}
-                className="flex flex-col items-center justify-center p-2 rounded-xl bg-stone-950/80 hover:bg-stone-800 border border-stone-800/80 text-amber-300 transition cursor-pointer font-bold"
-                title="تبديل اللغة"
+                className="flex flex-col items-center justify-center p-1.5 rounded-xl bg-stone-950/80 hover:bg-stone-800 border border-stone-800/80 text-amber-300 transition cursor-pointer font-bold"
+                title={language === 'ar' ? 'Switch to English' : 'التحويل إلى العربية'}
               >
-                <span className="text-xs font-mono mb-1 font-bold">{language === 'ar' ? 'EN' : 'AR'}</span>
-                <span className="text-[10px] font-bold">{language === 'ar' ? 'English' : 'عربي'}</span>
+                <span className="text-xs font-mono mb-0.5 font-bold">{language === 'ar' ? 'EN' : 'عربي'}</span>
+                <span className="text-[9px] font-bold">{language === 'ar' ? 'English' : 'عربي'}</span>
               </button>
 
               <button
                 onClick={() => window.dispatchEvent(new Event('show-install-prompt'))}
-                className="flex flex-col items-center justify-center p-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 transition cursor-pointer font-bold"
-                title="تثبيت التطبيق"
+                className="flex flex-col items-center justify-center p-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 transition cursor-pointer font-bold"
+                title={t('installApp')}
               >
-                <Download className="w-4 h-4 mb-1 text-amber-400" />
-                <span className="text-[10px] font-bold">تثبيت</span>
+                <Download className="w-4 h-4 mb-0.5 text-amber-400" />
+                <span className="text-[9px] font-bold">{language === 'ar' ? 'تثبيت' : 'Install'}</span>
               </button>
             </div>
 
@@ -496,7 +520,7 @@ export const Header: React.FC<HeaderProps> = memo(({
                 className="flex items-center justify-center gap-2 p-3 rounded-2xl bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 text-stone-950 font-bold text-xs shadow-md transition active:scale-95 cursor-pointer"
               >
                 <Download className="w-4 h-4 text-stone-950" />
-                <span>تثبيت التطبيق 📱</span>
+                <span>{t('installAppPrompt')}</span>
               </button>
 
               <button
@@ -507,7 +531,7 @@ export const Header: React.FC<HeaderProps> = memo(({
                 className="flex items-center justify-center gap-2 p-3 rounded-2xl bg-gradient-to-r from-emerald-700/60 to-emerald-600/70 hover:from-emerald-600 text-emerald-100 font-bold text-xs border border-emerald-500/40 shadow-md transition active:scale-95 cursor-pointer"
               >
                 <Share2 className="w-4 h-4 text-emerald-300" />
-                <span>مشاركة التطبيق 💌</span>
+                <span>{t('shareApp')}</span>
               </button>
             </div>
 
@@ -517,19 +541,19 @@ export const Header: React.FC<HeaderProps> = memo(({
                 closeMobileMenu();
                 if (onOpenDirectory) onOpenDirectory();
               }}
-              className="w-full flex items-center justify-between p-3.5 rounded-2xl bg-gradient-to-r from-amber-900/60 via-stone-900 to-amber-950 border border-amber-500/50 shadow-md text-right cursor-pointer hover:border-amber-400 transition"
+              className={`w-full flex items-center justify-between p-3.5 rounded-2xl bg-gradient-to-r from-amber-900/60 via-stone-900 to-amber-950 border border-amber-500/50 shadow-md ${isRTL ? 'text-right' : 'text-left'} cursor-pointer hover:border-amber-400 transition`}
             >
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-lg">
                   🧭
                 </div>
                 <div>
-                  <h4 className="text-xs font-bold text-amber-200">الدليل الشامل والبحث الموحد</h4>
-                  <p className="text-[10px] text-stone-400">ابحث وتصفح كل الأقسام والكتب والأدوات الـ 24+</p>
+                  <h4 className="text-xs font-bold text-amber-200">{t('directory')}</h4>
+                  <p className="text-[10px] text-stone-400">{language === 'ar' ? 'ابحث وتصفح كل الأقسام والكتب والأدوات الـ 24+' : 'Explore all 24+ sections, books, and spiritual tools'}</p>
                 </div>
               </div>
               <span className="text-[10px] font-bold text-amber-300 bg-amber-950 px-2 py-1 rounded-lg border border-amber-600/30">
-                افتح الدليل ➔
+                {language === 'ar' ? 'افتح الدليل ➔' : 'Open ➔'}
               </span>
             </button>
 
@@ -541,10 +565,10 @@ export const Header: React.FC<HeaderProps> = memo(({
                 </div>
                 <div className="min-w-0">
                   <span className="font-bold text-white text-xs block truncate">
-                    {currentUser ? currentUser.name : 'مرحباً بك معنا'}
+                    {currentUser ? currentUser.name : (language === 'ar' ? 'مرحباً بك معنا' : 'Welcome with us')}
                   </span>
                   <span className="text-[10px] text-amber-400/80 block">
-                    {currentUser ? `${currentUser.totalScore || 0} نقطة روحية` : 'سجّل الآن لتثبيت نقاطك ورتبتك'}
+                    {currentUser ? `${currentUser.totalScore || 0} ${t('points')}` : (language === 'ar' ? 'سجّل الآن لتثبيت نقاطك ورتبتك' : 'Sign in to save rank & score')}
                   </span>
                 </div>
               </div>
@@ -555,7 +579,7 @@ export const Header: React.FC<HeaderProps> = memo(({
                 }}
                 className="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold transition shadow-xs cursor-pointer shrink-0"
               >
-                {currentUser ? 'بياناتي' : 'تسجيل'}
+                {currentUser ? t('myAccount') : t('login')}
               </button>
             </div>
 
@@ -566,12 +590,12 @@ export const Header: React.FC<HeaderProps> = memo(({
                   onNavigate('prayer_fortress');
                   closeMobileMenu();
                 }}
-                className="p-3 rounded-2xl bg-gradient-to-br from-amber-950/80 to-stone-900 border border-amber-600/40 text-right flex items-center gap-2.5 transition active:scale-95 cursor-pointer shadow-xs"
+                className={`p-3 rounded-2xl bg-gradient-to-br from-amber-950/80 to-stone-900 border border-amber-600/40 ${isRTL ? 'text-right' : 'text-left'} flex items-center gap-2.5 transition active:scale-95 cursor-pointer shadow-xs`}
               >
                 <span className="text-xl">🛡️</span>
                 <div>
-                  <strong className="text-amber-200 block text-xs">حصن الصلاة</strong>
-                  <span className="text-[10px] text-stone-400">مزمور ومنبه</span>
+                  <strong className="text-amber-200 block text-xs">{t('prayerFortress')}</strong>
+                  <span className="text-[10px] text-stone-400">{language === 'ar' ? 'مزمور ومنبه' : 'Psalms & Alarms'}</span>
                 </div>
               </button>
 
@@ -580,12 +604,12 @@ export const Header: React.FC<HeaderProps> = memo(({
                   onOpenHeavenlyMessage?.();
                   closeMobileMenu();
                 }}
-                className="p-3 rounded-2xl bg-gradient-to-br from-amber-950/80 to-stone-900 border border-amber-600/40 text-right flex items-center gap-2.5 transition active:scale-95 cursor-pointer shadow-xs"
+                className={`p-3 rounded-2xl bg-gradient-to-br from-amber-950/80 to-stone-900 border border-amber-600/40 ${isRTL ? 'text-right' : 'text-left'} flex items-center gap-2.5 transition active:scale-95 cursor-pointer shadow-xs`}
               >
                 <span className="text-xl">💌</span>
                 <div>
-                  <strong className="text-amber-200 block text-xs">رسالة أبيك السماوي</strong>
-                  <span className="text-[10px] text-stone-400">اسحب رسالتك</span>
+                  <strong className="text-amber-200 block text-xs">{t('heavenlyMessageCard')}</strong>
+                  <span className="text-[10px] text-stone-400">{language === 'ar' ? 'اسحب رسالتك' : 'Draw your card'}</span>
                 </div>
               </button>
 
@@ -595,12 +619,12 @@ export const Header: React.FC<HeaderProps> = memo(({
                     onOpenSaintsStickers();
                     closeMobileMenu();
                   }}
-                  className="p-3 rounded-2xl bg-gradient-to-br from-amber-950/80 to-stone-900 border border-amber-600/40 text-right flex items-center gap-2.5 transition active:scale-95 cursor-pointer shadow-xs"
+                  className={`p-3 rounded-2xl bg-gradient-to-br from-amber-950/80 to-stone-900 border border-amber-600/40 ${isRTL ? 'text-right' : 'text-left'} flex items-center gap-2.5 transition active:scale-95 cursor-pointer shadow-xs`}
                 >
                   <span className="text-xl">🌟</span>
                   <div>
-                    <strong className="text-amber-200 block text-xs">استكر قديس اليوم</strong>
-                    <span className="text-[10px] text-stone-400">الفضائل اليومية</span>
+                    <strong className="text-amber-200 block text-xs">{t('saintsStickers')}</strong>
+                    <span className="text-[10px] text-stone-400">{language === 'ar' ? 'الفضائل اليومية' : 'Daily Virtues'}</span>
                   </div>
                 </button>
               )}
@@ -610,12 +634,12 @@ export const Header: React.FC<HeaderProps> = memo(({
                   onOpenSpiritualGuide();
                   closeMobileMenu();
                 }}
-                className="p-3 rounded-2xl bg-gradient-to-br from-sky-950/70 to-stone-900 border border-sky-600/40 text-right flex items-center gap-2.5 transition active:scale-95 cursor-pointer shadow-xs"
+                className={`p-3 rounded-2xl bg-gradient-to-br from-sky-950/70 to-stone-900 border border-sky-600/40 ${isRTL ? 'text-right' : 'text-left'} flex items-center gap-2.5 transition active:scale-95 cursor-pointer shadow-xs`}
               >
                 <span className="text-xl">🛡️</span>
                 <div>
-                  <strong className="text-sky-200 block text-xs">المرشد الروحي</strong>
-                  <span className="text-[10px] text-stone-400">توجيه وحلول</span>
+                  <strong className="text-sky-200 block text-xs">{t('spiritualGuide')}</strong>
+                  <span className="text-[10px] text-stone-400">{language === 'ar' ? 'توجيه وحلول' : 'Counsel & Prayers'}</span>
                 </div>
               </button>
             </div>
@@ -630,7 +654,7 @@ export const Header: React.FC<HeaderProps> = memo(({
                   }}
                   className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-amber-950/80 via-stone-900 to-amber-950/80 hover:from-amber-900 border border-amber-600/40 text-amber-200 text-xs font-bold flex items-center justify-center gap-2 cursor-pointer shadow-xs"
                 >
-                  <span>🌿 حديقتك مع الله (رسالة الترحيب الروحية)</span>
+                  <span>🌿 {language === 'ar' ? 'حديقتك مع الله (رسالة الترحيب الروحية)' : 'Your Garden with God (Spiritual Welcome)'}</span>
                 </button>
               )}
 
@@ -643,7 +667,7 @@ export const Header: React.FC<HeaderProps> = memo(({
                   className="flex-1 py-2.5 px-3 rounded-xl bg-stone-900 hover:bg-stone-800 border border-stone-800 text-amber-300 text-xs font-bold flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <Headphones className="w-4 h-4 text-amber-400" />
-                  <span>مشغل الترانيم والألحان</span>
+                  <span>{t('hymnsPlayer')}</span>
                 </button>
 
                 <button
@@ -654,7 +678,7 @@ export const Header: React.FC<HeaderProps> = memo(({
                   className="py-2.5 px-3 rounded-xl bg-stone-900 hover:bg-stone-800 border border-stone-800 text-stone-300 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   <HelpCircle className="w-4 h-4 text-amber-400" />
-                  <span>دليل المسابقة</span>
+                  <span>{t('rules')}</span>
                 </button>
               </div>
             </div>
@@ -662,7 +686,7 @@ export const Header: React.FC<HeaderProps> = memo(({
             {/* Complete Navigation Sections */}
             <div>
               <span className="text-[11px] font-bold text-amber-400/80 block mb-2 px-1">
-                جميع الأقسام التفاعلية
+                {language === 'ar' ? 'جميع الأقسام التفاعلية' : 'All Interactive Sections'}
               </span>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
                 {navLinks.map((l) => {

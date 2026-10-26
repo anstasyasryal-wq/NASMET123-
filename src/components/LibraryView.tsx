@@ -20,6 +20,7 @@ import {
   Globe,
 } from 'lucide-react';
 import { useReadingTheme } from '../context/ReadingThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 import { useVirtualGrid } from '../hooks/useVirtualList';
 import { AUTHENTIC_COPTIC_BOOKS, BookItem } from '../data/authenticCopticBooks';
 
@@ -332,7 +333,8 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
   const [readingBook, setReadingBook] = useState<BookItem | null>(null);
   const [activeChapterIdx, setActiveChapterIdx] = useState<number>(0);
   const [fontSize, setFontSize] = useState<'normal' | 'large' | 'huge'>('normal');
-  const { themeMode, setThemeMode, getReadingContainerClass, getReadingTextClass } = useReadingTheme();
+  const { themeMode, setThemeMode, getReadingContainerClass, getReadingTextClass, openFontModal } = useReadingTheme();
+  const { language, t, dir, isRTL } = useLanguage();
 
   const [readingArticle, setReadingArticle] = useState<DeepArticle | null>(null);
   const [quizAnswers, setQuizAnswers] = useState<Record<string, number>>({});
@@ -523,14 +525,14 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
   };
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6 pb-12 animate-fade-in text-right" dir="rtl">
+    <div className={`max-w-5xl mx-auto space-y-6 pb-12 animate-fade-in ${isRTL ? 'text-right' : 'text-left'}`} dir={dir}>
       <div className="flex items-center justify-between pb-1">
         <button
           onClick={onBackToHome}
           className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-950 font-bold text-xs transition cursor-pointer shadow-xs border border-amber-300"
         >
-          <ChevronLeft className="w-4 h-4 rotate-180" />
-          <span>العودة للشاشة الرئيسية والعجلة</span>
+          <ChevronLeft className={`w-4 h-4 ${isRTL ? 'rotate-180' : ''}`} />
+          <span>{t('backToHome')}</span>
         </button>
       </div>
 
@@ -538,48 +540,58 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
         <div className="flex items-center justify-between flex-wrap gap-2">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-900/60 border border-amber-600/40 text-amber-300 text-xs font-semibold">
             <BookOpen className="w-3.5 h-3.5 text-amber-400" />
-            <span>المستودع الرقمي والوثائقي للكتب المسيحية الموثوقة</span>
+            <span>{language === 'ar' ? 'المستودع الرقمي والوثائقي للكتب المسيحية الموثوقة' : 'Authentic Christian Books & Patristic Repository'}</span>
           </div>
 
-          {/* Auto Eye-Comfort Theme Selector */}
-          <div className="flex items-center gap-1.5 bg-stone-950/80 p-1.5 rounded-2xl border border-stone-800 text-xs font-bold">
-            <span className="text-[11px] text-amber-300 px-1.5">وضع القراءة:</span>
+          {/* Auto Eye-Comfort Theme & Font Selector */}
+          <div className="flex items-center gap-1.5 bg-stone-950/80 p-1.5 rounded-2xl border border-stone-800 text-xs font-bold flex-wrap">
+            <span className="text-[11px] text-amber-300 px-1.5">{t('readingModeTitle')}</span>
             <button
               onClick={() => setThemeMode('light')}
-              className={`px-2.5 py-1 rounded-xl transition ${themeMode === 'light' ? 'bg-amber-600 text-white' : 'text-stone-400 hover:text-stone-200'}`}
+              className={`px-2.5 py-1 rounded-xl transition cursor-pointer ${themeMode === 'light' ? 'bg-amber-600 text-white' : 'text-stone-400 hover:text-stone-200'}`}
             >
-              ☀️ نهاري
+              ☀️ {t('day')}
             </button>
             <button
               onClick={() => setThemeMode('night')}
-              className={`px-2.5 py-1 rounded-xl transition ${themeMode === 'night' ? 'bg-amber-600 text-white' : 'text-stone-400 hover:text-stone-200'}`}
+              className={`px-2.5 py-1 rounded-xl transition cursor-pointer ${themeMode === 'night' ? 'bg-amber-600 text-white' : 'text-stone-400 hover:text-stone-200'}`}
             >
-              🌙 ليلي
+              🌙 {t('night')}
             </button>
             <button
               onClick={() => setThemeMode('auto')}
-              className={`px-2.5 py-1 rounded-xl transition flex items-center gap-1 ${themeMode === 'auto' ? 'bg-emerald-600 text-white' : 'text-stone-400 hover:text-stone-200'}`}
+              className={`px-2.5 py-1 rounded-xl transition flex items-center gap-1 cursor-pointer ${themeMode === 'auto' ? 'bg-emerald-600 text-white' : 'text-stone-400 hover:text-stone-200'}`}
               title="تعديل تلقائي للإضاءة وراحة العين"
             >
               <span>👁️</span>
-              <span>تلقائي</span>
+              <span>{t('autoMode')}</span>
+            </button>
+            <button
+              onClick={openFontModal}
+              className="px-2.5 py-1 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 transition cursor-pointer flex items-center gap-1"
+              title={t('eyeComfortFonts')}
+            >
+              <Type className="w-3.5 h-3.5" />
+              <span>{language === 'ar' ? 'نوع الخط 🔤' : 'Font 🔤'}</span>
             </button>
           </div>
         </div>
 
         <h1 className="font-spiritual text-2xl sm:text-3xl font-bold text-amber-100">
-          📚 مكتبة الكتب والمراجع الآبائية والأرثوذكسية الكاملة
+          📚 {language === 'ar' ? 'مكتبة الكتب والمراجع الآبائية والأرثوذكسية الكاملة' : 'Complete Patristic & Orthodox Knowledge Library'}
         </h1>
         <p className={`text-xs sm:text-sm leading-relaxed max-w-2xl ${getReadingTextClass()}`}>
-          مكتبة مسيحية موثقة تضم أمهات الكتب الآبائية واللاهوتية والنسكية والطقسية بالنصوص الكاملة المتاحة تحت رخص الملك العام والبحث العلمي.
+          {language === 'ar'
+            ? 'مكتبة مسيحية موثقة تضم أمهات الكتب الآبائية واللاهوتية والنسكية والطقسية بالنصوص الكاملة المتاحة تحت رخص الملك العام والبحث العلمي.'
+            : 'Comprehensive digital library containing full-text patristic, theological, ascetic, and liturgical books freely accessible for study and spiritual edification.'}
         </p>
 
         {/* Tab Switcher */}
         <div className="flex items-center gap-2 pt-2 border-t border-stone-800 overflow-x-auto">
           {[
-            { id: 'books', label: '📚 الكتب والمراجع الكاملة', icon: BookOpen },
-            { id: 'articles', label: '📜 الدراسات والمقالات المتعمقة', icon: FileText },
-            { id: 'quizzes', label: '🧠 الاختبارات التقييمية المتقدمة', icon: Brain },
+            { id: 'books', label: language === 'ar' ? '📚 الكتب والمراجع الكاملة' : '📚 Complete Books', icon: BookOpen },
+            { id: 'articles', label: language === 'ar' ? '📜 الدراسات والمقالات المتعمقة' : '📜 In-depth Articles', icon: FileText },
+            { id: 'quizzes', label: language === 'ar' ? '🧠 الاختبارات التقييمية المتقدمة' : '🧠 Analytical Quizzes', icon: Brain },
           ].map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -609,15 +621,15 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
         <div className="space-y-6 animate-fade-in">
           {/* Quick Resume Active Reading Banner */}
           {lastActiveBook && lastActiveBook.book && (
-            <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-amber-950/80 via-stone-900 to-amber-950/80 border border-amber-600/50 shadow-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-right">
+            <div className={`p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-amber-950/80 via-stone-900 to-amber-950/80 border border-amber-600/50 shadow-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 ${isRTL ? 'text-right' : 'text-left'}`}>
               <div className="space-y-1">
                 <span className="text-[10px] font-bold text-amber-400 bg-amber-900/60 px-2.5 py-0.5 rounded-full border border-amber-700/50 inline-block">
-                  📖 واصل قراءة آخر كتاب فتحته
+                  📖 {language === 'ar' ? 'واصل قراءة آخر كتاب فتحته' : 'Resume last book read'}
                 </span>
                 <h3 className="font-spiritual text-sm sm:text-base font-bold text-amber-100">
-                  {lastActiveBook.book.title || 'بدون عنوان'} — الفصل {(lastActiveBook.progress?.chapterIdx ?? 0) + 1}: {lastActiveBook.book.chapters?.[lastActiveBook.progress?.chapterIdx ?? 0]?.chapterTitle || ''}
+                  {lastActiveBook.book.title || 'بدون عنوان'} — {language === 'ar' ? `الفصل ${(lastActiveBook.progress?.chapterIdx ?? 0) + 1}` : `Chapter ${(lastActiveBook.progress?.chapterIdx ?? 0) + 1}`}: {lastActiveBook.book.chapters?.[lastActiveBook.progress?.chapterIdx ?? 0]?.chapterTitle || ''}
                 </h3>
-                <p className="text-[11px] text-stone-300">بقلم: {lastActiveBook.book.author || 'غير محدد'}</p>
+                <p className="text-[11px] text-stone-300">{language === 'ar' ? `بقلم: ${lastActiveBook.book.author || 'غير محدد'}` : `By: ${lastActiveBook.book.author || 'Unknown'}`}</p>
               </div>
 
               <button
@@ -625,7 +637,7 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
                 className="px-5 py-2.5 rounded-2xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs transition cursor-pointer shadow-md flex items-center gap-2 shrink-0"
               >
                 <BookOpen className="w-4 h-4" />
-                <span>متابعة القراءة من موضعك</span>
+                <span>{t('continueReading')}</span>
               </button>
             </div>
           )}
@@ -636,10 +648,10 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="ابحث في عناوين الكتب والمؤلفين والموضوعات..."
+                placeholder={language === 'ar' ? 'ابحث في عناوين الكتب والمؤلفين والموضوعات...' : 'Search book titles, authors, and topics...'}
                 className="w-full pl-4 pr-10 py-2.5 rounded-xl bg-stone-900 border border-stone-800 focus:border-amber-400 text-stone-100 text-xs outline-none"
               />
-              <Search className="w-4 h-4 text-stone-400 absolute right-3 top-3" />
+              <Search className={`w-4 h-4 text-stone-400 absolute ${isRTL ? 'right-3' : 'left-3'} top-3`} />
             </div>
 
             <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 text-xs">
@@ -653,7 +665,7 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
                       : 'bg-stone-900 text-stone-400 hover:text-stone-200 border border-stone-800'
                   }`}
                 >
-                  {cat === 'all' ? 'جميع التصنيفات' : cat}
+                  {cat === 'all' ? (language === 'ar' ? 'جميع التصنيفات' : 'All Categories') : cat}
                 </button>
               ))}
             </div>

@@ -15,7 +15,7 @@ import { Header } from './components/Header';
 import { HomeView } from './components/HomeView';
 import { DailySaintAlertBanner } from './components/DailySaintAlertBanner';
 import { ReadingThemeProvider, useReadingTheme } from './context/ReadingThemeContext';
-import { LanguageProvider } from './context/LanguageContext';
+import { LanguageProvider, useLanguage } from './context/LanguageContext';
 import { HymnsAudioProvider } from './context/HymnsAudioContext';
 import AppInstallManager from './components/AppInstallManager';
 import { MobileBottomNav } from './components/MobileBottomNav';
@@ -62,17 +62,21 @@ const SpiritualJournal = lazy(() => import('./components/SpiritualJournal').then
 const IconGalleryModal = lazy(() => import('./components/IconGalleryModal').then(m => ({ default: m.IconGalleryModal })));
 const ChurchFathersAndSaintsGallery = lazy(() => import('./components/ChurchFathersAndSaintsGallery').then(m => ({ default: m.ChurchFathersAndSaintsGallery })));
 import WelcomeSplashModal from './components/WelcomeSplashModal';
+import { EyeComfortFontModal } from './components/EyeComfortFontModal';
 const VirtualSilentRetreat = lazy(() => import('./components/VirtualSilentRetreat').then(m => ({ default: m.VirtualSilentRetreat })));
 const ComprehensiveDirectoryModal = lazy(() => import('./components/ComprehensiveDirectoryModal').then(m => ({ default: m.ComprehensiveDirectoryModal })));
 
-const ViewLoadingFallback: React.FC = () => (
-  <div className="flex flex-col items-center justify-center min-h-[300px] space-y-3 py-16 animate-fade-in text-center" dir="rtl">
-    <div className="w-12 h-12 rounded-2xl bg-amber-500/20 border-2 border-amber-500/40 flex items-center justify-center text-2xl animate-pulse shadow-md">
-      ✝️
+const ViewLoadingFallback: React.FC = () => {
+  const { t, dir } = useLanguage();
+  return (
+    <div className="flex flex-col items-center justify-center min-h-[300px] space-y-3 py-16 animate-fade-in text-center" dir={dir}>
+      <div className="w-12 h-12 rounded-2xl bg-amber-500/20 border-2 border-amber-500/40 flex items-center justify-center text-2xl animate-pulse shadow-md">
+        ✝️
+      </div>
+      <p className="text-xs text-amber-300 font-bold font-spiritual">{t('loading')}</p>
     </div>
-    <p className="text-xs text-amber-300 font-bold font-spiritual">جاري فتح القسم بالبركة...</p>
-  </div>
-);
+  );
+};
 
 function AppContent() {
   const [currentView, setCurrentView] = useState<AppView>(() => {
@@ -675,6 +679,9 @@ function AppContent() {
           />
         )}
       </Suspense>
+
+      {/* Global Eye-Comfort Font Selection Modal */}
+      <EyeComfortFontModal />
 
       {/* Global Spiritual Hymns Audio Player */}
       <Suspense fallback={null}>

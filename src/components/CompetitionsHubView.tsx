@@ -6,6 +6,7 @@ import {
   getCurrentUser,
   getStoredAnnouncements,
 } from '../utils/competitionEngine';
+import { useLanguage } from '../context/LanguageContext';
 import {
   Trophy,
   Play,
@@ -31,6 +32,7 @@ export const CompetitionsHubView: React.FC<CompetitionsHubViewProps> = ({
   onStartStage,
   onBackToHome,
 }) => {
+  const { language, t, dir, isRTL } = useLanguage();
   const [activeTab, setActiveTab] = useState<'stages' | 'question_bank'>('stages');
   const [subjectFilter, setSubjectFilter] = useState<'all' | 'religion' | 'genetics' | 'culture'>('all');
 
@@ -52,15 +54,15 @@ export const CompetitionsHubView: React.FC<CompetitionsHubViewProps> = ({
   });
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6 pb-12 animate-fade-in text-right">
+    <div className={`max-w-5xl mx-auto space-y-6 pb-12 animate-fade-in ${isRTL ? 'text-right' : 'text-left'}`} dir={dir}>
       {/* Top Back Button */}
       <div className="flex items-center justify-between pb-1">
         <button
           onClick={onBackToHome}
           className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-950 font-bold text-xs transition cursor-pointer shadow-xs border border-amber-300"
         >
-          <ChevronLeft className="w-4 h-4 rotate-180" />
-          <span>العودة للشاشة الرئيسية والعجلة</span>
+          <ChevronLeft className={`w-4 h-4 ${isRTL ? 'rotate-180' : ''}`} />
+          <span>{t('backToHome')}</span>
         </button>
       </div>
 
@@ -68,13 +70,15 @@ export const CompetitionsHubView: React.FC<CompetitionsHubViewProps> = ({
       <div className="rounded-3xl bg-gradient-to-r from-indigo-950 via-purple-950 to-amber-950 text-white p-6 sm:p-8 shadow-xl border border-amber-300/30">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-amber-300 text-xs font-semibold mb-2">
           <Trophy className="w-4 h-4 text-amber-300" />
-          <span>نظام المسابقات المتدرجة بالأنماط المتعددة</span>
+          <span>{language === 'ar' ? 'نظام المسابقات المتدرجة بالأنماط المتعددة' : 'Multi-Pattern Progressive Competition System'}</span>
         </div>
         <h1 className="text-2xl sm:text-3xl font-bold font-spiritual text-amber-100">
-          🎮 مسيرة «حَسَبَ قَلْبِ اللهِ» التنافسية
+          🎮 {language === 'ar' ? 'مسيرة «حَسَبَ قَلْبِ اللهِ» التنافسية' : '«According to God\'s Heart» Competition Journey'}
         </h1>
         <p className="text-xs sm:text-sm text-amber-200/90 mt-1 max-w-2xl leading-relaxed">
-          أنماط تقييم متطورة تشمل: أسئلة الاختيار من متعدد، الصواب والخطأ، ومطابقة وتوصيل المفاهيم عبر محاور العلوم الكنسية، علم الجينات والتصميم الخالق، والثقافة والتاريخ.
+          {language === 'ar'
+            ? 'أنماط تقييم متطورة تشمل: أسئلة الاختيار من متعدد، الصواب والخطأ، ومطابقة وتوصيل المفاهيم عبر محاور العلوم الكنسية، علم الجينات والتصميم الخالق، والثقافة والتاريخ.'
+            : 'Advanced evaluation patterns: Multiple choice, true/false, and conceptual matching across Church Sciences, Genetics & Creation, and Coptic History.'}
         </p>
 
         {/* Tab Switcher */}
@@ -88,7 +92,7 @@ export const CompetitionsHubView: React.FC<CompetitionsHubViewProps> = ({
             }`}
           >
             <Trophy className="w-3.5 h-3.5 text-amber-300" />
-            <span>مراحل المسابقة الست</span>
+            <span>{language === 'ar' ? 'مراحل المسابقة الست' : '6 Competition Stages'}</span>
           </button>
           <button
             onClick={() => setActiveTab('question_bank')}
@@ -99,7 +103,7 @@ export const CompetitionsHubView: React.FC<CompetitionsHubViewProps> = ({
             }`}
           >
             <Brain className="w-3.5 h-3.5 text-amber-300" />
-            <span>استعراض بنك الأسئلة والأنماط ({allQuestions.length})</span>
+            <span>{language === 'ar' ? `استعراض بنك الأسئلة والأنماط (${allQuestions.length})` : `Question Bank (${allQuestions.length})`}</span>
           </button>
         </div>
       </div>

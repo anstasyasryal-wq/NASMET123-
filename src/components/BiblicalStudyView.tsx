@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { User } from '../types';
 import { soundManager } from '../utils/audio';
 import { useReadingTheme } from '../context/ReadingThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 import {
   BookOpen,
   Search,
@@ -13,6 +14,7 @@ import {
   Copy,
   Check,
   Quote,
+  Type,
 } from 'lucide-react';
 
 interface BiblicalStudyItem {
@@ -115,7 +117,8 @@ export const BiblicalStudyView: React.FC<BiblicalStudyViewProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStudy, setSelectedStudy] = useState<BiblicalStudyItem | null>(null);
   const [copied, setCopied] = useState<boolean>(false);
-  const { themeMode, setThemeMode, getReadingContainerClass, getReadingTextClass } = useReadingTheme();
+  const { themeMode, setThemeMode, getReadingContainerClass, getReadingTextClass, openFontModal } = useReadingTheme();
+  const { language, t, dir, isRTL } = useLanguage();
 
   const filtered = STUDIES_DATA.filter(
     (s) =>
@@ -132,21 +135,21 @@ export const BiblicalStudyView: React.FC<BiblicalStudyViewProps> = ({
 
   const handleCopyStudy = (st: BiblicalStudyItem) => {
     soundManager.playTick();
-    const text = `«${st.title}»\n${st.keyVerse} (${st.verseRef})\nالمرجع الآبائي: ${st.patristic}\n${st.patristicExegesis}\n— منصة حسب قلب الله`;
+    const text = `«${st.title}»\n${st.keyVerse} (${st.verseRef})\n${language === 'ar' ? 'المرجع الآبائي' : 'Patristic Reference'}: ${st.patristic}\n${st.patristicExegesis}\n— ${t('appTitle')}`;
     navigator.clipboard?.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6 pb-12 animate-fade-in text-right">
+    <div className={`max-w-5xl mx-auto space-y-6 pb-12 animate-fade-in ${isRTL ? 'text-right' : 'text-left'}`} dir={dir}>
       <div className="flex items-center justify-between pb-1">
         <button
           onClick={onBackToHome}
           className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-950 font-bold text-xs transition cursor-pointer shadow-xs border border-amber-300"
         >
-          <ChevronLeft className="w-4 h-4 rotate-180" />
-          <span>العودة للشاشة الرئيسية والعجلة</span>
+          <ChevronLeft className={`w-4 h-4 ${isRTL ? 'rotate-180' : ''}`} />
+          <span>{t('backToHome')}</span>
         </button>
       </div>
 
@@ -154,40 +157,50 @@ export const BiblicalStudyView: React.FC<BiblicalStudyViewProps> = ({
         <div className="flex items-center justify-between flex-wrap gap-2">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-900/60 border border-amber-600/40 text-amber-300 text-xs font-semibold">
             <BookOpen className="w-3.5 h-3.5 text-amber-400" />
-            <span>منصة الدراسة والعلوم الكنسية والآباء</span>
+            <span>{language === 'ar' ? 'منصة الدراسة والعلوم الكنسية والآباء' : 'Ecclesiastical Studies & Patristics Platform'}</span>
           </div>
 
-          {/* Auto Eye-Comfort Theme Selector */}
-          <div className="flex items-center gap-1.5 bg-stone-950/80 p-1.5 rounded-2xl border border-stone-800 text-xs font-bold">
-            <span className="text-[11px] text-amber-300 px-1.5">وضع القراءة:</span>
+          {/* Auto Eye-Comfort Theme & Font Selector */}
+          <div className="flex items-center gap-1.5 bg-stone-950/80 p-1.5 rounded-2xl border border-stone-800 text-xs font-bold flex-wrap">
+            <span className="text-[11px] text-amber-300 px-1.5">{t('readingModeTitle')}</span>
             <button
               onClick={() => setThemeMode('light')}
-              className={`px-2.5 py-1 rounded-xl transition ${themeMode === 'light' ? 'bg-amber-600 text-white' : 'text-stone-400 hover:text-stone-200'}`}
+              className={`px-2.5 py-1 rounded-xl transition cursor-pointer ${themeMode === 'light' ? 'bg-amber-600 text-white' : 'text-stone-400 hover:text-stone-200'}`}
             >
-              ☀️ نهاري
+              ☀️ {t('day')}
             </button>
             <button
               onClick={() => setThemeMode('night')}
-              className={`px-2.5 py-1 rounded-xl transition ${themeMode === 'night' ? 'bg-amber-600 text-white' : 'text-stone-400 hover:text-stone-200'}`}
+              className={`px-2.5 py-1 rounded-xl transition cursor-pointer ${themeMode === 'night' ? 'bg-amber-600 text-white' : 'text-stone-400 hover:text-stone-200'}`}
             >
-              🌙 ليلي
+              🌙 {t('night')}
             </button>
             <button
               onClick={() => setThemeMode('auto')}
-              className={`px-2.5 py-1 rounded-xl transition flex items-center gap-1 ${themeMode === 'auto' ? 'bg-emerald-600 text-white' : 'text-stone-400 hover:text-stone-200'}`}
+              className={`px-2.5 py-1 rounded-xl transition flex items-center gap-1 cursor-pointer ${themeMode === 'auto' ? 'bg-emerald-600 text-white' : 'text-stone-400 hover:text-stone-200'}`}
               title="تعديل تلقائي للإضاءة وراحة العين"
             >
               <span>👁️</span>
-              <span>تلقائي</span>
+              <span>{t('autoMode')}</span>
+            </button>
+            <button
+              onClick={openFontModal}
+              className="px-2.5 py-1 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 transition cursor-pointer flex items-center gap-1"
+              title={t('eyeComfortFonts')}
+            >
+              <Type className="w-3.5 h-3.5" />
+              <span>{language === 'ar' ? 'نوع الخط 🔤' : 'Font 🔤'}</span>
             </button>
           </div>
         </div>
 
         <h1 className="font-spiritual text-2xl sm:text-3xl font-bold text-amber-100">
-          📜 مدارج الفهم والتعليم الكنسي الآبائي
+          📜 {language === 'ar' ? 'مدارج الفهم والتعليم الكنسي الآبائي' : 'Patristic Exegesis & Church Studies'}
         </h1>
         <p className={`text-xs sm:text-sm leading-relaxed max-w-2xl ${getReadingTextClass()}`}>
-          دراسات كتابية ولاهوتية رصينة تربط نصوص الكتاب المقدس بأقوال الآباء، مع إبراز التوافق الباهر بين العلم المعاصر والوحي الإلهي.
+          {language === 'ar'
+            ? 'دراسات كتابية ولاهوتية رصينة تربط نصوص الكتاب المقدس بأقوال الآباء، مع إبراز التوافق الباهر بين العلم المعاصر والوحي الإلهي.'
+            : 'Profound biblical and theological studies connecting Holy Scripture with the Church Fathers, illustrating harmony between true science and divine revelation.'}
         </p>
 
         <div className="pt-2">
@@ -196,7 +209,7 @@ export const BiblicalStudyView: React.FC<BiblicalStudyViewProps> = ({
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="ابحث في الدراسات والتفاسير الآبائية..."
+              placeholder={language === 'ar' ? 'ابحث في الدراسات والتفاسير الآبائية...' : 'Search studies and patristic exegesis...'}
               className="w-full pl-4 pr-10 py-2.5 rounded-xl bg-stone-950 border border-stone-800 focus:border-amber-400 text-stone-100 text-xs outline-none"
             />
             <Search className="w-4 h-4 text-stone-400 absolute right-3 top-3" />
