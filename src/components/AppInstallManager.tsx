@@ -93,9 +93,11 @@ export default function AppInstallManager() {
       // Periodic check
       const intervalId = setInterval(checkForUpdate, UPDATE_CHECK_INTERVAL_MS);
 
-      // Visibility change trigger
+      // Visibility change trigger (throttled to avoid mobile flickering or network flooding)
+      let lastCheck = Date.now();
       const handleVisibilityChange = () => {
-        if (document.visibilityState === 'visible') {
+        if (document.visibilityState === 'visible' && Date.now() - lastCheck > 10 * 60 * 1000) {
+          lastCheck = Date.now();
           checkForUpdate();
         }
       };

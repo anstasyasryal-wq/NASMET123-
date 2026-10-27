@@ -18,11 +18,10 @@ export default defineConfig({
     react(),
     tailwindcss(),
     VitePWA({
-      registerType: 'autoUpdate',
-      injectRegister: 'auto',
+      registerType: 'prompt',
+      injectRegister: null,
       devOptions: {
-        enabled: true,
-        type: 'module',
+        enabled: false,
       },
       includeAssets: ['icon.svg', 'apple-touch-icon.png', 'icons/favicon-64.png', 'icons/apple-touch-icon.png'],
       manifest: {
@@ -93,5 +92,6 @@ export default defineConfig({
   server: {
     port: 3000,
     host: '0.0.0.0',
+    hmr: false,
   },
 });

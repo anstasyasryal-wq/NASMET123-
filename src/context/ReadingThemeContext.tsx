@@ -157,29 +157,9 @@ export const ReadingThemeProvider: React.FC<{ children: React.ReactNode }> = ({ 
     };
   }, []);
 
-  // Ambient light lux / time-of-day check
+  // Stable time-of-day check (7 PM - 6 AM) for night comfort mode
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const SensorClass = (window as unknown as { AmbientLightSensor?: new () => { illuminating: number; onreading: () => void; start: () => void; stop: () => void } }).AmbientLightSensor;
-    if (SensorClass) {
-      try {
-        const sensor = new SensorClass();
-        sensor.onreading = () => {
-          if (sensor.illuminating < 25) {
-            setIsAmbientDim(true);
-          } else {
-            setIsAmbientDim(false);
-          }
-        };
-        sensor.start();
-        return () => {
-          try {
-            sensor.stop();
-          } catch {}
-        };
-      } catch {}
-    }
-
     const hour = new Date().getHours();
     if (hour >= 19 || hour < 6) {
       setIsAmbientDim(true);

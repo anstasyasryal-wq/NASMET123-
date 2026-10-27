@@ -1,11 +1,13 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, lazy, Suspense } from 'react';
 import { User, Stage, Announcement } from '../types';
 import { soundManager } from '../utils/audio';
 import { getOrRefreshDailyMessage } from '../utils/heavenlyHistory';
-import { FortuneWheel, WheelSection } from './FortuneWheel';
-import { ConsecrationTree } from './ConsecrationTree';
+import type { WheelSection } from './FortuneWheel';
 import { ConsecrationProgressBar } from './ConsecrationProgressBar';
 import { useLanguage } from '../context/LanguageContext';
+
+const FortuneWheel = lazy(() => import('./FortuneWheel').then(m => ({ default: m.FortuneWheel })));
+const ConsecrationTree = lazy(() => import('./ConsecrationTree').then(m => ({ default: m.ConsecrationTree })));
 import {
   Compass,
   BookOpen,
@@ -429,7 +431,11 @@ export const HomeView: React.FC<HomeViewProps> = React.memo(({
         <div
           onClick={() => {
             soundManager.playTick();
-            if (onNavigateToConsecratedManual) onNavigateToConsecratedManual();
+            setShowExtendedExploration(true);
+            setTimeout(() => {
+              const el = document.getElementById('consecration-tree-section');
+              if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 80);
           }}
           className="p-5 rounded-3xl bg-gradient-to-br from-emerald-950/60 via-stone-900 to-stone-950 border border-emerald-600/40 hover:border-emerald-400 transition cursor-pointer shadow-xl flex flex-col justify-between gap-4 group relative overflow-hidden"
         >
@@ -777,13 +783,13 @@ export const HomeView: React.FC<HomeViewProps> = React.memo(({
       </section>
 
       {/* 5. Clean Collapsible Section for Extended Exploration & Fortune Wheel */}
-      <section className="pt-2">
+      <section id="consecration-tree-section" className="pt-2">
         <div className="flex items-center justify-between p-4 rounded-2xl bg-stone-900/60 border border-stone-800/80">
           <div className="space-y-0.5">
             <h3 className="text-sm font-bold text-amber-100 flex items-center gap-2">
               <span>{language === 'ar' ? 'عجلة الاستكشاف وشجرة التكريس' : 'Consecration Wheel & Growth Tree'}</span>
               <span className="text-[10px] bg-amber-950 text-amber-300 border border-amber-600/30 px-2 py-0.5 rounded-full font-mono">
-                {language === 'ar' ? 'اختياري' : 'Optional'}
+                {language === 'ar' ? 'تفاعلي' : 'Interactive'}
               </span>
             </h3>
             <p className="text-xs text-stone-400">
@@ -802,28 +808,35 @@ export const HomeView: React.FC<HomeViewProps> = React.memo(({
           >
             {showExtendedExploration
               ? (language === 'ar' ? 'طي العجلة ▲' : 'Collapse Wheel ▲')
-              : (language === 'ar' ? 'استعراض العجلة ▼' : 'Expand Wheel ▼')}
+              : (language === 'ar' ? 'استعراض الشجرة والعجلة ▼' : 'Expand Tree & Wheel ▼')}
           </button>
         </div>
 
         {showExtendedExploration && (
-          <div className="mt-4 space-y-6 animate-fade-in">
-            {/* Daily Spiritual Consecration Tree */}
-            <ConsecrationTree
-              currentUser={currentUser}
-              onOpenRetreat={onOpenRetreat}
-              onNavigateToSpiritualLife={onNavigateToSpiritualLife}
-              onNavigateToPersonalSpace={onNavigateToPersonalSpace}
-            />
+          <Suspense fallback={
+            <div className="py-12 flex flex-col items-center justify-center space-y-2 text-stone-400">
+              <div className="w-8 h-8 rounded-full border-2 border-amber-500/40 border-t-amber-400 animate-spin" />
+              <span className="text-xs font-spiritual text-amber-300">جاري إعداد الشجرة وعجلة الاستكشاف...</span>
+            </div>
+          }>
+            <div className="mt-4 space-y-6 animate-fade-in">
+              {/* Daily Spiritual Consecration Tree */}
+              <ConsecrationTree
+                currentUser={currentUser}
+                onOpenRetreat={onOpenRetreat}
+                onNavigateToSpiritualLife={onNavigateToSpiritualLife}
+                onNavigateToPersonalSpace={onNavigateToPersonalSpace}
+              />
 
-            {/* Main Wheel */}
-            <FortuneWheel
-              sections={wheelSections}
-              selectedSection={selectedSection}
-              onSelectSection={handleSelectSection}
-              onReset={handleReset}
-            />
-          </div>
+              {/* Main Wheel */}
+              <FortuneWheel
+                sections={wheelSections}
+                selectedSection={selectedSection}
+                onSelectSection={handleSelectSection}
+                onReset={handleReset}
+              />
+            </div>
+          </Suspense>
         )}
       </section>
     </div>

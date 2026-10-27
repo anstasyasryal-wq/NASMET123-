@@ -23,9 +23,10 @@ import { JoyfulScreenHeader } from './components/JoyfulScreenHeader';
 import { OnlineAutoUpdater } from './components/OnlineAutoUpdater';
 import { recordViewVisit } from './utils/preloadManager';
 import { motion } from 'framer-motion';
-import { SpiritualHymnsPlayer } from './components/SpiritualHymnsPlayer';
 import { FloatingSpiritualGuideFAB } from './components/FloatingSpiritualGuideFAB';
 import { ErrorBoundary } from './components/ErrorBoundary';
+
+const SpiritualHymnsPlayer = lazy(() => import('./components/SpiritualHymnsPlayer').then(m => ({ default: m.SpiritualHymnsPlayer })));
 
 // Lazy-loaded Views (Code Splitting for instant mobile startup)
 const StagePlayer = lazy(() => import('./components/StagePlayer').then(m => ({ default: m.StagePlayer })));
@@ -61,8 +62,8 @@ const SaintsStickersModal = lazy(() => import('./components/SaintsStickersModal'
 const SpiritualJournal = lazy(() => import('./components/SpiritualJournal').then(m => ({ default: m.SpiritualJournal })));
 const IconGalleryModal = lazy(() => import('./components/IconGalleryModal').then(m => ({ default: m.IconGalleryModal })));
 const ChurchFathersAndSaintsGallery = lazy(() => import('./components/ChurchFathersAndSaintsGallery').then(m => ({ default: m.ChurchFathersAndSaintsGallery })));
-import WelcomeSplashModal from './components/WelcomeSplashModal';
-import { EyeComfortFontModal } from './components/EyeComfortFontModal';
+const WelcomeSplashModal = lazy(() => import('./components/WelcomeSplashModal'));
+const EyeComfortFontModal = lazy(() => import('./components/EyeComfortFontModal').then(m => ({ default: m.EyeComfortFontModal })));
 const VirtualSilentRetreat = lazy(() => import('./components/VirtualSilentRetreat').then(m => ({ default: m.VirtualSilentRetreat })));
 const ComprehensiveDirectoryModal = lazy(() => import('./components/ComprehensiveDirectoryModal').then(m => ({ default: m.ComprehensiveDirectoryModal })));
 
@@ -142,7 +143,8 @@ function AppContent() {
     if (typeof window !== 'undefined') {
       try {
         const popupEnabled = localStorage.getItem('mokarasa_daily_message_popup_enabled') !== 'false';
-        if (popupEnabled) {
+        const hasWelcomed = localStorage.getItem('mokarasa_welcomed');
+        if (popupEnabled && hasWelcomed) {
           const todayStr = new Date().toDateString();
           const lastPopupDate = localStorage.getItem('mokarasa_last_heavenly_popup_date');
           if (lastPopupDate !== todayStr) {

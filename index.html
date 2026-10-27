@@ -64,7 +64,6 @@
         window.$RefreshReg$ = window.$RefreshReg$ || function() {};
         window.$RefreshSig$ = window.$RefreshSig$ || function() { return function(type) { return type; }; };
         window.__vite_plugin_react_preamble_installed__ = true;
-        log('INFO', 'Vite Fast Refresh Preamble Guard installed.');
 
         // 2. Storage & Web API Capability Check
         try {
@@ -76,46 +75,79 @@
           log('WARN', 'Local Storage restricted or unavailable in window context.', e.message);
         }
 
-        // 3. Uncaught Error Event Listener
+        // 3. Helper to detect Vite HMR WebSocket disconnect noise (HMR is disabled in cloud sandbox)
+        function isViteHmrNoise(args) {
+          if (!args) return false;
+          var combined = '';
+          for (var i = 0; i < args.length; i++) {
+            var item = args[i];
+            if (!item) continue;
+            if (typeof item === 'string') {
+              combined += ' ' + item;
+            } else if (item instanceof Error) {
+              combined += ' ' + (item.message || '') + ' ' + (item.stack || '');
+            } else if (typeof item === 'object') {
+              try {
+                combined += ' ' + (item.message || '') + ' ' + (item.stack || '') + ' ' + (item.reason || '') + ' ' + (item.filename || '');
+              } catch (e) {}
+            }
+          }
+          if (combined.indexOf('WebSocket closed without opened') !== -1) return true;
+          if (combined.indexOf('[vite]') !== -1 && (
+            combined.indexOf('failed to connect to websocket') !== -1 ||
+            combined.indexOf('connection lost') !== -1 ||
+            combined.indexOf('server connection lost') !== -1 ||
+            combined.indexOf('WebSocket') !== -1
+          )) {
+            return true;
+          }
+          return false;
+        }
+
+        // Targeted Console Error Filter for Vite HMR
+        var originalConsoleError = console.error;
+        console.error = function() {
+          if (isViteHmrNoise(arguments)) {
+            return;
+          }
+          return originalConsoleError.apply(console, arguments);
+        };
+
+        // 4. Uncaught Error Event Listener (non-blocking diagnostic logger)
         window.addEventListener('error', function(event) {
-          var msg = event && event.message ? event.message : 'Unknown script error';
-          var source = event && event.filename ? event.filename : 'Unknown source';
+          if (isViteHmrNoise([event && event.message, event && event.filename, event && event.error])) {
+            if (event.preventDefault) event.preventDefault();
+            if (event.stopImmediatePropagation) event.stopImmediatePropagation();
+            return;
+          }
+
+          var msg = event && event.message ? event.message : '';
+          var source = event && event.filename ? event.filename : '';
           var line = event && event.lineno ? event.lineno : 0;
           var col = event && event.colno ? event.colno : 0;
           var err = event && event.error ? event.error : null;
 
-          // Non-fatal preview noise filters
-          if (msg.indexOf("reading 'send'") !== -1 ||
-              msg.indexOf('WebSocket') !== -1 ||
-              msg.indexOf('preamble') !== -1 ||
-              msg.indexOf('serviceWorker') !== -1) {
-            log('WARN', 'Suppressed non-fatal background event: ' + msg);
-            event.stopImmediatePropagation();
-            event.preventDefault();
-            return;
-          }
-
+          // Do NOT suppress real errors or stop propagation. Only log diagnostic record.
           log('ERROR', 'Uncaught Runtime Error: ' + msg + ' @ ' + source + ':' + line + ':' + col, err);
 
-          // If React root has not mounted yet, display diagnostic notice
+          // If React root has not mounted yet after critical error, display diagnostic notice
           if (!window.__REACT_MOUNTED__) {
             showDiagnosticNotice(msg, source + ':' + line);
           }
-        }, true);
+        });
 
-        // 4. Unhandled Promise Rejection Listener
+        // 5. Unhandled Promise Rejection Listener (non-blocking diagnostic logger)
         window.addEventListener('unhandledrejection', function(event) {
           var reason = event && event.reason;
-          var reasonMsg = reason && reason.message ? reason.message : String(reason);
-
-          if (reasonMsg.indexOf('WebSocket') !== -1 ||
-              reasonMsg.indexOf('serviceWorker') !== -1 ||
-              reasonMsg.indexOf('Failed to fetch dynamically imported module') !== -1) {
-            log('WARN', 'Handled transient network/module rejection: ' + reasonMsg);
-            event.preventDefault();
+          if (isViteHmrNoise([reason])) {
+            if (event.preventDefault) event.preventDefault();
+            if (event.stopImmediatePropagation) event.stopImmediatePropagation();
             return;
           }
 
+          var reasonMsg = reason && (reason.stack || reason.message) ? String(reason.stack || reason.message) : String(reason);
+
+          // Do NOT suppress rejections or stop propagation. Only log diagnostic record.
           log('ERROR', 'Unhandled Promise Rejection: ' + reasonMsg, reason);
 
           if (!window.__REACT_MOUNTED__) {
@@ -126,7 +158,7 @@
         // 5. Watchdog Timeout for Initial Load
         setTimeout(function() {
           if (!window.__REACT_MOUNTED__) {
-            log('WARN', 'App boot timeout (>8s). React root has not mounted yet.');
+            log('WARN', 'App boot notice: React root has not reported mounted within 8s.');
           }
         }, 8000);
 
