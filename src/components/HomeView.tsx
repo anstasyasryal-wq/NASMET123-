@@ -29,6 +29,11 @@ import {
   Download,
   Share2,
   Smartphone,
+  Star,
+  Image as ImageIcon,
+  Dna,
+  Scale,
+  ArrowRightLeft,
 } from 'lucide-react';
 
 interface BookProgress {
@@ -74,6 +79,7 @@ interface HomeViewProps {
   onOpenRetreat?: () => void;
   onNavigateToMonasticPuzzle?: () => void;
   onOpenDirectory?: () => void;
+  onNavigateToHesychiaPath?: () => void;
 }
 
 export const HomeView: React.FC<HomeViewProps> = React.memo(({
@@ -111,6 +117,7 @@ export const HomeView: React.FC<HomeViewProps> = React.memo(({
   onOpenRetreat,
   onNavigateToMonasticPuzzle,
   onOpenDirectory,
+  onNavigateToHesychiaPath,
 }) => {
   const { language, t, dir, isRTL } = useLanguage();
   const [showExtendedExploration, setShowExtendedExploration] = useState(false);
@@ -361,6 +368,19 @@ export const HomeView: React.FC<HomeViewProps> = React.memo(({
             type="button"
             onClick={() => {
               soundManager.playTick();
+              window.dispatchEvent(new Event('show-rating-modal'));
+            }}
+            className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 font-bold text-xs transition active:scale-95 cursor-pointer"
+            title="تقييم التطبيق ٥ نجوم وكتابة كلمة بركة"
+          >
+            <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
+            <span>تقييم ٥ نجوم ⭐</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              soundManager.playTick();
               window.dispatchEvent(new Event('show-install-prompt'));
             }}
             className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 text-stone-950 font-bold text-xs shadow-xs transition active:scale-95 cursor-pointer"
@@ -420,10 +440,34 @@ export const HomeView: React.FC<HomeViewProps> = React.memo(({
 
           <div className="flex items-center justify-between pt-2 border-t border-amber-900/40 text-[11px] text-amber-300 font-bold relative z-10">
             <span className="font-serif">{dailyMsg.verseRef}</span>
-            <span className="group-hover:translate-x-1 transition-transform flex items-center gap-1">
-              <span>{t('readMore')}</span>
-              <ChevronLeft className={`w-3.5 h-3.5 ${!isRTL ? 'rotate-180' : ''}`} />
-            </span>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  soundManager.playTick();
+                  window.dispatchEvent(
+                    new CustomEvent('show-verse-card', {
+                      detail: {
+                        verseText: dailyMsg.verse,
+                        verseRef: dailyMsg.verseRef,
+                        reflection: dailyMsg.reflection,
+                        salutation: dailyMsg.salutation,
+                      },
+                    })
+                  );
+                }}
+                className="px-2 py-0.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-[10px] font-bold border border-amber-500/40 transition flex items-center gap-1 cursor-pointer"
+                title="توليد بطاقة الآية كصورة للمشاركة على حالات الواتساب"
+              >
+                <ImageIcon className="w-3 h-3 text-amber-400" />
+                <span>بطاقة صورة 🎨</span>
+              </button>
+              <span className="group-hover:translate-x-1 transition-transform flex items-center gap-1">
+                <span>{t('readMore')}</span>
+                <ChevronLeft className={`w-3.5 h-3.5 ${!isRTL ? 'rotate-180' : ''}`} />
+              </span>
+            </div>
           </div>
         </div>
 
@@ -779,6 +823,169 @@ export const HomeView: React.FC<HomeViewProps> = React.memo(({
               <ChevronLeft className={`w-3.5 h-3.5 transition-transform ${isRTL ? 'group-hover:-translate-x-1' : 'rotate-180 group-hover:translate-x-1'}`} />
             </span>
           </div>
+        </div>
+      </section>
+
+      {/* 4.5. New Innovative Platforms: Science, Prophecies & Discernment Labs */}
+      <section className="space-y-3.5">
+        <div className="flex items-center justify-between">
+          <div className="space-y-0.5">
+            <h2 className="font-spiritual text-base sm:text-lg font-black text-amber-200 flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-amber-400" />
+              <span>{language === 'ar' ? 'أجنحة الابتكار الكنسي والعمق اللاهوتي 🧪' : 'Ecclesiastical Innovation & Deep Theology Labs 🧪'}</span>
+            </h2>
+            <p className="text-xs text-stone-400">
+              {language === 'ar'
+                ? 'مختبرات تفاعلية حصرية تجمع بين أصالة الآباء، الدقة اللغوية، وعلم الجينات الحديث.'
+                : 'Interactive labs combining patristic heritage, biblical philology, and modern biology.'}
+            </p>
+          </div>
+          <span className="text-[10px] bg-amber-500/10 text-amber-300 border border-amber-500/30 px-2.5 py-1 rounded-full font-bold">
+            {language === 'ar' ? 'ابتكارات فريدة 🌟' : 'Exclusive 🌟'}
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+          {/* Card 1: Bio-Theology Lab */}
+          <div
+            onClick={() => {
+              soundManager.playTick();
+              window.dispatchEvent(new CustomEvent('open-bio-theology-lab'));
+            }}
+            className="p-4 rounded-2xl bg-gradient-to-b from-stone-900 to-stone-950 border border-emerald-600/30 hover:border-emerald-400/80 transition-all cursor-pointer group shadow-lg flex flex-col justify-between gap-3 text-right"
+          >
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="w-9 h-9 rounded-xl bg-emerald-950 border border-emerald-600/40 flex items-center justify-center text-emerald-300">
+                  <Dna className="w-5 h-5 text-emerald-400 group-hover:rotate-12 transition-transform" />
+                </div>
+                <span className="text-[10px] font-mono text-emerald-400 bg-emerald-950/70 px-2 py-0.5 rounded-full border border-emerald-600/30">
+                  سفر التكوين والعلم 🧬
+                </span>
+              </div>
+              <h3 className="font-spiritual text-sm font-bold text-emerald-100 group-hover:text-emerald-300 transition">
+                {language === 'ar' ? 'مختبر التصميم الإلهي والشفرة الجينية' : 'Bio-Theology & Divine Design Lab'}
+              </h3>
+              <p className="text-[11px] text-stone-300 leading-relaxed">
+                {language === 'ar'
+                  ? 'محاكي خط حواء الميتوكوندرية (تكوين ٣: ٢٠)، ضبط دقة إنزيم البوليميريز، ومصفوفة الهكساميرون الآبائية.'
+                  : 'Mitochondrial Eve simulator, DNA polymerase fine-tuning, and the patristic Hexaemeron.'}
+              </p>
+            </div>
+            <div className="pt-2 border-t border-stone-800 flex items-center justify-between text-xs">
+              <span className="text-[11px] text-emerald-400 font-bold">
+                {language === 'ar' ? 'دخول المختبر البيولوجي' : 'Enter Bio Lab'}
+              </span>
+              <span className="text-emerald-400 group-hover:-translate-x-1 transition-transform">←</span>
+            </div>
+          </div>
+
+          {/* Card 2: Messianic Prophecies Nexus */}
+          <div
+            onClick={() => {
+              soundManager.playTick();
+              window.dispatchEvent(new CustomEvent('open-messianic-prophecies'));
+            }}
+            className="p-4 rounded-2xl bg-gradient-to-b from-stone-900 to-stone-950 border border-amber-600/30 hover:border-amber-400/80 transition-all cursor-pointer group shadow-lg flex flex-col justify-between gap-3 text-right"
+          >
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="w-9 h-9 rounded-xl bg-amber-950 border border-amber-600/40 flex items-center justify-center text-amber-300">
+                  <ArrowRightLeft className="w-5 h-5 text-amber-400 group-hover:scale-110 transition-transform" />
+                </div>
+                <span className="text-[10px] font-mono text-amber-400 bg-amber-950/70 px-2 py-0.5 rounded-full border border-amber-600/30">
+                  ١٢ نبوة محققة ✡️
+                </span>
+              </div>
+              <h3 className="font-spiritual text-sm font-bold text-amber-100 group-hover:text-amber-300 transition">
+                {language === 'ar' ? 'شبكة النبوات المسكونية التفاعلية' : 'Messianic Prophecies Nexus'}
+              </h3>
+              <p className="text-[11px] text-stone-300 leading-relaxed">
+                {language === 'ar'
+                  ? 'مقارنة نصية حية بين النبوات وإتمامها الإنجيلي، مع الجذور اللغوية العبرية (עַלְמָה) واليونانية والتفاسير الآبائية.'
+                  : 'Parallel OT/NT prophecy fulfillment with original Hebrew & Greek roots and patristic exegesis.'}
+              </p>
+            </div>
+            <div className="pt-2 border-t border-stone-800 flex items-center justify-between text-xs">
+              <span className="text-[11px] text-amber-400 font-bold">
+                {language === 'ar' ? 'استكشاف كوكبة النبوات' : 'Explore Prophecies'}
+              </span>
+              <span className="text-amber-400 group-hover:-translate-x-1 transition-transform">←</span>
+            </div>
+          </div>
+
+          {/* Card 3: Spiritual Discernment Simulator */}
+          <div
+            onClick={() => {
+              soundManager.playTick();
+              window.dispatchEvent(new CustomEvent('open-spiritual-discernment'));
+            }}
+            className="p-4 rounded-2xl bg-gradient-to-b from-stone-900 to-stone-950 border border-amber-500/30 hover:border-amber-400/80 transition-all cursor-pointer group shadow-lg flex flex-col justify-between gap-3 text-right"
+          >
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="w-9 h-9 rounded-xl bg-amber-950 border border-amber-600/40 flex items-center justify-center text-amber-300">
+                  <Scale className="w-5 h-5 text-amber-400 group-hover:rotate-6 transition-transform" />
+                </div>
+                <span className="text-[10px] font-mono text-amber-400 bg-amber-950/70 px-2 py-0.5 rounded-full border border-amber-600/30">
+                  الإفراز الرهباني ⚖️
+                </span>
+              </div>
+              <h3 className="font-spiritual text-sm font-bold text-amber-100 group-hover:text-amber-300 transition">
+                {language === 'ar' ? 'ميزان الإفراز والتمييز الروحي' : 'Spiritual Discernment Simulator'}
+              </h3>
+              <p className="text-[11px] text-stone-300 leading-relaxed">
+                {language === 'ar'
+                  ? 'محاكي معضلات المكرس والخدمة، اختبار الدوافع الخفية والغرور المستتر، وحكمة شيوخ الإسقيط وبرية شيهيت.'
+                  : 'Monastic dilemma simulator discerning hidden self-will against the wisdom of the desert elders.'}
+              </p>
+            </div>
+            <div className="pt-2 border-t border-stone-800 flex items-center justify-between text-xs">
+              <span className="text-[11px] text-amber-400 font-bold">
+                {language === 'ar' ? 'خوض تدريب الإفراز' : 'Start Discernment'}
+              </span>
+              <span className="text-amber-400 group-hover:-translate-x-1 transition-transform">←</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Hesychia Path Quick Entry Banner */}
+        <div
+          onClick={() => {
+            soundManager.playTick();
+            onNavigateToHesychiaPath?.();
+          }}
+          className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-amber-950/80 via-stone-900 to-amber-950/80 border-2 border-amber-500/50 hover:border-amber-400 transition-all cursor-pointer group shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4 text-right"
+        >
+          <div className="flex items-center gap-3.5">
+            <div className="w-11 h-11 rounded-2xl bg-amber-600/20 border border-amber-500/40 flex items-center justify-center text-amber-300 shrink-0 text-xl group-hover:scale-110 transition-transform">
+              🕯️
+            </div>
+            <div className="space-y-1">
+              <span className="text-[10px] bg-amber-950 text-amber-300 px-2.5 py-0.5 rounded-full font-mono border border-amber-600/30">
+                قانون اليوم الموحد 🌿
+              </span>
+              <h3 className="font-spiritual text-base sm:text-lg font-bold text-amber-100 group-hover:text-amber-300 transition">
+                {language === 'ar' ? 'ممشى السكون والهدوء الروحي' : 'The Hesychia & Silent Path'}
+              </h3>
+              <p className="text-xs text-stone-300 leading-relaxed">
+                {language === 'ar'
+                  ? 'رحلة يومية هادئة ومنظمة تجمع الصلاة، التأمل في الكلمة، صلاة يسوع، وقفة الشكر والختام بخطوات مريحة.'
+                  : 'A gentle daily path combining prayer, scripture contemplation, Jesus prayer and evening thanks.'}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              soundManager.playTick();
+              onNavigateToHesychiaPath?.();
+            }}
+            className="px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-stone-950 font-bold text-xs shrink-0 transition shadow cursor-pointer flex items-center gap-1.5"
+          >
+            <span>{language === 'ar' ? 'ابدأ ممشى السكون 🕯️' : 'Start Path 🕯️'}</span>
+            <span>←</span>
+          </button>
         </div>
       </section>
 

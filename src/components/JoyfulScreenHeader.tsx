@@ -1,5 +1,5 @@
 import React, { memo } from 'react';
-import { Home, Sparkles } from 'lucide-react';
+import { Home, Sparkles, Share2 } from 'lucide-react';
 import { soundManager } from '../utils/audio';
 import { motion } from 'framer-motion';
 
@@ -58,16 +58,30 @@ export const JoyfulScreenHeader: React.FC<JoyfulScreenHeaderProps> = memo(({
           </div>
         </div>
 
-        <button
-          onClick={() => {
-            soundManager.playTick();
-            onBackToHome();
-          }}
-          className="self-end sm:self-center px-4 py-2.5 rounded-xl bg-stone-900/90 hover:bg-stone-800 text-amber-300 border border-amber-600/40 text-xs font-bold flex items-center gap-2 shadow-md transition cursor-pointer shrink-0 active:scale-95"
-        >
-          <Home className="w-4 h-4 text-amber-400" />
-          <span>العودة للرئيسية</span>
-        </button>
+        <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+          <button
+            onClick={() => {
+              soundManager.playTick();
+              window.dispatchEvent(new Event('show-share-modal'));
+            }}
+            className="px-3.5 py-2.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-200 border border-amber-500/40 text-xs font-bold flex items-center gap-1.5 shadow-sm transition cursor-pointer active:scale-95"
+            title="مشاركة التطبيق والرابط العام"
+          >
+            <Share2 className="w-3.5 h-3.5 text-amber-400" />
+            <span>مشاركة</span>
+          </button>
+
+          <button
+            onClick={() => {
+              soundManager.playTick();
+              onBackToHome();
+            }}
+            className="px-4 py-2.5 rounded-xl bg-stone-900/90 hover:bg-stone-800 text-amber-300 border border-amber-600/40 text-xs font-bold flex items-center gap-2 shadow-md transition cursor-pointer active:scale-95"
+          >
+            <Home className="w-4 h-4 text-amber-400" />
+            <span>العودة للرئيسية</span>
+          </button>
+        </div>
       </div>
     </motion.div>
   );

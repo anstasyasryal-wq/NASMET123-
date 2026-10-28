@@ -32,6 +32,7 @@ export const viewLoaders: Record<AppView, () => Promise<unknown>> = {
   prayer_fortress: () => import('../components/DailyPrayerFortress'),
   virtue_jar: () => import('../components/VirtueJarComponent'),
   monastic_puzzle: () => import('../components/MonasticAscentPuzzle'),
+  hesychia_path: () => import('../components/HesychiaPathView'),
 };
 
 export const modalLoaders: Record<string, () => Promise<unknown>> = {

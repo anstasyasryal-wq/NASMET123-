@@ -2,6 +2,14 @@ import { useEffect, useState } from 'react';
 import { useRegisterSW } from 'virtual:pwa-register/react';
 import { useLanguage } from '../context/LanguageContext';
 import {
+  getPublicShareUrl,
+  copyPublicShareLink,
+  openWhatsAppShare,
+  openTelegramShare,
+  openFacebookShare,
+  shareNatively,
+} from '../utils/shareHelper';
+import {
   Download,
   RefreshCw,
   Share2,
@@ -14,6 +22,8 @@ import {
   MessageCircle,
   Send,
   Sparkles,
+  QrCode,
+  ShieldCheck,
 } from 'lucide-react';
 
 interface BeforeInstallPromptEvent extends Event {
@@ -244,57 +254,40 @@ export default function AppInstallManager() {
     }
   };
 
+  const publicShareUrl = getPublicShareUrl();
+
   const shareData = {
     title: t('appTitle'),
     text: `${t('appTitle')} - ${t('appSubtitle')}`,
-    url: typeof window !== 'undefined' ? window.location.origin : '',
+    url: publicShareUrl,
   };
 
   const handleNativeShare = async () => {
-    if (typeof navigator !== 'undefined' && navigator.share) {
-      try {
-        await navigator.share(shareData);
-        setShowShareModal(false);
-        return;
-      } catch (err: unknown) {
-        if ((err as Error)?.name === 'AbortError') return;
-      }
+    const success = await shareNatively(language === 'en' ? 'en' : 'ar');
+    if (success) {
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 2500);
     }
-    handleCopyLink();
   };
 
   const handleCopyLink = async () => {
-    const targetUrl = shareData.url || (typeof window !== 'undefined' ? window.location.href : '');
-    try {
-      await navigator.clipboard.writeText(targetUrl);
-      setCopiedLink(true);
-      setTimeout(() => setCopiedLink(false), 2500);
-    } catch {
-      const input = document.createElement('input');
-      input.value = targetUrl;
-      document.body.appendChild(input);
-      input.select();
-      document.execCommand('copy');
-      document.body.removeChild(input);
+    const success = await copyPublicShareLink(language === 'en' ? 'en' : 'ar');
+    if (success) {
       setCopiedLink(true);
       setTimeout(() => setCopiedLink(false), 2500);
     }
   };
 
   const shareViaWhatsApp = () => {
-    const text = encodeURIComponent(`${shareData.text}\n${shareData.url}`);
-    window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
+    openWhatsAppShare(language === 'en' ? 'en' : 'ar');
   };
 
   const shareViaTelegram = () => {
-    const text = encodeURIComponent(shareData.text);
-    const url = encodeURIComponent(shareData.url);
-    window.open(`https://t.me/share/url?url=${url}&text=${text}`, '_blank');
+    openTelegramShare(language === 'en' ? 'en' : 'ar');
   };
 
   const shareViaFacebook = () => {
-    const url = encodeURIComponent(shareData.url);
-    window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}`, '_blank');
+    openFacebookShare(language === 'en' ? 'en' : 'ar');
   };
 
   // 1. Auto-Update Notification Banner (New Version Available)
@@ -623,14 +616,23 @@ export default function AppInstallManager() {
               <span>{t('shareMobileNative')}</span>
             </button>
 
-            {/* Copy Link Input Bar */}
-            <div className="rounded-2xl border border-stone-800 bg-stone-900/90 p-3 space-y-2">
-              <span className="text-[11px] font-bold text-amber-400/80 block">{t('appDirectLink')}</span>
+            {/* Open Protection & Direct Public Link Bar */}
+            <div className="rounded-2xl border border-amber-500/40 bg-stone-900/90 p-3 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold text-amber-300 flex items-center gap-1.5">
+                  <ShieldCheck className="h-4 w-4 text-emerald-400" />
+                  <span>{t('appDirectLink')}</span>
+                </span>
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-emerald-950/80 text-emerald-300 border border-emerald-500/50 px-2 py-0.5 rounded-full">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                  <span>{language === 'ar' ? 'حماية مفتوحة للجميع' : 'Public & Open'}</span>
+                </span>
+              </div>
               <div className="flex items-center gap-2 bg-stone-950 rounded-xl p-1.5 border border-stone-800">
                 <input
                   type="text"
                   readOnly
-                  value={shareData.url || (typeof window !== 'undefined' ? window.location.href : '')}
+                  value={shareData.url}
                   className="flex-1 bg-transparent px-2 text-xs text-stone-300 font-mono outline-hidden select-all"
                   dir="ltr"
                 />
@@ -645,6 +647,11 @@ export default function AppInstallManager() {
                   <span>{copiedLink ? t('copiedLink') : t('copy')}</span>
                 </button>
               </div>
+              <p className="text-[10px] text-stone-400">
+                {language === 'ar'
+                  ? 'هذا الرابط المباشر يعمل على جميع الهواتف والمتصفحات ولا يتطلب أي إذن مسبق أو حساب مطور.'
+                  : 'This direct link works on all mobile phones and browsers with no login barriers.'}
+              </p>
             </div>
 
             <div className="text-center pt-1">

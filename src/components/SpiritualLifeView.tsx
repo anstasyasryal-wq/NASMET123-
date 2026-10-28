@@ -6,6 +6,7 @@ import { ScheduledPrayerReminders } from './ScheduledPrayerReminders';
 import { AnnualReadingTracker } from './AnnualReadingTracker';
 import { SpiritualMaturityTests } from './SpiritualMaturityTests';
 import { ConsecrationTree } from './ConsecrationTree';
+import { JesusPrayerRosary } from './JesusPrayerRosary';
 
 interface SpiritualLifeViewProps {
   currentUser: User | null;
@@ -22,7 +23,7 @@ export const SpiritualLifeView: React.FC<SpiritualLifeViewProps> = ({
   onBackToHome,
   onNavigateToPrayerFortress,
 }) => {
-  const [activeTab, setActiveTab] = useState<'annual_plan' | 'maturity_tests' | 'scheduled_prayers' | 'starter_days' | 'consecration_tree'>('annual_plan');
+  const [activeTab, setActiveTab] = useState<'annual_plan' | 'jesus_rosary' | 'maturity_tests' | 'scheduled_prayers' | 'starter_days' | 'consecration_tree'>('annual_plan');
   const [completedDays, setCompletedDays] = useState<number[]>([1, 2]);
 
   const toggleDay = (day: number) => {
@@ -104,6 +105,21 @@ export const SpiritualLifeView: React.FC<SpiritualLifeViewProps> = ({
         <button
           onClick={() => {
             soundManager.playTick();
+            setActiveTab('jesus_rosary');
+          }}
+          className={`px-4 py-2.5 rounded-xl flex items-center gap-2 transition shrink-0 cursor-pointer ${
+            activeTab === 'jesus_rosary'
+              ? 'bg-gradient-to-r from-amber-600 to-amber-700 text-white shadow-md'
+              : 'text-stone-300 hover:bg-stone-800'
+          }`}
+        >
+          <span className="text-base">📿</span>
+          <span>مسبحة صلاة يسوع (الاهتزاز اللمسي)</span>
+        </button>
+
+        <button
+          onClick={() => {
+            soundManager.playTick();
             setActiveTab('maturity_tests');
           }}
           className={`px-4 py-2.5 rounded-xl flex items-center gap-2 transition shrink-0 cursor-pointer ${
@@ -165,6 +181,11 @@ export const SpiritualLifeView: React.FC<SpiritualLifeViewProps> = ({
       {/* Tab 1: Annual Reading Tracker */}
       {activeTab === 'annual_plan' && (
         <AnnualReadingTracker currentUser={currentUser} onOpenLogin={onOpenLogin} />
+      )}
+
+      {/* Tab: Jesus Prayer Rosary with Haptic Feedback */}
+      {activeTab === 'jesus_rosary' && (
+        <JesusPrayerRosary />
       )}
 
       {/* Tab 2: Maturity Tests */}

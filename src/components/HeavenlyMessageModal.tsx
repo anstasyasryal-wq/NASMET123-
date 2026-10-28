@@ -19,6 +19,7 @@ import {
   Clock,
   ShieldCheck,
   RefreshCw,
+  Image,
 } from 'lucide-react';
 import { User } from '../types';
 import {
@@ -604,6 +605,27 @@ export const HeavenlyMessageModal: React.FC<HeavenlyMessageModalProps> = ({
                           <span>نسخ</span>
                         </>
                       )}
+                    </button>
+
+                    {/* Story Image Card Button */}
+                    <button
+                      onClick={() => {
+                        window.dispatchEvent(
+                          new CustomEvent('show-verse-card', {
+                            detail: {
+                              verseText: currentMessage.verse,
+                              verseRef: currentMessage.verseRef,
+                              reflection: currentMessage.reflection,
+                              salutation: currentMessage.salutation,
+                            },
+                          })
+                        );
+                      }}
+                      className="px-3 py-2 rounded-xl bg-gradient-to-r from-amber-600/30 to-amber-700/30 hover:from-amber-600/50 border border-amber-500/50 text-amber-200 text-xs font-bold flex items-center gap-1.5 transition cursor-pointer"
+                      title="توليد بطاقة الصورة لمشاركتها على حالات الواتساب وشبكات التواصل"
+                    >
+                      <Image className="w-3.5 h-3.5 text-amber-400" />
+                      <span>بطاقة صورة 🎨</span>
                     </button>
 
                     {/* Share Button */}

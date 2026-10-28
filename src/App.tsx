@@ -51,6 +51,7 @@ const SpiritualFatherCompanion = lazy(() => import('./components/SpiritualFather
 const ConsecratedManualReference = lazy(() => import('./components/ConsecratedManualReference').then(m => ({ default: m.ConsecratedManualReference })));
 const DailyPrayerFortress = lazy(() => import('./components/DailyPrayerFortress').then(m => ({ default: m.DailyPrayerFortress })));
 const VirtueJarComponent = lazy(() => import('./components/VirtueJarComponent').then(m => ({ default: m.VirtueJarComponent })));
+const HesychiaPathView = lazy(() => import('./components/HesychiaPathView').then(m => ({ default: m.HesychiaPathView })));
 
 // Lazy-loaded Modals (Loaded only when user opens them)
 const RegistrationModal = lazy(() => import('./components/RegistrationModal').then(m => ({ default: m.RegistrationModal })));
@@ -66,6 +67,8 @@ const WelcomeSplashModal = lazy(() => import('./components/WelcomeSplashModal'))
 const EyeComfortFontModal = lazy(() => import('./components/EyeComfortFontModal').then(m => ({ default: m.EyeComfortFontModal })));
 const VirtualSilentRetreat = lazy(() => import('./components/VirtualSilentRetreat').then(m => ({ default: m.VirtualSilentRetreat })));
 const ComprehensiveDirectoryModal = lazy(() => import('./components/ComprehensiveDirectoryModal').then(m => ({ default: m.ComprehensiveDirectoryModal })));
+const AppRatingModal = lazy(() => import('./components/AppRatingModal').then(m => ({ default: m.AppRatingModal })));
+const VerseCardGeneratorModal = lazy(() => import('./components/VerseCardGeneratorModal').then(m => ({ default: m.VerseCardGeneratorModal })));
 
 const ViewLoadingFallback: React.FC = () => {
   const { t, dir } = useLanguage();
@@ -119,6 +122,15 @@ function AppContent() {
   const [showSilentRetreat, setShowSilentRetreat] = useState<boolean>(false);
   const [showDirectoryModal, setShowDirectoryModal] = useState<boolean>(false);
   const [showMobileMenu, setShowMobileMenu] = useState<boolean>(false);
+  const [showRatingModal, setShowRatingModal] = useState<boolean>(false);
+  const [verseCardData, setVerseCardData] = useState<{
+    verseText: string;
+    verseRef: string;
+    reflection?: string;
+    patristicQuote?: string;
+    patristicSaint?: string;
+    salutation?: string;
+  } | null>(null);
   const [showWelcomeSplash, setShowWelcomeSplash] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -130,6 +142,8 @@ function AppContent() {
     return true;
   });
   const [emergencySituation, setEmergencySituation] = useState<'distress' | 'boredom' | 'lukewarmness' | 'anger'>('distress');
+  const [biblicalStudyTab, setBiblicalStudyTab] = useState<'patristic' | 'bio_theology' | 'prophecy_nexus'>('patristic');
+  const [monasticOasisTab, setMonasticOasisTab] = useState<'pillars' | 'examen' | 'covenant' | 'dispensary' | 'virtues' | 'retreat_eval' | 'discernment'>('pillars');
 
   const { getContainerClass } = useReadingTheme();
 
@@ -159,6 +173,39 @@ function AppContent() {
         // ignore
       }
     }
+
+    const handleOpenRating = () => setShowRatingModal(true);
+    const handleOpenVerseCard = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail) setVerseCardData(detail);
+    };
+
+    const handleOpenBio = () => {
+      setBiblicalStudyTab('bio_theology');
+      handleNavigate('biblical_study');
+    };
+    const handleOpenProphecy = () => {
+      setBiblicalStudyTab('prophecy_nexus');
+      handleNavigate('biblical_study');
+    };
+    const handleOpenDiscernment = () => {
+      setMonasticOasisTab('discernment');
+      handleNavigate('monastic_oasis');
+    };
+
+    window.addEventListener('show-rating-modal', handleOpenRating);
+    window.addEventListener('show-verse-card', handleOpenVerseCard);
+    window.addEventListener('open-bio-theology-lab', handleOpenBio);
+    window.addEventListener('open-messianic-prophecies', handleOpenProphecy);
+    window.addEventListener('open-spiritual-discernment', handleOpenDiscernment);
+
+    return () => {
+      window.removeEventListener('show-rating-modal', handleOpenRating);
+      window.removeEventListener('show-verse-card', handleOpenVerseCard);
+      window.removeEventListener('open-bio-theology-lab', handleOpenBio);
+      window.removeEventListener('open-messianic-prophecies', handleOpenProphecy);
+      window.removeEventListener('open-spiritual-discernment', handleOpenDiscernment);
+    };
   }, []);
 
   const handleNavigate = (view: AppView) => {
@@ -285,6 +332,7 @@ function AppContent() {
                 onOpenRetreat={() => setShowSilentRetreat(true)}
                 onNavigateToMonasticPuzzle={() => handleNavigate('monastic_puzzle')}
                 onOpenDirectory={() => setShowDirectoryModal(true)}
+                onNavigateToHesychiaPath={() => handleNavigate('hesychia_path')}
               />
             </motion.div>
           )}
@@ -359,6 +407,7 @@ function AppContent() {
               <BiblicalStudyView
                 currentUser={currentUser}
                 onBackToHome={() => handleNavigate('home')}
+                initialTab={biblicalStudyTab}
               />
             )}
 
@@ -418,6 +467,7 @@ function AppContent() {
                 currentUser={currentUser}
                 onBackToHome={() => handleNavigate('home')}
                 onNavigateToManual={() => handleNavigate('consecrated_manual')}
+                initialTab={monasticOasisTab}
               />
             )}
 
@@ -569,6 +619,18 @@ function AppContent() {
                 />
               </div>
             )}
+
+            {currentView === 'hesychia_path' && (
+              <div className="animate-fade-in">
+                <HesychiaPathView
+                  currentUser={currentUser}
+                  onBackToHome={() => handleNavigate('home')}
+                  onOpenPrayerFortress={() => handleNavigate('prayer_fortress')}
+                  onOpenRosary={() => handleNavigate('spiritual_life')}
+                  onOpenLibrary={() => handleNavigate('library')}
+                />
+              </div>
+            )}
           </Suspense>
         </main>
       </div>
@@ -678,6 +740,26 @@ function AppContent() {
             onOpenIconGallery={() => setShowIconGallery(true)}
             onOpenSaintsGallery={() => setShowSaintsGallery(true)}
             currentUser={currentUser}
+          />
+        )}
+
+        {showRatingModal && (
+          <AppRatingModal
+            isOpen={showRatingModal}
+            onClose={() => setShowRatingModal(false)}
+          />
+        )}
+
+        {verseCardData && (
+          <VerseCardGeneratorModal
+            isOpen={!!verseCardData}
+            onClose={() => setVerseCardData(null)}
+            verseText={verseCardData.verseText}
+            verseRef={verseCardData.verseRef}
+            reflection={verseCardData.reflection}
+            patristicQuote={verseCardData.patristicQuote}
+            patristicSaint={verseCardData.patristicSaint}
+            salutation={verseCardData.salutation}
           />
         )}
       </Suspense>

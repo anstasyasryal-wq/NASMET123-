@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { User } from '../types';
 import { soundManager } from '../utils/audio';
 import { useReadingTheme } from '../context/ReadingThemeContext';
 import { useLanguage } from '../context/LanguageContext';
+import { BioTheologyLab } from './BioTheologyLab';
+import { MessianicProphecyNexus } from './MessianicProphecyNexus';
 import {
   BookOpen,
   Search,
@@ -15,6 +17,8 @@ import {
   Check,
   Quote,
   Type,
+  Dna,
+  ArrowRightLeft,
 } from 'lucide-react';
 
 interface BiblicalStudyItem {
@@ -33,6 +37,7 @@ interface BiblicalStudyItem {
 interface BiblicalStudyViewProps {
   currentUser: User | null;
   onBackToHome: () => void;
+  initialTab?: 'patristic' | 'bio_theology' | 'prophecy_nexus';
 }
 
 const STUDIES_DATA: BiblicalStudyItem[] = [
@@ -113,12 +118,35 @@ const STUDIES_DATA: BiblicalStudyItem[] = [
 export const BiblicalStudyView: React.FC<BiblicalStudyViewProps> = ({
   currentUser,
   onBackToHome,
+  initialTab = 'patristic',
 }) => {
+  const [activeTab, setActiveTab] = useState<'patristic' | 'bio_theology' | 'prophecy_nexus'>(initialTab);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStudy, setSelectedStudy] = useState<BiblicalStudyItem | null>(null);
   const [copied, setCopied] = useState<boolean>(false);
   const { themeMode, setThemeMode, getReadingContainerClass, getReadingTextClass, openFontModal } = useReadingTheme();
   const { language, t, dir, isRTL } = useLanguage();
+
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
+
+  useEffect(() => {
+    const handleOpenBioLab = () => {
+      setActiveTab('bio_theology');
+    };
+    const handleOpenProphecies = () => {
+      setActiveTab('prophecy_nexus');
+    };
+    window.addEventListener('open-bio-theology-lab', handleOpenBioLab);
+    window.addEventListener('open-messianic-prophecies', handleOpenProphecies);
+    return () => {
+      window.removeEventListener('open-bio-theology-lab', handleOpenBioLab);
+      window.removeEventListener('open-messianic-prophecies', handleOpenProphecies);
+    };
+  }, []);
 
   const filtered = STUDIES_DATA.filter(
     (s) =>
@@ -151,73 +179,128 @@ export const BiblicalStudyView: React.FC<BiblicalStudyViewProps> = ({
           <ChevronLeft className={`w-4 h-4 ${isRTL ? 'rotate-180' : ''}`} />
           <span>{t('backToHome')}</span>
         </button>
+
+        <span className="text-xs text-amber-400 font-spiritual font-semibold">
+          📜 {language === 'ar' ? 'منصة العلوم الكنسية واللاهوتية والدراسات' : 'Theology & Biblical Sciences Nexus'}
+        </span>
       </div>
 
-      <div className={`rounded-3xl p-6 sm:p-8 border shadow-xl space-y-4 ${getReadingContainerClass()}`}>
-        <div className="flex items-center justify-between flex-wrap gap-2">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-900/60 border border-amber-600/40 text-amber-300 text-xs font-semibold">
-            <BookOpen className="w-3.5 h-3.5 text-amber-400" />
-            <span>{language === 'ar' ? 'منصة الدراسة والعلوم الكنسية والآباء' : 'Ecclesiastical Studies & Patristics Platform'}</span>
-          </div>
+      {/* Main Mode Navigation Tabs */}
+      <div className="flex items-center gap-2 p-1.5 bg-stone-900/90 rounded-2xl border border-amber-800/40 overflow-x-auto text-xs font-bold scrollbar-none shadow-md">
+        <button
+          onClick={() => {
+            soundManager.playTick();
+            setActiveTab('patristic');
+          }}
+          className={`px-4 py-2.5 rounded-xl flex items-center gap-2 transition shrink-0 cursor-pointer ${
+            activeTab === 'patristic'
+              ? 'bg-gradient-to-r from-amber-600 to-amber-700 text-white shadow-md'
+              : 'text-stone-300 hover:bg-stone-800'
+          }`}
+        >
+          <BookOpen className="w-4 h-4 text-amber-300" />
+          <span>{language === 'ar' ? 'الدراسات والتفاسير الآبائية 📜' : 'Patristic Studies 📜'}</span>
+        </button>
 
-          {/* Auto Eye-Comfort Theme & Font Selector */}
-          <div className="flex items-center gap-1.5 bg-stone-950/80 p-1.5 rounded-2xl border border-stone-800 text-xs font-bold flex-wrap">
-            <span className="text-[11px] text-amber-300 px-1.5">{t('readingModeTitle')}</span>
-            <button
-              onClick={() => setThemeMode('light')}
-              className={`px-2.5 py-1 rounded-xl transition cursor-pointer ${themeMode === 'light' ? 'bg-amber-600 text-white' : 'text-stone-400 hover:text-stone-200'}`}
-            >
-              ☀️ {t('day')}
-            </button>
-            <button
-              onClick={() => setThemeMode('night')}
-              className={`px-2.5 py-1 rounded-xl transition cursor-pointer ${themeMode === 'night' ? 'bg-amber-600 text-white' : 'text-stone-400 hover:text-stone-200'}`}
-            >
-              🌙 {t('night')}
-            </button>
-            <button
-              onClick={() => setThemeMode('auto')}
-              className={`px-2.5 py-1 rounded-xl transition flex items-center gap-1 cursor-pointer ${themeMode === 'auto' ? 'bg-emerald-600 text-white' : 'text-stone-400 hover:text-stone-200'}`}
-              title="تعديل تلقائي للإضاءة وراحة العين"
-            >
-              <span>👁️</span>
-              <span>{t('autoMode')}</span>
-            </button>
-            <button
-              onClick={openFontModal}
-              className="px-2.5 py-1 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 transition cursor-pointer flex items-center gap-1"
-              title={t('eyeComfortFonts')}
-            >
-              <Type className="w-3.5 h-3.5" />
-              <span>{language === 'ar' ? 'نوع الخط 🔤' : 'Font 🔤'}</span>
-            </button>
-          </div>
-        </div>
+        <button
+          onClick={() => {
+            soundManager.playTick();
+            setActiveTab('bio_theology');
+          }}
+          className={`px-4 py-2.5 rounded-xl flex items-center gap-2 transition shrink-0 cursor-pointer ${
+            activeTab === 'bio_theology'
+              ? 'bg-gradient-to-r from-amber-600 to-amber-700 text-white shadow-md'
+              : 'text-stone-300 hover:bg-stone-800'
+          }`}
+        >
+          <Dna className="w-4 h-4 text-emerald-400" />
+          <span>{language === 'ar' ? 'مختبر التصميم الإلهي والبيولوجيا 🧬' : 'Bio-Theology Lab 🧬'}</span>
+        </button>
 
-        <h1 className="font-spiritual text-2xl sm:text-3xl font-bold text-amber-100">
-          📜 {language === 'ar' ? 'مدارج الفهم والتعليم الكنسي الآبائي' : 'Patristic Exegesis & Church Studies'}
-        </h1>
-        <p className={`text-xs sm:text-sm leading-relaxed max-w-2xl ${getReadingTextClass()}`}>
-          {language === 'ar'
-            ? 'دراسات كتابية ولاهوتية رصينة تربط نصوص الكتاب المقدس بأقوال الآباء، مع إبراز التوافق الباهر بين العلم المعاصر والوحي الإلهي.'
-            : 'Profound biblical and theological studies connecting Holy Scripture with the Church Fathers, illustrating harmony between true science and divine revelation.'}
-        </p>
-
-        <div className="pt-2">
-          <div className="relative max-w-md">
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder={language === 'ar' ? 'ابحث في الدراسات والتفاسير الآبائية...' : 'Search studies and patristic exegesis...'}
-              className="w-full pl-4 pr-10 py-2.5 rounded-xl bg-stone-950 border border-stone-800 focus:border-amber-400 text-stone-100 text-xs outline-none"
-            />
-            <Search className="w-4 h-4 text-stone-400 absolute right-3 top-3" />
-          </div>
-        </div>
+        <button
+          onClick={() => {
+            soundManager.playTick();
+            setActiveTab('prophecy_nexus');
+          }}
+          className={`px-4 py-2.5 rounded-xl flex items-center gap-2 transition shrink-0 cursor-pointer ${
+            activeTab === 'prophecy_nexus'
+              ? 'bg-gradient-to-r from-amber-600 to-amber-700 text-white shadow-md'
+              : 'text-stone-300 hover:bg-stone-800'
+          }`}
+        >
+          <ArrowRightLeft className="w-4 h-4 text-amber-400" />
+          <span>{language === 'ar' ? 'شبكة النبوات المسكونية التفاعلية ✡️' : 'Messianic Prophecies Nexus ✡️'}</span>
+        </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* TAB 1: Patristic Exegesis & Studies */}
+      {activeTab === 'patristic' && (
+        <div className="space-y-6 animate-fade-in">
+          <div className={`rounded-3xl p-6 sm:p-8 border shadow-xl space-y-4 ${getReadingContainerClass()}`}>
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-900/60 border border-amber-600/40 text-amber-300 text-xs font-semibold">
+                <BookOpen className="w-3.5 h-3.5 text-amber-400" />
+                <span>{language === 'ar' ? 'منصة الدراسة والعلوم الكنسية والآباء' : 'Ecclesiastical Studies & Patristics Platform'}</span>
+              </div>
+
+              {/* Auto Eye-Comfort Theme & Font Selector */}
+              <div className="flex items-center gap-1.5 bg-stone-950/80 p-1.5 rounded-2xl border border-stone-800 text-xs font-bold flex-wrap">
+                <span className="text-[11px] text-amber-300 px-1.5">{t('readingModeTitle')}</span>
+                <button
+                  onClick={() => setThemeMode('light')}
+                  className={`px-2.5 py-1 rounded-xl transition cursor-pointer ${themeMode === 'light' ? 'bg-amber-600 text-white' : 'text-stone-400 hover:text-stone-200'}`}
+                >
+                  ☀️ {t('day')}
+                </button>
+                <button
+                  onClick={() => setThemeMode('night')}
+                  className={`px-2.5 py-1 rounded-xl transition cursor-pointer ${themeMode === 'night' ? 'bg-amber-600 text-white' : 'text-stone-400 hover:text-stone-200'}`}
+                >
+                  🌙 {t('night')}
+                </button>
+                <button
+                  onClick={() => setThemeMode('auto')}
+                  className={`px-2.5 py-1 rounded-xl transition flex items-center gap-1 cursor-pointer ${themeMode === 'auto' ? 'bg-emerald-600 text-white' : 'text-stone-400 hover:text-stone-200'}`}
+                  title="تعديل تلقائي للإضاءة وراحة العين"
+                >
+                  <span>👁️</span>
+                  <span>{t('autoMode')}</span>
+                </button>
+                <button
+                  onClick={openFontModal}
+                  className="px-2.5 py-1 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 transition cursor-pointer flex items-center gap-1"
+                  title={t('eyeComfortFonts')}
+                >
+                  <Type className="w-3.5 h-3.5" />
+                  <span>{language === 'ar' ? 'نوع الخط 🔤' : 'Font 🔤'}</span>
+                </button>
+              </div>
+            </div>
+
+            <h1 className="font-spiritual text-2xl sm:text-3xl font-bold text-amber-100">
+              📜 {language === 'ar' ? 'مدارج الفهم والتعليم الكنسي الآبائي' : 'Patristic Exegesis & Church Studies'}
+            </h1>
+            <p className={`text-xs sm:text-sm leading-relaxed max-w-2xl ${getReadingTextClass()}`}>
+              {language === 'ar'
+                ? 'دراسات كتابية ولاهوتية رصينة تربط نصوص الكتاب المقدس بأقوال الآباء، مع إبراز التوافق الباهر بين العلم المعاصر والوحي الإلهي.'
+                : 'Profound biblical and theological studies connecting Holy Scripture with the Church Fathers, illustrating harmony between true science and divine revelation.'}
+            </p>
+
+            <div className="pt-2">
+              <div className="relative max-w-md">
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder={language === 'ar' ? 'ابحث في الدراسات والتفاسير الآبائية...' : 'Search studies and patristic exegesis...'}
+                  className="w-full pl-4 pr-10 py-2.5 rounded-xl bg-stone-950 border border-stone-800 focus:border-amber-400 text-stone-100 text-xs outline-none"
+                />
+                <Search className="w-4 h-4 text-stone-400 absolute right-3 top-3" />
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {filtered.map((st) => (
           <div
             key={st.id}
@@ -348,6 +431,22 @@ export const BiblicalStudyView: React.FC<BiblicalStudyViewProps> = ({
               </div>
             </div>
           </div>
+        </div>
+      )}
+        </div>
+      )}
+
+      {/* TAB 2: Bio-Theology Lab */}
+      {activeTab === 'bio_theology' && (
+        <div className="animate-fade-in">
+          <BioTheologyLab />
+        </div>
+      )}
+
+      {/* TAB 3: Messianic Prophecies Nexus */}
+      {activeTab === 'prophecy_nexus' && (
+        <div className="animate-fade-in">
+          <MessianicProphecyNexus />
         </div>
       )}
     </div>

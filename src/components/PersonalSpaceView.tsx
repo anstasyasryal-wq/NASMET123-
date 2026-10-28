@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { User } from '../types';
 import { soundManager } from '../utils/audio';
 import confetti from 'canvas-confetti';
-import { Lock, ChevronLeft, Plus, Check, Heart, Sparkles, BookOpen, Trash2, RotateCcw, Award } from 'lucide-react';
+import { Lock, ChevronLeft, Plus, Check, Heart, Sparkles, BookOpen, Trash2, RotateCcw, Award, Download, Upload, ShieldCheck } from 'lucide-react';
 
 interface PersonalSpaceViewProps {
   currentUser: User | null;
@@ -95,6 +95,59 @@ export const PersonalSpaceView: React.FC<PersonalSpaceViewProps> = ({
     soundManager.playCorrect();
     setNotes((prev) => [newNote.trim(), ...prev]);
     setNewNote('');
+  };
+
+  const [backupMessage, setBackupMessage] = useState<string | null>(null);
+
+  const handleExportBackup = () => {
+    soundManager.playCorrect();
+    const backupData = {
+      version: '1.0',
+      exportedAt: new Date().toISOString(),
+      user: currentUser,
+      notes,
+      lifetimeRosary: lifetimeTotal,
+      consecrationBonus: typeof window !== 'undefined' ? localStorage.getItem('mokarasa_consecration_bonus') || '0' : '0',
+    };
+    const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `حسب_قلب_الله_نسخة_احتياطية_${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    setBackupMessage('تم حفظ وتنزيل النسخة الاحتياطية بنجاح 📁');
+    setTimeout(() => setBackupMessage(null), 3500);
+  };
+
+  const handleImportBackup = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const parsed = JSON.parse(event.target?.result as string);
+        if (parsed.notes && Array.isArray(parsed.notes)) {
+          setNotes(parsed.notes);
+          localStorage.setItem(STORAGE_NOTES_KEY, JSON.stringify(parsed.notes));
+        }
+        if (parsed.lifetimeRosary !== undefined) {
+          setLifetimeTotal(Number(parsed.lifetimeRosary));
+          localStorage.setItem(STORAGE_ROSARY_TOTAL_KEY, String(parsed.lifetimeRosary));
+        }
+        if (parsed.consecrationBonus) {
+          localStorage.setItem('mokarasa_consecration_bonus', String(parsed.consecrationBonus));
+        }
+        soundManager.playCorrect();
+        setBackupMessage('تمت استعادة البيانات الروحية بنجاح! ✝️');
+        setTimeout(() => setBackupMessage(null), 4000);
+      } catch {
+        setBackupMessage('ملف النسخة الاحتياطية غير صالح.');
+        setTimeout(() => setBackupMessage(null), 4000);
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
   };
 
   const handleDeleteNote = (idx: number) => {
@@ -293,6 +346,48 @@ export const PersonalSpaceView: React.FC<PersonalSpaceViewProps> = ({
               </div>
             ))}
           </div>
+        </div>
+      </div>
+
+      {/* Backup & Restore Data Card */}
+      <div className="p-5 sm:p-6 rounded-3xl bg-stone-900 border border-stone-800 space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="w-5 h-5 text-emerald-400" />
+            <h3 className="font-spiritual text-sm sm:text-base font-bold text-amber-200">
+              النسخ الاحتياطي وحفظ بيانات المخدع
+            </h3>
+          </div>
+          {backupMessage && (
+            <span className="text-xs font-bold text-emerald-300 bg-emerald-950/80 border border-emerald-500/40 px-3 py-1 rounded-xl animate-fade-in">
+              {backupMessage}
+            </span>
+          )}
+        </div>
+        <p className="text-xs text-stone-300 leading-relaxed">
+          يمكنك تصدير نسخة احتياطية من جميع مذكراتك الشخصية، وإحصائيات المسبحة، ومسار التكريس إلى ملف خاص بك للرجوع إليه أو نقله لهاتف آخر بأمان.
+        </p>
+
+        <div className="flex flex-wrap items-center gap-3 pt-1">
+          <button
+            type="button"
+            onClick={handleExportBackup}
+            className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 text-stone-950 font-bold text-xs shadow-md transition flex items-center gap-2 cursor-pointer active:scale-95"
+          >
+            <Download className="w-4 h-4 text-stone-950" />
+            <span>تصدير نسخة احتياطية (ملف JSON)</span>
+          </button>
+
+          <label className="px-4 py-2.5 rounded-xl bg-stone-800 hover:bg-stone-700 border border-stone-700 text-stone-200 font-bold text-xs transition flex items-center gap-2 cursor-pointer active:scale-95">
+            <Upload className="w-4 h-4 text-amber-400" />
+            <span>استعادة من نسخة احتياطية</span>
+            <input
+              type="file"
+              accept=".json"
+              onChange={handleImportBackup}
+              className="hidden"
+            />
+          </label>
         </div>
       </div>
     </div>

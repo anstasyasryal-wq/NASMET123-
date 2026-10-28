@@ -23,16 +23,35 @@ import {
   Copy,
   ChevronDown,
   ChevronUp,
+  Scale,
 } from 'lucide-react';
+import { SpiritualDiscernmentSimulator } from './SpiritualDiscernmentSimulator';
 
 interface MonasticOasisProps {
   currentUser?: User | null;
   onBackToHome: () => void;
   onNavigateToManual?: () => void;
+  initialTab?: 'pillars' | 'examen' | 'covenant' | 'dispensary' | 'virtues' | 'retreat_eval' | 'discernment';
 }
 
-export const MonasticOasis: React.FC<MonasticOasisProps> = ({ currentUser, onBackToHome, onNavigateToManual }) => {
-  const [activeTab, setActiveTab] = useState<'pillars' | 'examen' | 'covenant' | 'dispensary' | 'virtues' | 'retreat_eval'>('pillars');
+export const MonasticOasis: React.FC<MonasticOasisProps> = ({ currentUser, onBackToHome, onNavigateToManual, initialTab = 'pillars' }) => {
+  const [activeTab, setActiveTab] = useState<'pillars' | 'examen' | 'covenant' | 'dispensary' | 'virtues' | 'retreat_eval' | 'discernment'>(initialTab);
+
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
+
+  useEffect(() => {
+    const handleOpenDiscernment = () => {
+      setActiveTab('discernment');
+    };
+    window.addEventListener('open-spiritual-discernment', handleOpenDiscernment);
+    return () => {
+      window.removeEventListener('open-spiritual-discernment', handleOpenDiscernment);
+    };
+  }, []);
 
   // --- 1. PILLARS OF CONSECRATION ---
   const [expandedPillar, setExpandedPillar] = useState<number | null>(1);
@@ -598,6 +617,21 @@ export const MonasticOasis: React.FC<MonasticOasisProps> = ({ currentUser, onBac
         >
           <Heart className="w-4 h-4 text-amber-300" />
           <span>تقييم الخلوة والنمو الداخلي</span>
+        </button>
+
+        <button
+          onClick={() => {
+            soundManager.playTick();
+            setActiveTab('discernment');
+          }}
+          className={`px-4 py-2.5 rounded-xl flex items-center gap-2 transition shrink-0 cursor-pointer ${
+            activeTab === 'discernment'
+              ? 'bg-gradient-to-r from-amber-600 to-amber-700 text-white shadow-md'
+              : 'text-stone-300 hover:bg-stone-800'
+          }`}
+        >
+          <Scale className="w-4 h-4 text-amber-300" />
+          <span>ميزان الإفراز والتمييز ⚖️</span>
         </button>
       </div>
 
@@ -1212,6 +1246,13 @@ export const MonasticOasis: React.FC<MonasticOasisProps> = ({ currentUser, onBac
               ))}
             </div>
           </div>
+        </div>
+      )}
+
+      {/* TAB 7: Spiritual Discernment Simulator (Diakrisis Engine) */}
+      {activeTab === 'discernment' && (
+        <div className="animate-fade-in">
+          <SpiritualDiscernmentSimulator />
         </div>
       )}
     </div>

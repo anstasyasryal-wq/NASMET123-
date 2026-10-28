@@ -110,13 +110,38 @@ export const RegistrationModal: React.FC<RegistrationModalProps> = ({
             />
           </div>
 
-          <div className="pt-2">
+          <div className="pt-2 space-y-2">
             <button
               type="submit"
               className="w-full py-3.5 rounded-xl bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 text-white font-bold text-sm shadow-lg transition flex items-center justify-center gap-2 cursor-pointer min-h-[48px] touch-manipulation"
             >
               <Check className="w-4 h-4" />
               <span>تأكيد وتسجيل البطاقة</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                soundManager.playCorrect();
+                const guestUser: User = {
+                  id: `guest_${Date.now()}`,
+                  name: 'مشارك مبارك (زائر)',
+                  vocation,
+                  diocese: diocese || 'كنيسة عامة - زائر مبارك',
+                  totalScore: 0,
+                  currentStageId: 1,
+                  role: 'guest',
+                  completedStages: [],
+                  stageScores: {},
+                };
+                setCurrentUser(guestUser);
+                onSuccess(guestUser);
+                onClose();
+              }}
+              className="w-full py-3 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-200 font-bold text-xs transition flex items-center justify-center gap-2 cursor-pointer min-h-[42px] touch-manipulation"
+            >
+              <span>🕊️</span>
+              <span>دخول سريع كزائر (بدون تسجيل)</span>
             </button>
           </div>
         </form>

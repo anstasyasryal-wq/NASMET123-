@@ -23,7 +23,8 @@ export type AppView =
   | 'saints_stickers'
   | 'prayer_fortress'
   | 'virtue_jar'
-  | 'monastic_puzzle';
+  | 'monastic_puzzle'
+  | 'hesychia_path';
 
 export type UserRole = 'participant' | 'supervisor' | 'guest';
 

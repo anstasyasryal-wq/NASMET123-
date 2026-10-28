@@ -645,6 +645,47 @@ export const HymnsAudioProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     };
   }, [isPlaying, usingFile, duration]);
 
+  // MediaSession API integration for mobile lock screen & notification controls
+  useEffect(() => {
+    if (typeof window === 'undefined' || !('mediaSession' in navigator)) return;
+
+    try {
+      if (currentTrack) {
+        navigator.mediaSession.metadata = new MediaMetadata({
+          title: currentTrack.title,
+          artist: `حسب قلب الله • ${currentOccasion.name}`,
+          album: 'ألحان وترانيم وتأملات كنسية',
+          artwork: [
+            { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
+            { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
+          ],
+        });
+      }
+
+      navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
+
+      navigator.mediaSession.setActionHandler('play', () => {
+        if (!isPlaying) togglePlay();
+      });
+      navigator.mediaSession.setActionHandler('pause', () => {
+        if (isPlaying) togglePlay();
+      });
+      navigator.mediaSession.setActionHandler('previoustrack', () => {
+        prevTrack();
+      });
+      navigator.mediaSession.setActionHandler('nexttrack', () => {
+        nextTrack();
+      });
+      navigator.mediaSession.setActionHandler('seekto', (details) => {
+        if (details.seekTime !== undefined) {
+          seek(details.seekTime);
+        }
+      });
+    } catch {
+      // Quiet fail if browser restricts MediaSession
+    }
+  }, [currentTrack, currentOccasion, isPlaying]);
+
   // Clean on unmount
   useEffect(() => {
     return () => {

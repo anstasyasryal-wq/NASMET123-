@@ -13,8 +13,20 @@ const isProduction = process.env.NODE_ENV === 'production';
 
 app.use(express.json());
 
+// Open access & CORS middleware to allow sharing across external clients and previews
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, HEAD');
+  res.setHeader('Access-Control-Allow-Headers', '*');
+  res.removeHeader('X-Frame-Options');
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(204);
+  }
+  next();
+});
+
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', name: 'حسب قلب الله' });
+  res.json({ status: 'ok', name: 'حسب قلب الله', shareable: true });
 });
 
 async function startServer() {

@@ -32,6 +32,7 @@ import {
   Download,
   Share2,
   Type,
+  Star,
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -378,6 +379,17 @@ export const Header: React.FC<HeaderProps> = memo(({
             </button>
           )}
 
+          {/* 5-Star Rating Button */}
+          <button
+            onClick={() => window.dispatchEvent(new Event('show-rating-modal'))}
+            className="flex items-center justify-center gap-1.5 h-9 px-2.5 sm:h-10 sm:px-3 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/40 text-amber-300 transition cursor-pointer shrink-0 touch-manipulation active:scale-95 shadow-xs text-xs font-bold"
+            title="تقييم التطبيق ٥ نجوم وكتابة كلمة بركة"
+            aria-label="تقييم التطبيق"
+          >
+            <Star className="w-4 h-4 fill-amber-400 text-amber-400 shrink-0" />
+            <span className="hidden xl:inline">تقييم ٥ نجوم</span>
+          </button>
+
           {/* Share App Button */}
           <button
             onClick={() => window.dispatchEvent(new Event('show-share-modal'))}
@@ -534,6 +546,18 @@ export const Header: React.FC<HeaderProps> = memo(({
                 <span>{t('shareApp')}</span>
               </button>
             </div>
+
+            {/* 5-Star Rating Button for Mobile Drawer */}
+            <button
+              onClick={() => {
+                window.dispatchEvent(new Event('show-rating-modal'));
+                closeMobileMenu();
+              }}
+              className="w-full flex items-center justify-center gap-2 p-3 rounded-2xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 font-bold text-xs transition active:scale-95 cursor-pointer shadow-xs"
+            >
+              <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
+              <span>تقييم التطبيق ٥ نجوم وكتابة كلمة بركة ⭐</span>
+            </button>
 
             {/* Direct Global Directory Button in Mobile Menu */}
             <button
