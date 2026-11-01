@@ -33,7 +33,11 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="dns-prefetch" href="https://fonts.googleapis.com">
     <link rel="dns-prefetch" href="https://fonts.gstatic.com">
-    <link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=Cairo:wght@400;600;700;800;900&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <!-- Primary App & Spiritual Typefaces (Immediate non-blocking swap) -->
+    <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <!-- Secondary Optional Comfort Fonts (Loaded non-blocking for eye comfort settings) -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;600;700&family=Tajawal:wght@400;700&display=swap" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;600;700&family=Tajawal:wght@400;700&display=swap"></noscript>
     <script>
       (function() {
         // App Boot Diagnostics & Structured Logging System
@@ -66,6 +70,22 @@
             window.__REACT_MOUNTED__ = true;
           }
         };
+
+        // Force unregister old service workers and clear caches to prevent stale cache issues
+        if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+          navigator.serviceWorker.getRegistrations().then(function(registrations) {
+            for(var i = 0; i < registrations.length; i++) {
+              registrations[i].unregister();
+            }
+          });
+        }
+        if (typeof caches !== 'undefined') {
+          caches.keys().then(function(names) {
+            for (var i = 0; i < names.length; i++) {
+              caches.delete(names[i]);
+            }
+          });
+        }
 
         log('INFO', 'Initializing "حسب قلب الله" Boot Sequence...');
 
@@ -138,11 +158,6 @@
 
           // Do NOT suppress real errors or stop propagation. Only log diagnostic record.
           log('ERROR', 'Uncaught Runtime Error: ' + msg + ' @ ' + source + ':' + line + ':' + col, err);
-
-          // If React root has not mounted yet after critical error, display diagnostic notice
-          if (!window.__REACT_MOUNTED__) {
-            showDiagnosticNotice(msg, source + ':' + line);
-          }
         });
 
         // 5. Unhandled Promise Rejection Listener (non-blocking diagnostic logger)
@@ -158,10 +173,6 @@
 
           // Do NOT suppress rejections or stop propagation. Only log diagnostic record.
           log('ERROR', 'Unhandled Promise Rejection: ' + reasonMsg, reason);
-
-          if (!window.__REACT_MOUNTED__) {
-            showDiagnosticNotice('Promise Rejection: ' + reasonMsg, 'Async Initializer');
-          }
         });
 
         // 5. Watchdog Timeout for Initial Load
@@ -171,28 +182,12 @@
           }
         }, 8000);
 
-        // Helper to render diagnostic UI on initial load failure
-        function showDiagnosticNotice(errorMsg, locationStr) {
-          var rootEl = document.getElementById('root');
-          if (!rootEl || window.__REACT_MOUNTED__) return;
-
-          rootEl.innerHTML =
-            '<div style="min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; background-color: #0c0a09; color: #f5f5f4; text-align: center; font-family: system-ui, -apple-system, sans-serif; padding: 24px;" dir="rtl">' +
-              '<div style="width: 72px; height: 72px; border-radius: 20px; background: rgba(245, 158, 11, 0.15); border: 2px solid rgba(245, 158, 11, 0.4); display: flex; align-items: center; justify-content: center; font-size: 36px; margin-bottom: 16px;">' +
-                '✝️' +
-              '</div>' +
-              '<h1 style="font-size: 20px; font-weight: 800; color: #fbbf24; margin: 0 0 8px 0;">حسب قلب الله</h1>' +
-              '<p style="font-size: 13px; color: #d6d3d1; max-width: 360px; line-height: 1.6; margin: 0 0 16px 0;">' +
-                'جاري ضبط الاتصال وإتاحة التطبيق بالكامل...' +
-              '</p>' +
-              '<div style="background: rgba(28, 25, 23, 0.9); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 12px; padding: 10px 14px; font-size: 11px; font-family: monospace; color: #fbbf24; max-width: 420px; text-align: left; direction: ltr; margin-bottom: 20px; word-break: break-all; box-shadow: 0 8px 20px rgba(0,0,0,0.4);">' +
-                'Boot Error: ' + (errorMsg || 'Load Failure').replace(/</g, '&lt;') + '<br>Context: ' + (locationStr || 'main.tsx').replace(/</g, '&lt;') +
-              '</div>' +
-              '<button onclick="window.location.reload()" style="background: #f59e0b; color: #0c0a09; border: none; padding: 10px 22px; border-radius: 12px; font-weight: 800; font-size: 13px; cursor: pointer; box-shadow: 0 4px 12px rgba(245,158,11,0.3);">' +
-                'إعادة التحميل 🔄' +
-              '</button>' +
-            '</div>';
-        }
+        // Watchdog notice for initial load
+        setTimeout(function() {
+          if (!window.__REACT_MOUNTED__) {
+            log('WARN', 'App boot notice: React root has not reported mounted within 8s.');
+          }
+        }, 8000);
       })();
     </script>
     <style>

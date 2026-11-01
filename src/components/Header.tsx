@@ -1,4 +1,4 @@
-import React, { useState, memo } from 'react';
+import React, { useState, useEffect, memo } from 'react';
 import { User, AppView } from '../types';
 import { soundManager } from '../utils/audio';
 import { useReadingTheme } from '../context/ReadingThemeContext';
@@ -33,6 +33,7 @@ import {
   Share2,
   Type,
   Star,
+  Search,
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -51,6 +52,7 @@ interface HeaderProps {
   onOpenSilentRetreat?: () => void;
   onOpenWelcomeGarden?: () => void;
   onOpenDirectory?: () => void;
+  onOpenGlobalSearch?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = memo(({
@@ -68,6 +70,7 @@ export const Header: React.FC<HeaderProps> = memo(({
   onOpenSilentRetreat,
   onOpenWelcomeGarden,
   onOpenDirectory,
+  onOpenGlobalSearch,
 }) => {
   const [isMuted, setIsMuted] = useState(soundManager.getIsMuted());
   const [internalMobileMenuOpen, setInternalMobileMenuOpen] = useState(false);
@@ -99,6 +102,19 @@ export const Header: React.FC<HeaderProps> = memo(({
     const nextState = soundManager.toggleMute();
     setIsMuted(nextState);
   };
+
+  // Listen for Ctrl+K or ⌘K keyboard shortcut globally
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        soundManager.playTick();
+        if (onOpenGlobalSearch) onOpenGlobalSearch();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onOpenGlobalSearch]);
 
   const navLinks = [
     { view: 'home' as AppView, label: t('homeWheel'), icon: Home, badge: language === 'ar' ? 'المركز' : 'Hub' },
@@ -252,6 +268,25 @@ export const Header: React.FC<HeaderProps> = memo(({
 
         {/* Action Controls & Utilities */}
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          {/* Global Search Bar Trigger (Desktop & Mobile) */}
+          <button
+            onClick={() => {
+              soundManager.playTick();
+              if (onOpenGlobalSearch) onOpenGlobalSearch();
+            }}
+            className="flex items-center gap-2 h-9 px-2.5 sm:h-10 sm:px-3 rounded-xl bg-stone-900/90 hover:bg-stone-800 border border-amber-500/40 text-stone-200 text-xs font-medium transition cursor-pointer shadow-xs shrink-0 group active:scale-95"
+            title={language === 'ar' ? 'البحث الشامل في القديسين والترانيم والمواضيع (⌘K)' : 'Global Search (⌘K)'}
+            aria-label="البحث الشامل"
+          >
+            <Search className="w-4 h-4 text-amber-400 shrink-0 group-hover:scale-110 transition-transform" />
+            <span className="hidden sm:inline text-stone-300 font-bold text-xs truncate max-w-[130px] lg:max-w-[200px]">
+              {language === 'ar' ? 'ابحث عن قديس، ترنيمة...' : 'Search saints, hymns...'}
+            </span>
+            <kbd className="hidden md:inline-block px-1.5 py-0.5 rounded bg-stone-950 border border-stone-700 text-amber-400/90 text-[10px] font-mono shadow-xs">
+              ⌘K
+            </kbd>
+          </button>
+
           {/* Consecration Tree & Daily Milestones Shortcut */}
           <button
             onClick={() => onNavigate('home')}

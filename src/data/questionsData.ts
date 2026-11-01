@@ -1,5 +1,16 @@
 import { Question } from '../types';
 
+const STORED_QUESTIONS_KEY = 'mokarasa_stored_questions';
+
+export function getStoredQuestions(): Question[] {
+  if (typeof window === 'undefined') return OFFICIAL_QUESTIONS;
+  try {
+    const raw = localStorage.getItem(STORED_QUESTIONS_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return OFFICIAL_QUESTIONS;
+}
+
 export const OFFICIAL_QUESTIONS: Question[] = [
   // =========================================================================
   // STAGE 1: أساسيات التكريس والعلوم الكنسية

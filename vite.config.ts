@@ -2,24 +2,56 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { VitePWA } from 'vite-plugin-pwa';
+import compression from 'vite-plugin-compression';
 import path from 'path';
+import fs from 'fs';
 
 export default defineConfig({
   resolve: {
-    alias: {
-      'react': path.resolve(__dirname, 'node_modules/react'),
-      'react-dom': path.resolve(__dirname, 'node_modules/react-dom'),
-    },
+    dedupe: ['react', 'react-dom'],
   },
   optimizeDeps: {
-    include: ['react', 'react-dom', 'lucide-react', 'framer-motion', 'canvas-confetti'],
+    include: ['react', 'react-dom'],
   },
   plugins: [
     react(),
     tailwindcss(),
+    compression({
+      algorithm: 'gzip',
+      ext: '.gz',
+      threshold: 1024,
+      deleteOriginFile: false,
+    }),
+    {
+      name: 'touch-files-for-brotli',
+      apply: 'build',
+      enforce: 'post',
+      async closeBundle() {
+        const outDir = path.resolve(import.meta.dirname, 'dist');
+        const touchTree = (dir: string) => {
+          if (!fs.existsSync(dir)) return;
+          for (const item of fs.readdirSync(dir)) {
+            const full = path.join(dir, item);
+            if (fs.statSync(full).isDirectory()) {
+              touchTree(full);
+            } else if (!full.endsWith('.gz') && !full.endsWith('.br')) {
+              const future = new Date(Date.now() + 15000);
+              try { fs.utimesSync(full, future, future); } catch {}
+            }
+          }
+        };
+        touchTree(outDir);
+      },
+    },
+    compression({
+      algorithm: 'brotliCompress',
+      ext: '.br',
+      threshold: 1024,
+      deleteOriginFile: false,
+    }),
     VitePWA({
-      registerType: 'prompt',
-      injectRegister: null,
+      registerType: 'autoUpdate',
+      injectRegister: 'auto',
       devOptions: {
         enabled: false,
       },
@@ -49,7 +81,7 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,png,svg,ico,woff2}'],
+        globPatterns: ['**/*.{js,css,html,svg,ico}'],
         maximumFileSizeToCacheInBytes: 10 * 1024 * 1024,
         navigateFallback: '/index.html',
         navigateFallbackDenylist: [/^\/api\//],
@@ -63,6 +95,14 @@ export default defineConfig({
               expiration: { maxEntries: 30, maxAgeSeconds: 60 * 60 * 24 * 365 },
             },
           },
+          {
+            urlPattern: /\.(?:png|jpg|jpeg|webp|gif)$/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'app-images-cache',
+              expiration: { maxEntries: 60, maxAgeSeconds: 60 * 60 * 24 * 30 },
+            },
+          },
         ],
       },
     }),
@@ -74,15 +114,27 @@ export default defineConfig({
       output: {
         manualChunks(id) {
           if (id.includes('node_modules')) {
-            if (id.includes('react') || id.includes('react-dom') || id.includes('scheduler')) {
-              return 'vendor-react';
+            if (id.includes('lucide-react')) {
+              return 'vendor-icons';
             }
             if (id.includes('framer-motion')) {
               return 'vendor-motion';
             }
-            if (id.includes('lucide-react')) {
-              return 'vendor-icons';
+            if (id.includes('react') || id.includes('react-dom') || id.includes('scheduler')) {
+              return 'vendor-react';
             }
+            if (id.includes('canvas-confetti')) {
+              return 'vendor-confetti';
+            }
+          }
+          if (id.includes('heavenlyMessages')) {
+            return 'data-heavenly';
+          }
+          if (id.includes('patristicFullBooks')) {
+            return 'data-patristics';
+          }
+          if (id.includes('prayerFortressData')) {
+            return 'data-prayer-fortress';
           }
         },
       },

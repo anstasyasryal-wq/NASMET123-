@@ -3,11 +3,11 @@ import { User, Stage, Announcement } from '../types';
 import { soundManager } from '../utils/audio';
 import { getOrRefreshDailyMessage } from '../utils/heavenlyHistory';
 import type { WheelSection } from './FortuneWheel';
-import { ConsecrationProgressBar } from './ConsecrationProgressBar';
 import { useLanguage } from '../context/LanguageContext';
 
 const FortuneWheel = lazy(() => import('./FortuneWheel').then(m => ({ default: m.FortuneWheel })));
 const ConsecrationTree = lazy(() => import('./ConsecrationTree').then(m => ({ default: m.ConsecrationTree })));
+const ConsecrationProgressBar = lazy(() => import('./ConsecrationProgressBar').then(m => ({ default: m.ConsecrationProgressBar })));
 import {
   Compass,
   BookOpen,
@@ -404,10 +404,12 @@ export const HomeView: React.FC<HomeViewProps> = React.memo(({
       </section>
 
       {/* Consecration Progress Bar (شريط تقدم التكريس والمسار الروحي) */}
-      <ConsecrationProgressBar
-        onOpenConsecrationManual={onNavigateToConsecratedManual}
-        onOpenSpiritualLife={onNavigateToSpiritualLife}
-      />
+      <Suspense fallback={<div className="w-full h-16 rounded-2xl bg-amber-950/20 border border-amber-500/20 animate-pulse my-4" />}>
+        <ConsecrationProgressBar
+          onOpenConsecrationManual={onNavigateToConsecratedManual}
+          onOpenSpiritualLife={onNavigateToSpiritualLife}
+        />
+      </Suspense>
 
       {/* 2. Three Prominent Required Cards (Heavenly Message, Growth Tree, Consecrated Constitution) */}
       <section className="grid grid-cols-1 md:grid-cols-3 gap-4">

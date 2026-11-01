@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getDailySaintSticker, SaintSticker } from '../data/saintsStickersData';
 import { soundManager } from '../utils/audio';
-import confetti from 'canvas-confetti';
 import {
   Sparkles,
   Clock,
@@ -66,9 +65,11 @@ export const DailySaintAlertBanner: React.FC<DailySaintAlertBannerProps> = React
     const fresh = getDailySaintSticker(true);
     setData(fresh);
     setTimeRemainingMs(fresh.timeRemainingMs);
-    try {
-      confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } });
-    } catch {}
+    import('canvas-confetti')
+      .then(({ default: confetti }) => {
+        confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } });
+      })
+      .catch(() => {});
   };
 
   const handleCopy = (e: React.MouseEvent) => {

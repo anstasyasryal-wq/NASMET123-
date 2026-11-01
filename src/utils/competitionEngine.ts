@@ -1,5 +1,4 @@
 import { User, Stage, Question, Announcement, DioceseRanking } from '../types';
-import { OFFICIAL_QUESTIONS } from '../data/questionsData';
 import { INITIAL_STAGES } from '../data/stagesData';
 
 const CURRENT_USER_KEY = 'mokarasa_current_user';
@@ -90,14 +89,7 @@ export function saveStages(stages: Stage[]): void {
   } catch {}
 }
 
-export function getStoredQuestions(): Question[] {
-  if (typeof window === 'undefined') return OFFICIAL_QUESTIONS;
-  try {
-    const raw = localStorage.getItem(STORED_QUESTIONS_KEY);
-    if (raw) return JSON.parse(raw);
-  } catch {}
-  return OFFICIAL_QUESTIONS;
-}
+export { getStoredQuestions } from '../data/questionsData';
 
 export function getStoredAnnouncements(): Announcement[] {
   if (typeof window === 'undefined') return DEFAULT_ANNOUNCEMENTS;

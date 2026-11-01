@@ -17,14 +17,14 @@ import { DailySaintAlertBanner } from './components/DailySaintAlertBanner';
 import { ReadingThemeProvider, useReadingTheme } from './context/ReadingThemeContext';
 import { LanguageProvider, useLanguage } from './context/LanguageContext';
 import { HymnsAudioProvider } from './context/HymnsAudioContext';
-import AppInstallManager from './components/AppInstallManager';
 import { MobileBottomNav } from './components/MobileBottomNav';
 import { JoyfulScreenHeader } from './components/JoyfulScreenHeader';
 import { OnlineAutoUpdater } from './components/OnlineAutoUpdater';
 import { recordViewVisit } from './utils/preloadManager';
-import { motion } from 'framer-motion';
 import { FloatingSpiritualGuideFAB } from './components/FloatingSpiritualGuideFAB';
 import { ErrorBoundary } from './components/ErrorBoundary';
+
+const AppInstallManager = lazy(() => import('./components/AppInstallManager'));
 
 const SpiritualHymnsPlayer = lazy(() => import('./components/SpiritualHymnsPlayer').then(m => ({ default: m.SpiritualHymnsPlayer })));
 
@@ -67,6 +67,7 @@ const WelcomeSplashModal = lazy(() => import('./components/WelcomeSplashModal'))
 const EyeComfortFontModal = lazy(() => import('./components/EyeComfortFontModal').then(m => ({ default: m.EyeComfortFontModal })));
 const VirtualSilentRetreat = lazy(() => import('./components/VirtualSilentRetreat').then(m => ({ default: m.VirtualSilentRetreat })));
 const ComprehensiveDirectoryModal = lazy(() => import('./components/ComprehensiveDirectoryModal').then(m => ({ default: m.ComprehensiveDirectoryModal })));
+const GlobalSearchModal = lazy(() => import('./components/GlobalSearchModal').then(m => ({ default: m.GlobalSearchModal })));
 const AppRatingModal = lazy(() => import('./components/AppRatingModal').then(m => ({ default: m.AppRatingModal })));
 const VerseCardGeneratorModal = lazy(() => import('./components/VerseCardGeneratorModal').then(m => ({ default: m.VerseCardGeneratorModal })));
 
@@ -121,6 +122,7 @@ function AppContent() {
   const [showSaintsStickersModal, setShowSaintsStickersModal] = useState<boolean>(false);
   const [showSilentRetreat, setShowSilentRetreat] = useState<boolean>(false);
   const [showDirectoryModal, setShowDirectoryModal] = useState<boolean>(false);
+  const [showGlobalSearchModal, setShowGlobalSearchModal] = useState<boolean>(false);
   const [showMobileMenu, setShowMobileMenu] = useState<boolean>(false);
   const [showRatingModal, setShowRatingModal] = useState<boolean>(false);
   const [verseCardData, setVerseCardData] = useState<{
@@ -278,6 +280,7 @@ function AppContent() {
           onOpenSilentRetreat={() => setShowSilentRetreat(true)}
           onOpenWelcomeGarden={() => setShowWelcomeSplash(true)}
           onOpenDirectory={() => setShowDirectoryModal(true)}
+          onOpenGlobalSearch={() => setShowGlobalSearchModal(true)}
         />
 
         {/* Main Content Area */}
@@ -292,11 +295,7 @@ function AppContent() {
           )}
 
           {currentView === 'home' && (
-            <motion.div
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-            >
+            <div className="animate-fade-in">
               <HomeView
                 currentUser={currentUser}
                 stages={stages}
@@ -334,7 +333,7 @@ function AppContent() {
                 onOpenDirectory={() => setShowDirectoryModal(true)}
                 onNavigateToHesychiaPath={() => handleNavigate('hesychia_path')}
               />
-            </motion.div>
+            </div>
           )}
 
           <Suspense fallback={<ViewLoadingFallback />}>
@@ -743,6 +742,18 @@ function AppContent() {
           />
         )}
 
+        {showGlobalSearchModal && (
+          <GlobalSearchModal
+            isOpen={showGlobalSearchModal}
+            onClose={() => setShowGlobalSearchModal(false)}
+            onNavigate={(view) => handleNavigate(view)}
+            onOpenSaintsStickers={() => setShowSaintsStickersModal(true)}
+            onOpenSaintsGallery={() => setShowSaintsGallery(true)}
+            onOpenSpiritualGuide={() => setShowSpiritualGuideModal(true)}
+            onOpenHeavenlyMessage={() => setShowHeavenlyMessageModal(true)}
+          />
+        )}
+
         {showRatingModal && (
           <AppRatingModal
             isOpen={showRatingModal}
@@ -797,7 +808,9 @@ export default function App() {
         <ReadingThemeProvider>
           <HymnsAudioProvider>
             <AppContent />
-            <AppInstallManager />
+            <Suspense fallback={null}>
+              <AppInstallManager />
+            </Suspense>
           </HymnsAudioProvider>
         </ReadingThemeProvider>
       </LanguageProvider>
